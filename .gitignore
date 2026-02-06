@@ -1,22 +1,146 @@
-### AL ###
-#Template for AL projects for Dynamics 365 Business Central
-#launch.json folder
+# ==================================
+# English Learning Platform - .gitignore
+# ==================================
+
+# ===== Plans & Documentation =====
+Plans/
+docs/private/
+
+# ===== Backend (Java/Spring Boot) =====
+
+# Build output
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+HELP.md
+
+# Logs
+logs/
+*.log
+
+# ===== Frontend (Node.js/React/Vite) =====
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== IDE & Editors =====
+
+# VS Code
 .vscode/
-#Cache folder
-.alcache/
-#Symbols folder
-.alpackages/
-#Snapshots folder
-.snapshots/
-#Testing Output folder
-.output/
-#Extension App-file
-*.app
-#Rapid Application Development File
-rad.json
-#Translation Base-file
-*.g.xlf
-#License-file
-*.flf
-#Test results file
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse / STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ===== OS Generated =====
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ===== Runtime & Cache =====
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Compiled files
+*.com
+*.exe
+*.o
+*.so
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+*.zip
+
+# Cache
+.cache/
+*.cache
+.parcel-cache/
+.eslintcache
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# ===== Misc =====
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Test results
 TestResults.xml
+
+# Secrets & credentials
+*.pem
+*.key
+secrets.json
+credentials.json
