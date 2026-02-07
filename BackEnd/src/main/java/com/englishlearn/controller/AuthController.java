@@ -56,6 +56,33 @@ public class AuthController {
     }
 
     /**
+     * POST /api/v1/auth/refresh-token - Làm mới access token
+     */
+    @PostMapping("/refresh-token")
+    @Operation(summary = "Làm mới access token bằng refresh token")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
+            @RequestBody java.util.Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Refresh token không được để trống"));
+        }
+        AuthResponse response = authService.refreshToken(refreshToken);
+        return ResponseEntity.ok(ApiResponse.success("Làm mới token thành công", response));
+    }
+
+    /**
+     * POST /api/v1/auth/logout - Đăng xuất (invalidate token phía client)
+     */
+    @PostMapping("/logout")
+    @Operation(summary = "Đăng xuất")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        // JWT là stateless - client tự xóa token
+        // Nếu cần blacklist token, có thể lưu vào Redis/DB
+        return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công"));
+    }
+
+    /**
      * GET /api/v1/auth/health - Kiểm tra server hoạt động
      */
     @GetMapping("/health")
