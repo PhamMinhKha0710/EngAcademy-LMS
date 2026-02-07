@@ -1,5 +1,7 @@
 package com.englishlearn.config;
 
+import com.englishlearn.security.CustomAccessDeniedHandler;
+import com.englishlearn.security.CustomAuthenticationEntryPoint;
 import com.englishlearn.security.CustomUserDetailsService;
 import com.englishlearn.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomUserDetailsService userDetailsService;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -48,8 +52,13 @@ public class SecurityConfig {
                                 "/api/v1/lessons/topic/**")
                         .permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/teacher/**").hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers("/api/v1/school/**").hasAnyRole("ADMIN", "SCHOOL")
+                        .requestMatchers("/api/v1/teacher/**").hasAnyRole("ADMIN", "SCHOOL", "TEACHER")
+                        .requestMatchers("/api/v1/student/**").hasAnyRole("ADMIN", "SCHOOL", "TEACHER", "STUDENT")
                         .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler(accessDeniedHandler)
+                        .authenticationEntryPoint(authenticationEntryPoint))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
