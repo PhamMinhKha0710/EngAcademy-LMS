@@ -1,13 +1,16 @@
 package com.englishlearn.controller;
 
+import com.englishlearn.dto.request.VocabularyRequest;
 import com.englishlearn.dto.response.ApiResponse;
 import com.englishlearn.dto.response.VocabularyResponse;
 import com.englishlearn.service.VocabularyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -74,6 +77,34 @@ public class VocabularyController {
             @RequestParam(defaultValue = "10") int count) {
         List<VocabularyResponse> vocabs = vocabularyService.getFlashcards(lessonId, count);
         return ResponseEntity.ok(ApiResponse.success("Lấy flashcard thành công", vocabs));
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @Operation(summary = "Tạo từ vựng mới")
+    public ResponseEntity<ApiResponse<VocabularyResponse>> createVocabulary(
+            @RequestBody @Valid VocabularyRequest request) {
+        VocabularyResponse vocab = vocabularyService.createVocabulary(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo từ vựng thành công", vocab));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @Operation(summary = "Cập nhật từ vựng")
+    public ResponseEntity<ApiResponse<VocabularyResponse>> updateVocabulary(
+            @PathVariable Long id,
+            @RequestBody @Valid VocabularyRequest request) {
+        VocabularyResponse vocab = vocabularyService.updateVocabulary(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật từ vựng thành công", vocab));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @Operation(summary = "Xóa từ vựng")
+    public ResponseEntity<ApiResponse<Void>> deleteVocabulary(@PathVariable Long id) {
+        vocabularyService.deleteVocabulary(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa từ vựng thành công"));
     }
 
     @GetMapping("/flashcards/random")
