@@ -5,12 +5,15 @@ import com.englishlearn.dto.LoginRequest;
 import com.englishlearn.dto.RegisterRequest;
 import com.englishlearn.entity.Role;
 import com.englishlearn.entity.User;
+import com.englishlearn.exception.DuplicateResourceException;
+import com.englishlearn.exception.ResourceNotFoundException;
 import com.englishlearn.repository.RoleRepository;
 import com.englishlearn.repository.UserRepository;
 import com.englishlearn.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,16 +33,16 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists");
+            throw new DuplicateResourceException("Tài khoản", "username", request.getUsername());
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new DuplicateResourceException("Tài khoản", "email", request.getEmail());
         }
 
         // Assign Role
         String roleName = request.getRole() != null ? "ROLE_" + request.getRole().toUpperCase() : Role.STUDENT;
         Role userRole = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
+                .orElseThrow(() -> new ResourceNotFoundException("Vai trò", "name", roleName));
 
         var user = User.builder()
                 .username(request.getUsername())
@@ -53,26 +56,7 @@ public class AuthService {
 
         var savedUser = userRepository.save(user);
 
-        // Generate tokens
-        var userDetails = new org.springframework.security.core.userdetails.User(
-                savedUser.getUsername(),
-                savedUser.getPasswordHash(),
-                savedUser.getRoles().stream()
-                        .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority(
-                                role.getName()))
-                        .collect(Collectors.toList()));
-
-        var accessToken = jwtService.generateToken(userDetails);
-        var refreshToken = jwtService.generateRefreshToken(userDetails);
-
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .id(savedUser.getId())
-                .username(savedUser.getUsername())
-                .email(savedUser.getEmail())
-                .roles(savedUser.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
-                .build();
+        return buildAuthResponse(savedUser);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -82,16 +66,37 @@ public class AuthService {
                         request.getPassword()));
 
         var user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow();
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản", "username", request.getUsername()));
 
-        var userDetails = new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPasswordHash(),
-                user.getRoles().stream()
-                        .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority(
-                                role.getName()))
-                        .collect(Collectors.toList()));
+        return buildAuthResponse(user);
+    }
 
+    public AuthResponse refreshToken(String refreshToken) {
+        String username = jwtService.extractUsername(refreshToken);
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản", "username", username));
+
+        var userDetails = buildUserDetails(user);
+
+        if (!jwtService.isTokenValid(refreshToken, userDetails)) {
+            throw new RuntimeException("Refresh token không hợp lệ hoặc đã hết hạn");
+        }
+
+        var newAccessToken = jwtService.generateToken(userDetails);
+        var newRefreshToken = jwtService.generateRefreshToken(userDetails);
+
+        return AuthResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
+                .build();
+    }
+
+    private AuthResponse buildAuthResponse(User user) {
+        var userDetails = buildUserDetails(user);
         var accessToken = jwtService.generateToken(userDetails);
         var refreshToken = jwtService.generateRefreshToken(userDetails);
 
@@ -103,5 +108,14 @@ public class AuthService {
                 .email(user.getEmail())
                 .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
                 .build();
+    }
+
+    private org.springframework.security.core.userdetails.User buildUserDetails(User user) {
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPasswordHash(),
+                user.getRoles().stream()
+                        .map(role -> new SimpleGrantedAuthority(role.getName()))
+                        .collect(Collectors.toList()));
     }
 }
