@@ -24,10 +24,10 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
 
     boolean existsByEmail(String email);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.school.id = :schoolId AND 'ROLE_TEACHER' MEMBER OF u.roles")
+    @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE u.school.id = :schoolId AND r.name = 'ROLE_TEACHER'")
     Long countTeachersBySchoolId(@Param("schoolId") Long schoolId);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.school.id = :schoolId AND 'ROLE_STUDENT' MEMBER OF u.roles")
+    @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE u.school.id = :schoolId AND r.name = 'ROLE_STUDENT'")
     Long countStudentsBySchoolId(@Param("schoolId") Long schoolId);
 
     @Query("SELECT COUNT(c) FROM ClassRoom c WHERE c.school.id = :schoolId AND c.isActive = true")
