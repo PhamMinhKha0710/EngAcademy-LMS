@@ -15,8 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -56,11 +54,19 @@ public class ExamController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER', 'STUDENT')")
-    @Operation(summary = "Get exam by ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Get exam by ID (teacher/admin view - shows correct answers)")
     public ResponseEntity<ApiResponse<ExamResponse>> getExamById(@PathVariable Long id) {
         ExamResponse exam = examService.getExamById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin bài kiểm tra thành công", exam));
+    }
+
+    @GetMapping("/{id}/take")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Get exam for student to take - shuffles questions/answers, hides correct answers")
+    public ResponseEntity<ApiResponse<ExamResponse>> getExamForStudent(@PathVariable Long id) {
+        ExamResponse exam = examService.getExamForStudent(id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy đề thi thành công", exam));
     }
 
     @PostMapping
