@@ -1,8 +1,8 @@
 package com.englishlearn.e2e;
 
-import com.englishlearn.dto.request.*;
+import com.englishlearn.application.dto.request.*;
 import com.englishlearn.fixtures.TestDataFactory;
-import com.englishlearn.security.JwtService;
+import com.englishlearn.infrastructure.security.JwtService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
