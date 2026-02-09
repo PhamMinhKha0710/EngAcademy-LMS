@@ -42,8 +42,8 @@ public class ExamResult {
     @Builder.Default
     private Integer violationCount = 0;
 
-    @PrePersist
-    protected void onSubmit() {
-        submittedAt = LocalDateTime.now();
-    }
+    /**
+     * submittedAt is set manually when the exam is actually submitted,
+     * not on initial creation (to support anti-cheat in-progress state).
+     */
 }

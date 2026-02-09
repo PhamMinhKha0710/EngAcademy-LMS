@@ -36,4 +36,24 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     @Query("SELECT er FROM ExamResult er WHERE er.exam.id = :examId ORDER BY er.score DESC")
     List<ExamResult> findTopScoresByExamId(@Param("examId") Long examId);
+
+    /**
+     * Tìm kết quả thi theo exam ID và student ID
+     */
+    Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
+
+    /**
+     * Lấy tất cả kết quả của một bài thi, sắp xếp theo điểm giảm dần
+     */
+    List<ExamResult> findByExamIdOrderByScoreDesc(Long examId);
+
+    /**
+     * Lấy tất cả kết quả thi của một sinh viên, sắp xếp theo thời gian nộp giảm dần
+     */
+    List<ExamResult> findByStudentIdOrderBySubmittedAtDesc(Long studentId);
+
+    /**
+     * Kiểm tra sinh viên đã làm bài thi chưa (theo ID)
+     */
+    boolean existsByExamIdAndStudentId(Long examId, Long studentId);
 }
