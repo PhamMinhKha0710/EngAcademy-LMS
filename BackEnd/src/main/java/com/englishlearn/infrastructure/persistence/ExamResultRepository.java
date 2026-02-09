@@ -18,6 +18,9 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     List<ExamResult> findByStudent(User student);
 
+    @Query("SELECT er FROM ExamResult er WHERE er.student.id = :userId")
+    List<ExamResult> findByUserId(@Param("userId") Long userId);
+
     Optional<ExamResult> findByExamAndStudent(Exam exam, User student);
 
     boolean existsByExamAndStudent(Exam exam, User student);
@@ -27,6 +30,9 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     @Query("SELECT AVG(er.score) FROM ExamResult er WHERE er.exam.id = :examId")
     Double averageScoreByExamId(@Param("examId") Long examId);
+
+    @Query("SELECT AVG(er.score) FROM ExamResult er WHERE er.student.id = :userId")
+    Double averageScoreByUserId(@Param("userId") Long userId);
 
     @Query("SELECT er FROM ExamResult er WHERE er.exam.id = :examId ORDER BY er.score DESC")
     List<ExamResult> findTopScoresByExamId(@Param("examId") Long examId);
