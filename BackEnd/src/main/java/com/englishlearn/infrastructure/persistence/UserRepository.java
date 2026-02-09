@@ -1,8 +1,14 @@
 package com.englishlearn.infrastructure.persistence;
 
 import com.englishlearn.domain.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import java.util.Optional;
 
 @Repository
@@ -14,4 +20,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
+
+    @Modifying
+    @Query("UPDATE User u SET u.coins = u.coins + :coins WHERE u.id = :userId")
+    void addCoinsToUser(@Param("userId") Long userId, @Param("coins") Integer coins);
+
+    // Leaderboard queries - Only ROLE_STUDENT users
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC")
+    Page<User> findLeaderboard(Pageable pageable);
+
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC LIMIT :limit")
+    java.util.List<User> findTopUsersByCoins(@Param("limit") int limit);
+
+    // Get all users with ROLE_STUDENT
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC")
+    java.util.List<User> findAllStudents();
+
+    // Count only ROLE_STUDENT users
+    @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT'")
+    long countStudents();
 }
