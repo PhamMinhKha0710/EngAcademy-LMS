@@ -1,9 +1,14 @@
 package com.englishlearn.application.service;
 
+import com.englishlearn.application.dto.request.AntiCheatEventDTO;
 import com.englishlearn.application.dto.request.ExamRequest;
+import com.englishlearn.application.dto.request.ExamSubmitDTO;
 import com.englishlearn.application.dto.request.SubmitExamRequest;
+import com.englishlearn.application.dto.response.ExamQuestionDTO;
 import com.englishlearn.application.dto.response.ExamResponse;
+import com.englishlearn.application.dto.response.ExamResultDTO;
 import com.englishlearn.application.dto.response.ExamResultResponse;
+import com.englishlearn.application.dto.response.ExamTakeDTO;
 import com.englishlearn.domain.entity.*;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
@@ -35,6 +40,7 @@ public class ExamService {
     private final ExamResultRepository examResultRepository;
     private final ExamAnswerRepository examAnswerRepository;
     private final QuestionOptionRepository questionOptionRepository;
+    private final AntiCheatEventRepository antiCheatEventRepository;
 
     @Transactional(readOnly = true)
     public Page<ExamResponse> getExamsByTeacher(Long teacherId, Pageable pageable) {
@@ -253,6 +259,7 @@ public class ExamService {
                 .score(score)
                 .correctCount(correctCount)
                 .totalQuestions(exam.getQuestions().size())
+                .submittedAt(LocalDateTime.now())
                 .build();
 
         ExamResult savedResult = examResultRepository.save(result);
@@ -403,5 +410,223 @@ public class ExamService {
         if (s >= 5)
             return "D";
         return "F";
+    }
+
+    // ========================= ANTI-CHEAT EXAM METHODS =========================
+
+    /**
+     * Lấy bài thi để làm bài (có shuffle questions và answers, tạo ExamResult in-progress)
+     */
+    @Transactional
+    public ExamTakeDTO takeExam(Long examId, Long studentId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bài thi", "id", examId));
+
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sinh viên", "id", studentId));
+
+        // Kiểm tra thời gian bài thi
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(exam.getStartTime())) {
+            throw new IllegalStateException("Bài thi chưa bắt đầu. Thời gian bắt đầu: " + exam.getStartTime());
+        }
+        if (now.isAfter(exam.getEndTime())) {
+            throw new IllegalStateException("Bài thi đã kết thúc. Thời gian kết thúc: " + exam.getEndTime());
+        }
+
+        // Kiểm tra trạng thái bài thi
+        if (!"PUBLISHED".equals(exam.getStatus())) {
+            throw new IllegalStateException("Bài thi chưa được công bố");
+        }
+
+        // Kiểm tra hoặc tạo ExamResult (in-progress, chưa submit)
+        ExamResult examResult = examResultRepository.findByExamIdAndStudentId(examId, studentId)
+                .orElseGet(() -> {
+                    ExamResult newResult = ExamResult.builder()
+                            .exam(exam)
+                            .student(student)
+                            .totalQuestions(exam.getQuestions().size())
+                            .build();
+                    return examResultRepository.save(newResult);
+                });
+
+        // Nếu đã submit thì không cho làm lại
+        if (examResult.getSubmittedAt() != null) {
+            throw new IllegalStateException("Bạn đã hoàn thành bài thi này");
+        }
+
+        // Chuyển đổi questions sang DTO với shuffle
+        List<Question> questions = new ArrayList<>(exam.getQuestions());
+
+        // Shuffle questions nếu được bật
+        if (Boolean.TRUE.equals(exam.getShuffleQuestions())) {
+            Collections.shuffle(questions, new Random(studentId + examId));
+            log.info("Shuffled questions for exam {} student {}", examId, studentId);
+        }
+
+        List<ExamQuestionDTO> questionDTOs = questions.stream()
+                .map(q -> mapToExamQuestionDTO(q, exam.getShuffleAnswers(), studentId, examId))
+                .collect(Collectors.toList());
+
+        return ExamTakeDTO.builder()
+                .id(exam.getId())
+                .title(exam.getTitle())
+                .durationMinutes(exam.getDurationMinutes())
+                .startTime(exam.getStartTime())
+                .endTime(exam.getEndTime())
+                .antiCheatEnabled(exam.getAntiCheatEnabled())
+                .examResultId(examResult.getId())
+                .questions(questionDTOs)
+                .totalQuestions(questionDTOs.size())
+                .build();
+    }
+
+    /**
+     * Map Question entity sang ExamQuestionDTO với shuffle options
+     */
+    private ExamQuestionDTO mapToExamQuestionDTO(Question question, Boolean shuffleAnswers, Long studentId, Long examId) {
+        List<QuestionOption> options = questionOptionRepository.findByQuestionId(question.getId());
+
+        if (Boolean.TRUE.equals(shuffleAnswers)) {
+            List<QuestionOption> shuffledOptions = new ArrayList<>(options);
+            Collections.shuffle(shuffledOptions, new Random(studentId + examId + question.getId()));
+            options = shuffledOptions;
+        }
+
+        List<ExamQuestionDTO.QuestionOptionDTO> optionDTOs = options.stream()
+                .map(opt -> ExamQuestionDTO.QuestionOptionDTO.builder()
+                        .id(opt.getId())
+                        .optionText(opt.getOptionText())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ExamQuestionDTO.builder()
+                .id(question.getId())
+                .questionText(question.getQuestionText())
+                .questionType(question.getQuestionType())
+                .points(question.getPoints())
+                .options(optionDTOs)
+                .build();
+    }
+
+    /**
+     * Ghi nhận sự kiện anti-cheat
+     */
+    @Transactional
+    public void logAntiCheatEvent(AntiCheatEventDTO dto) {
+        ExamResult examResult = examResultRepository.findById(dto.getExamResultId())
+                .orElseThrow(() -> new ResourceNotFoundException("Kết quả thi", "id", dto.getExamResultId()));
+
+        if (examResult.getSubmittedAt() != null) {
+            log.warn("Attempt to log anti-cheat event after submission for result {}", dto.getExamResultId());
+            return;
+        }
+
+        AntiCheatEvent event = AntiCheatEvent.builder()
+                .examResult(examResult)
+                .eventType(dto.getEventType())
+                .eventTime(dto.getTimestamp() != null ? dto.getTimestamp() : LocalDateTime.now())
+                .details(dto.getDetails())
+                .build();
+        antiCheatEventRepository.save(event);
+
+        examResult.setViolationCount(examResult.getViolationCount() + 1);
+        examResultRepository.save(examResult);
+
+        log.info("Anti-cheat event logged: type={}, examResultId={}, totalViolations={}",
+                dto.getEventType(), dto.getExamResultId(), examResult.getViolationCount());
+    }
+
+    /**
+     * Submit bài thi với anti-cheat validation
+     */
+    @Transactional
+    public ExamResultDTO submitExamWithAntiCheat(ExamSubmitDTO dto) {
+        ExamResult examResult = examResultRepository.findById(dto.getExamResultId())
+                .orElseThrow(() -> new ResourceNotFoundException("Kết quả thi", "id", dto.getExamResultId()));
+
+        if (examResult.getSubmittedAt() != null) {
+            throw new IllegalStateException("Bài thi đã được nộp trước đó");
+        }
+
+        Exam exam = examResult.getExam();
+        LocalDateTime now = LocalDateTime.now();
+
+        // Validation thời gian
+        LocalDateTime deadline = exam.getStartTime().plusMinutes(exam.getDurationMinutes());
+        LocalDateTime deadlineWithBuffer = deadline.plusMinutes(1);
+
+        String status = "COMPLETED";
+        if (now.isAfter(deadlineWithBuffer)) {
+            log.warn("Late submission for examResult {}: submitted at {}, deadline was {}",
+                    dto.getExamResultId(), now, deadline);
+            status = "LATE";
+        }
+
+        // Tính điểm
+        int correctCount = 0;
+        int totalPoints = 0;
+        int earnedPoints = 0;
+
+        if (dto.getAnswers() != null) {
+            for (ExamSubmitDTO.AnswerDTO answer : dto.getAnswers()) {
+                if (answer.getSelectedOptionId() != null) {
+                    QuestionOption selectedOption = questionOptionRepository.findById(answer.getSelectedOptionId())
+                            .orElse(null);
+                    if (selectedOption != null) {
+                        Question question = selectedOption.getQuestion();
+                        totalPoints += question.getPoints();
+                        if (Boolean.TRUE.equals(selectedOption.getIsCorrect())) {
+                            correctCount++;
+                            earnedPoints += question.getPoints();
+                        }
+                    }
+                }
+            }
+        }
+
+        BigDecimal score = BigDecimal.ZERO;
+        if (totalPoints > 0) {
+            score = BigDecimal.valueOf(earnedPoints)
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(BigDecimal.valueOf(totalPoints), 2, RoundingMode.HALF_UP);
+        }
+
+        // Kiểm tra violation để flag
+        if (examResult.getViolationCount() >= 3) {
+            status = "FLAGGED";
+            log.warn("Exam result {} flagged due to {} violations", dto.getExamResultId(),
+                    examResult.getViolationCount());
+        }
+
+        examResult.setScore(score);
+        examResult.setCorrectCount(correctCount);
+        examResult.setSubmittedAt(now);
+        examResultRepository.save(examResult);
+
+        log.info("Exam submitted: resultId={}, score={}, correctCount={}/{}, status={}",
+                dto.getExamResultId(), score, correctCount, examResult.getTotalQuestions(), status);
+
+        return ExamResultDTO.builder()
+                .id(examResult.getId())
+                .examId(exam.getId())
+                .examTitle(exam.getTitle())
+                .studentId(examResult.getStudent().getId())
+                .studentName(examResult.getStudent().getFullName())
+                .score(score)
+                .correctCount(correctCount)
+                .totalQuestions(examResult.getTotalQuestions())
+                .submittedAt(now)
+                .violationCount(examResult.getViolationCount())
+                .status(status)
+                .build();
+    }
+
+    /**
+     * Lấy danh sách sự kiện anti-cheat của một kết quả thi
+     */
+    @Transactional(readOnly = true)
+    public List<AntiCheatEvent> getAntiCheatEvents(Long examResultId) {
+        return antiCheatEventRepository.findByExamResultIdOrderByEventTimeAsc(examResultId);
     }
 }
