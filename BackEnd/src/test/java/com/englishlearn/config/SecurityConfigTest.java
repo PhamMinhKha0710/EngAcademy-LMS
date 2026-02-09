@@ -1,8 +1,8 @@
 package com.englishlearn.config;
 
-import com.englishlearn.dto.RegisterRequest;
+import com.englishlearn.application.dto.request.RegisterRequest;
 import com.englishlearn.fixtures.TestDataFactory;
-import com.englishlearn.security.JwtService;
+import com.englishlearn.infrastructure.security.JwtService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -24,7 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Integration tests for SecurityConfig.
  * Tests endpoint access control and role-based authorization.
- * Uses real registered users so the JWT filter can validate tokens against the DB.
+ * Uses real registered users so the JWT filter can validate tokens against the
+ * DB.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -116,7 +117,8 @@ class SecurityConfigTest {
     @Order(6)
     @DisplayName("Admin endpoints should be accessible for admin users")
     void adminEndpoints_WithAdminRole_ShouldBeAccessible() throws Exception {
-        // Endpoint doesn't exist at /api/v1/admin/dashboard but auth should pass (not 403)
+        // Endpoint doesn't exist at /api/v1/admin/dashboard but auth should pass (not
+        // 403)
         mockMvc.perform(get("/api/v1/admin/dashboard")
                 .header("Authorization", "Bearer " + adminToken))
                 .andExpect(result -> {
@@ -154,8 +156,7 @@ class SecurityConfigTest {
                 .header("Authorization", "Bearer invalid.token.here"))
                 .andExpect(result -> {
                     int status = result.getResponse().getStatus();
-                    assert status == 401 || status == 403 :
-                            "Expected 401 or 403, got " + status;
+                    assert status == 401 || status == 403 : "Expected 401 or 403, got " + status;
                 });
     }
 
