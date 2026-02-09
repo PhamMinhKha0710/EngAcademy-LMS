@@ -21,6 +21,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.englishlearn.application.dto.response.QuestionResponse;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -54,11 +56,32 @@ public class ExamService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lấy bài kiểm tra theo ID - dành cho Teacher/Admin (hiển thị đáp án đúng).
+     */
     @Transactional(readOnly = true)
     public ExamResponse getExamById(Long id) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", id));
-        return mapToResponseWithQuestions(exam);
+        return mapToResponseWithQuestions(exam, false);
+    }
+
+    /**
+     * Lấy bài kiểm tra cho học sinh làm bài - ẩn đáp án đúng, áp dụng trộn đề.
+     * Shuffle questions nếu exam.shuffleQuestions = true.
+     * Shuffle answers nếu exam.shuffleAnswers = true.
+     * Ẩn isCorrect và explanation để chống gian lận.
+     */
+    @Transactional(readOnly = true)
+    public ExamResponse getExamForStudent(Long id) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", id));
+
+        if (!"PUBLISHED".equals(exam.getStatus())) {
+            throw new IllegalStateException("Bài kiểm tra chưa được công bố");
+        }
+
+        return mapToResponseWithQuestions(exam, true);
     }
 
     @Transactional
@@ -164,24 +187,59 @@ public class ExamService {
             throw new DuplicateResourceException("Bạn đã nộp bài kiểm tra này rồi");
         }
 
-        // Calculate score
+        // Calculate score - hỗ trợ MULTIPLE_CHOICE, TRUE_FALSE, FILL_IN_BLANK
         int correctCount = 0;
         int totalPoints = 0;
         int earnedPoints = 0;
 
         for (SubmitExamRequest.AnswerSubmission answer : request.getAnswers()) {
             Question question = questionRepository.findById(answer.getQuestionId()).orElse(null);
-            if (question != null) {
-                totalPoints += question.getPoints();
+            if (question == null) continue;
 
-                if ("MULTIPLE_CHOICE".equals(question.getQuestionType()) && answer.getSelectedOptionId() != null) {
-                    QuestionOption option = questionOptionRepository.findById(answer.getSelectedOptionId())
-                            .orElse(null);
-                    if (option != null && Boolean.TRUE.equals(option.getIsCorrect())) {
-                        correctCount++;
-                        earnedPoints += question.getPoints();
+            totalPoints += question.getPoints();
+            boolean isCorrect = false;
+
+            switch (question.getQuestionType()) {
+                case "MULTIPLE_CHOICE":
+                    if (answer.getSelectedOptionId() != null) {
+                        QuestionOption option = questionOptionRepository.findById(answer.getSelectedOptionId())
+                                .orElse(null);
+                        isCorrect = option != null && Boolean.TRUE.equals(option.getIsCorrect());
                     }
-                }
+                    break;
+
+                case "TRUE_FALSE":
+                    // TRUE_FALSE: so sánh answerText hoặc selectedOptionId
+                    if (answer.getSelectedOptionId() != null) {
+                        QuestionOption option = questionOptionRepository.findById(answer.getSelectedOptionId())
+                                .orElse(null);
+                        isCorrect = option != null && Boolean.TRUE.equals(option.getIsCorrect());
+                    } else if (answer.getAnswerText() != null) {
+                        // So sánh text với option correct
+                        List<QuestionOption> options = questionOptionRepository.findByQuestionId(question.getId());
+                        isCorrect = options.stream()
+                                .filter(opt -> Boolean.TRUE.equals(opt.getIsCorrect()))
+                                .anyMatch(opt -> opt.getOptionText().equalsIgnoreCase(answer.getAnswerText().trim()));
+                    }
+                    break;
+
+                case "FILL_IN_BLANK":
+                    if (answer.getAnswerText() != null) {
+                        List<QuestionOption> correctOptions = questionOptionRepository.findByQuestionId(question.getId());
+                        isCorrect = correctOptions.stream()
+                                .filter(opt -> Boolean.TRUE.equals(opt.getIsCorrect()))
+                                .anyMatch(opt -> opt.getOptionText().equalsIgnoreCase(answer.getAnswerText().trim()));
+                    }
+                    break;
+
+                default:
+                    log.warn("Unknown question type: {} for question {}", question.getQuestionType(), question.getId());
+                    break;
+            }
+
+            if (isCorrect) {
+                correctCount++;
+                earnedPoints += question.getPoints();
             }
         }
 
@@ -249,10 +307,64 @@ public class ExamService {
                 .build();
     }
 
-    private ExamResponse mapToResponseWithQuestions(Exam exam) {
+    /**
+     * Map exam to response kèm danh sách câu hỏi.
+     *
+     * @param exam         Entity bài kiểm tra
+     * @param forStudent   true = ẩn đáp án đúng + áp dụng shuffle; false = hiển thị đầy đủ cho teacher
+     */
+    private ExamResponse mapToResponseWithQuestions(Exam exam, boolean forStudent) {
         ExamResponse response = mapToResponse(exam);
-        // Questions would be added here if needed
+
+        List<Question> questionList = new ArrayList<>(exam.getQuestions());
+
+        // Shuffle thứ tự câu hỏi nếu cần
+        if (forStudent && Boolean.TRUE.equals(exam.getShuffleQuestions())) {
+            Collections.shuffle(questionList);
+            log.debug("Shuffled {} questions for exam {}", questionList.size(), exam.getId());
+        }
+
+        List<QuestionResponse> questionResponses = questionList.stream()
+                .map(q -> mapQuestionToResponse(q, forStudent, Boolean.TRUE.equals(exam.getShuffleAnswers())))
+                .collect(Collectors.toList());
+
+        response.setQuestions(questionResponses);
         return response;
+    }
+
+    /**
+     * Map Question entity sang QuestionResponse.
+     *
+     * @param question       Entity câu hỏi
+     * @param hideCorrect    true = ẩn isCorrect và explanation (cho student)
+     * @param shuffleOptions true = trộn thứ tự đáp án
+     */
+    private QuestionResponse mapQuestionToResponse(Question question, boolean hideCorrect, boolean shuffleOptions) {
+        List<QuestionOption> options = questionOptionRepository.findByQuestionId(question.getId());
+
+        // Shuffle thứ tự đáp án nếu cần
+        if (shuffleOptions && hideCorrect) {
+            Collections.shuffle(options);
+        }
+
+        List<QuestionResponse.QuestionOptionResponse> optionResponses = options.stream()
+                .map(opt -> QuestionResponse.QuestionOptionResponse.builder()
+                        .id(opt.getId())
+                        .optionText(opt.getOptionText())
+                        .isCorrect(hideCorrect ? null : opt.getIsCorrect()) // Ẩn đáp án đúng cho student
+                        .build())
+                .collect(Collectors.toList());
+
+        return QuestionResponse.builder()
+                .id(question.getId())
+                .questionType(question.getQuestionType())
+                .questionText(question.getQuestionText())
+                .points(question.getPoints())
+                .explanation(hideCorrect ? null : question.getExplanation()) // Ẩn giải thích cho student
+                .lessonId(question.getLesson() != null ? question.getLesson().getId() : null)
+                .lessonTitle(question.getLesson() != null ? question.getLesson().getTitle() : null)
+                .options(optionResponses)
+                .build();
     }
 
     private ExamResultResponse mapToResultResponse(ExamResult result) {
