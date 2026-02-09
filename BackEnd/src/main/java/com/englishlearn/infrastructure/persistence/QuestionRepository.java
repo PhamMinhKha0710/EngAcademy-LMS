@@ -25,4 +25,10 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     @Query("SELECT COUNT(q) FROM Question q WHERE q.lesson.id = :lessonId")
     Long countByLessonId(@Param("lessonId") Long lessonId);
+
+    /**
+     * Tìm câu hỏi theo lesson ID với options (fetch join)
+     */
+    @Query("SELECT DISTINCT q FROM Question q LEFT JOIN FETCH q.lesson WHERE q.lesson.id = :lessonId")
+    List<Question> findByLessonIdWithOptions(@Param("lessonId") Long lessonId);
 }
