@@ -1,7 +1,7 @@
 package com.englishlearn.controller;
 
 import com.englishlearn.fixtures.TestDataFactory;
-import com.englishlearn.security.JwtService;
+import com.englishlearn.infrastructure.security.JwtService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -52,14 +52,15 @@ class VocabularyControllerTest {
                 .content(TestDataFactory.asJsonString(TestDataFactory.student1RegisterRequest())));
     }
 
-    // ===================== GET /api/v1/vocabulary/lesson/{lessonId} =====================
+    // ===================== GET /api/v1/vocabulary/lesson/{lessonId}
+    // =====================
 
     @Test
     @Order(1)
     @DisplayName("TC-VOCAB-001: Get vocabulary by lesson should return 200")
     void getVocabByLesson_ShouldReturn200() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/lesson/1")
-                        .header("Authorization", "Bearer " + studentToken))
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -69,7 +70,7 @@ class VocabularyControllerTest {
     @DisplayName("TC-VOCAB-002: Get vocabulary by topic should return 200")
     void getVocabByTopic_ShouldReturn200() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/topic/1")
-                        .header("Authorization", "Bearer " + studentToken))
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -79,8 +80,8 @@ class VocabularyControllerTest {
     @DisplayName("TC-VOCAB-003: Search vocabulary with keyword should return 200")
     void searchVocab_ShouldReturn200() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/search")
-                        .param("keyword", "hello")
-                        .header("Authorization", "Bearer " + studentToken))
+                .param("keyword", "hello")
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -92,8 +93,8 @@ class VocabularyControllerTest {
     @DisplayName("TC-VOCAB-004: Get flashcards with count=10 should return 200")
     void getFlashcards_Count10_ShouldReturn200() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/flashcards/1")
-                        .param("count", "10")
-                        .header("Authorization", "Bearer " + studentToken))
+                .param("count", "10")
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -103,8 +104,8 @@ class VocabularyControllerTest {
     @DisplayName("TC-VOCAB-005: Get random flashcards should return 200")
     void getRandomFlashcards_ShouldReturn200() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/flashcards/random")
-                        .param("count", "10")
-                        .header("Authorization", "Bearer " + studentToken))
+                .param("count", "10")
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -114,12 +115,11 @@ class VocabularyControllerTest {
     @DisplayName("TC-VOCAB-006: Get flashcards with count=0 should be handled")
     void getFlashcards_CountZero_ShouldBeHandled() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/flashcards/1")
-                        .param("count", "0")
-                        .header("Authorization", "Bearer " + studentToken))
+                .param("count", "0")
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(result -> {
                     int status = result.getResponse().getStatus();
-                    assert status == 200 || status == 400 :
-                            "Expected 200 or 400, got " + status;
+                    assert status == 200 || status == 400 : "Expected 200 or 400, got " + status;
                 });
     }
 
@@ -128,13 +128,12 @@ class VocabularyControllerTest {
     @DisplayName("TC-VOCAB-007: Get flashcards with negative count should be handled")
     void getFlashcards_NegativeCount_ShouldBeHandled() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/flashcards/1")
-                        .param("count", "-1")
-                        .header("Authorization", "Bearer " + studentToken))
+                .param("count", "-1")
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(result -> {
                     int status = result.getResponse().getStatus();
                     // BUG: Server returns 500 for negative count - should validate input
-                    assert status == 200 || status == 400 || status == 500 :
-                            "Expected 200, 400, or 500, got " + status;
+                    assert status == 200 || status == 400 || status == 500 : "Expected 200, 400, or 500, got " + status;
                 });
     }
 
@@ -145,9 +144,9 @@ class VocabularyControllerTest {
     @DisplayName("TC-VOCAB-008: Get vocabulary paged should return 200")
     void getVocabPaged_ShouldReturn200() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/lesson/1/paged")
-                        .param("page", "0")
-                        .param("size", "5")
-                        .header("Authorization", "Bearer " + studentToken))
+                .param("page", "0")
+                .param("size", "5")
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -159,7 +158,7 @@ class VocabularyControllerTest {
     @DisplayName("TC-VOCAB-009: Get vocabulary by non-existent lesson should return result")
     void getVocabByNonExistentLesson_ShouldBeHandled() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/lesson/999999")
-                        .header("Authorization", "Bearer " + studentToken))
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -169,7 +168,7 @@ class VocabularyControllerTest {
     @DisplayName("Get vocabulary by ID - non-existent should return 404")
     void getVocabById_NonExistent_ShouldReturn404() throws Exception {
         mockMvc.perform(get("/api/v1/vocabulary/999999")
-                        .header("Authorization", "Bearer " + studentToken))
+                .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false));
     }
