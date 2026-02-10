@@ -4,6 +4,9 @@ import path from 'path'
 
 export default defineConfig({
     plugins: [react()],
+    define: {
+        global: 'window',
+    },
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
@@ -14,6 +17,11 @@ export default defineConfig({
         proxy: {
             '/api': {
                 target: 'http://localhost:8080',
+                changeOrigin: true,
+            },
+            '/ws': {
+                target: 'http://localhost:8080',
+                ws: true,
                 changeOrigin: true,
             },
         },
