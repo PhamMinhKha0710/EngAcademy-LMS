@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import NotificationComponent from '../notifications/Notification'
 
 const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore()
@@ -39,6 +40,7 @@ const Header = () => {
                     <div className="flex items-center space-x-4">
                         {isAuthenticated ? (
                             <div className="flex items-center space-x-4">
+                                {user?.id && <NotificationComponent userId={user.id} />}
                                 <span className="text-slate-300">Xin chào, {user?.fullName}</span>
                                 <button
                                     onClick={handleLogout}

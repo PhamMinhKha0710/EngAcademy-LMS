@@ -106,6 +106,12 @@
             <scope>test</scope>
         </dependency>
         
+        <!-- WebSocket -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- OpenAPI/Swagger Documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>
