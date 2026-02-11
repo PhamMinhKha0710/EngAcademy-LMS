@@ -1,122 +1,110 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { getRoleDashboard } from '../lib/roles'
+import { LogIn } from 'lucide-react'
 
-const Login = () => {
+export default function Login() {
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
+    const [roleError, setRoleError] = useState('')
+    const { login, isLoading, error, isAuthenticated, user, clearError } = useAuthStore()
     const navigate = useNavigate()
-    const { login, isLoading, error, clearError } = useAuthStore()
 
-    const [formData, setFormData] = useState({
-        username: '',
-        password: '',
-    })
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        clearError()
-        setFormData({ ...formData, [e.target.name]: e.target.value })
-    }
+    useEffect(() => {
+        if (isAuthenticated && user?.roles?.length) {
+            navigate(getRoleDashboard(user.roles), { replace: true })
+        }
+    }, [isAuthenticated, user, navigate])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setRoleError('')
+        clearError()
         try {
-            await login(formData)
-            navigate('/dashboard')
+            await login({ username, password })
+            const authState = useAuthStore.getState()
+            const roles = authState.user?.roles || []
+            if (roles.length === 0) {
+                setRoleError('Tài khoản không có quyền truy cập')
+                return
+            }
+            navigate(getRoleDashboard(roles), { replace: true })
         } catch {
-            // Error is handled in store
+            // error handled by store
         }
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            {/* Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/30 via-slate-900 to-emerald-900/20"></div>
-
-            <div className="relative max-w-md w-full">
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+            <div className="w-full max-w-md">
                 <div className="card p-8">
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <span className="text-white font-bold text-2xl">E</span>
+                    {/* Icon */}
+                    <div className="flex items-center justify-center mb-6">
+                        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                            <LogIn className="w-7 h-7 text-white" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white">Đăng nhập</h2>
-                        <p className="text-slate-400 mt-2">Chào mừng bạn quay trở lại!</p>
                     </div>
 
-                    {/* Error Message */}
-                    {error && (
-                        <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
-                            {error}
+                    {/* Heading */}
+                    <h2 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--color-text)' }}>
+                        Đăng nhập
+                    </h2>
+                    <p className="text-center mb-6" style={{ color: 'var(--color-text-secondary)' }}>
+                        Chào mừng trở lại!
+                    </p>
+
+                    {/* Error */}
+                    {(error || roleError) && (
+                        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-sm">
+                            {error || roleError}
                         </div>
                     )}
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                                 Tên đăng nhập
                             </label>
                             <input
-                                id="username"
-                                name="username"
                                 type="text"
-                                required
-                                value={formData.username}
-                                onChange={handleChange}
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 className="input-field"
-                                placeholder="Nhập tên đăng nhập"
+                                placeholder="username"
+                                required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                                 Mật khẩu
                             </label>
                             <input
-                                id="password"
-                                name="password"
                                 type="password"
-                                required
-                                value={formData.password}
-                                onChange={handleChange}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 className="input-field"
-                                placeholder="Nhập mật khẩu"
+                                placeholder="••••••••"
+                                required
                             />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <label className="flex items-center">
-                                <input type="checkbox" className="w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500 bg-slate-800" />
-                                <span className="ml-2 text-sm text-slate-400">Ghi nhớ đăng nhập</span>
-                            </label>
-                            <a href="#" className="text-sm text-blue-400 hover:text-blue-300">
-                                Quên mật khẩu?
-                            </a>
                         </div>
 
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn-primary w-full disabled:opacity-50"
                         >
-                            {isLoading ? (
-                                <span className="flex items-center justify-center">
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Đang xử lý...
-                                </span>
-                            ) : (
-                                'Đăng nhập'
-                            )}
+                            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                         </button>
                     </form>
 
                     {/* Footer */}
-                    <p className="mt-8 text-center text-slate-400">
+                    <p className="mt-6 text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                         Chưa có tài khoản?{' '}
-                        <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium">
-                            Đăng ký ngay
+                        <Link to="/register" className="text-blue-500 hover:text-blue-400 font-medium">
+                            Đăng ký
                         </Link>
                     </p>
                 </div>
@@ -124,5 +112,3 @@ const Login = () => {
         </div>
     )
 }
-
-export default Login

@@ -8,20 +8,24 @@ const MainLayout = () => {
     const location = useLocation()
     const { isAuthenticated } = useAuthStore()
 
-    // Show sidebar only for authenticated users on dashboard pages
-    const showSidebar = isAuthenticated && location.pathname.startsWith('/dashboard')
+    const path = location.pathname
 
-    // Hide footer on dashboard pages
-    const showFooter = !location.pathname.startsWith('/dashboard')
+    // Show sidebar for authenticated pages (not public pages)
+    const publicPaths = ['/', '/login', '/register']
+    const isPublicPage = publicPaths.includes(path)
+    const showSidebar = isAuthenticated && !isPublicPage
+
+    // Show footer only on public pages
+    const showFooter = isPublicPage
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col transition-colors duration-300">
             <Header />
 
             <div className="flex flex-1 pt-16">
                 {showSidebar && <Sidebar />}
 
-                <main className={`flex-1 ${showSidebar ? 'ml-64' : ''}`}>
+                <main className={`flex-1 transition-all duration-300 ${showSidebar ? 'ml-64' : ''}`}>
                     <Outlet />
                 </main>
             </div>
