@@ -1,0 +1,535 @@
+{
+  "info": {
+    "name": "WebLearnEnglish API - Test Collection",
+    "description": "Complete API test collection for WebLearnEnglish platform.\n\nEnvironment Variables needed:\n- base_url: http://localhost:8080\n- admin_token: (auto-set after login)\n- teacher_token: (auto-set after login)\n- student_token: (auto-set after login)\n- school_token: (auto-set after login)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "admin_token", "value": "" },
+    { "key": "teacher_token", "value": "" },
+    { "key": "student_token", "value": "" },
+    { "key": "school_token", "value": "" },
+    { "key": "admin_id", "value": "" },
+    { "key": "teacher_id", "value": "" },
+    { "key": "student_id", "value": "" },
+    { "key": "school_id", "value": "" },
+    { "key": "class_id", "value": "" },
+    { "key": "lesson_id", "value": "" },
+    { "key": "question_id", "value": "" },
+    { "key": "exam_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/auth/health"
+          }
+        },
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('admin_token', jsonData.data.accessToken);",
+                  "  pm.collectionVariables.set('admin_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin_nguyen\",\n  \"email\": \"nguyenvanan.admin@gmail.com\",\n  \"password\": \"Admin@2026!Secure\",\n  \"fullName\": \"Nguyễn Văn An\",\n  \"role\": \"ADMIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('teacher_token', jsonData.data.accessToken);",
+                  "  pm.collectionVariables.set('teacher_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"gv_leminh\",\n  \"email\": \"leminhhoang.teacher@gmail.com\",\n  \"password\": \"Teach3r!Pass2026\",\n  \"fullName\": \"Lê Minh Hoàng\",\n  \"role\": \"TEACHER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('student_token', jsonData.data.accessToken);",
+                  "  pm.collectionVariables.set('student_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"hs_ngoclinh\",\n  \"email\": \"nguyenngoclinh2005@gmail.com\",\n  \"password\": \"Student!Linh2026\",\n  \"fullName\": \"Nguyễn Ngọc Linh\",\n  \"role\": \"STUDENT\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register School Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('school_token', jsonData.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"tran_school_hcm\",\n  \"email\": \"tranthibich.edu@outlook.com\",\n  \"password\": \"School#Mgr2026\",\n  \"fullName\": \"Trần Thị Bích\",\n  \"role\": \"SCHOOL\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('admin_token', jsonData.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin_nguyen\",\n  \"password\": \"Admin@2026!Secure\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login - Wrong Password (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin_nguyen\",\n  \"password\": \"WrongPassword!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register - Duplicate Username (Error)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin_nguyen\",\n  \"email\": \"different@gmail.com\",\n  \"password\": \"Valid!Pass2026\",\n  \"fullName\": \"Duplicate User\",\n  \"role\": \"STUDENT\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Users",
+      "item": [
+        {
+          "name": "Get Current User (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/users/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/users/{{student_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        },
+        {
+          "name": "Get All Users (Paginated)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/users?page=0&size=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/v1/users/me?fullName=Nguyễn Văn An Updated",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        },
+        {
+          "name": "Add Coins to Student",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/users/{{student_id}}/coins?amount=100",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Schools",
+      "item": [
+        {
+          "name": "Create School",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('school_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/schools",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Trường THPT Nguyễn Huệ - Quận 1\",\n  \"address\": \"123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM\",\n  \"phone\": \"02838221234\",\n  \"email\": \"nguyenhue.q1@edu.vn\",\n  \"trialEndDate\": \"2026-06-01\",\n  \"isActive\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Schools",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/schools",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        },
+        {
+          "name": "Search Schools",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/schools/search?name=Nguyễn Huệ",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - ClassRooms",
+      "item": [
+        {
+          "name": "Create ClassRoom",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('class_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/classes",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lớp 10A1 - Tiếng Anh Nâng Cao\",\n  \"schoolId\": {{school_id}},\n  \"teacherId\": {{teacher_id}},\n  \"academicYear\": \"2025-2026\",\n  \"isActive\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Add Student to Class",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/classes/{{class_id}}/students/{{student_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        },
+        {
+          "name": "Get Classes by School",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/classes/school/{{school_id}}?page=0&size=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Lessons",
+      "item": [
+        {
+          "name": "Create Lesson",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('lesson_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/lessons",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacher_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Bài 1: Greeting and Introduction\",\n  \"contentHtml\": \"<h1>Greeting</h1><p>Learn basic greetings.</p>\",\n  \"audioUrl\": \"https://cdn.englishlearn.vn/audio/lesson1.mp3\",\n  \"difficultyLevel\": 1,\n  \"orderIndex\": 1,\n  \"isPublished\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Published Lessons (Public)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/lessons?published=true"
+          }
+        },
+        {
+          "name": "Get Lesson by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/lessons/{{lesson_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Questions",
+      "item": [
+        {
+          "name": "Create Multiple Choice Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('question_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/questions",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacher_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lessonId\": {{lesson_id}},\n  \"questionType\": \"MULTIPLE_CHOICE\",\n  \"questionText\": \"What is the correct greeting in the morning?\",\n  \"points\": 10,\n  \"explanation\": \"Good morning is used before noon.\",\n  \"options\": [\n    {\"optionText\": \"Good morning\", \"isCorrect\": true},\n    {\"optionText\": \"Good night\", \"isCorrect\": false},\n    {\"optionText\": \"Goodbye\", \"isCorrect\": false},\n    {\"optionText\": \"See you later\", \"isCorrect\": false}\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Exams",
+      "item": [
+        {
+          "name": "Create Exam",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.data) {",
+                  "  pm.collectionVariables.set('exam_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/exams?teacherId={{teacher_id}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacher_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Kiểm tra 15 phút - Unit 1\",\n  \"classId\": {{class_id}},\n  \"startTime\": \"2026-02-08T08:00:00\",\n  \"endTime\": \"2026-02-08T10:00:00\",\n  \"durationMinutes\": 15,\n  \"shuffleQuestions\": true,\n  \"shuffleAnswers\": true,\n  \"antiCheatEnabled\": false,\n  \"questionIds\": [{{question_id}}]\n}"
+            }
+          }
+        },
+        {
+          "name": "Publish Exam",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/exams/{{exam_id}}/publish",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacher_token}}" }]
+          }
+        },
+        {
+          "name": "Close Exam",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/exams/{{exam_id}}/close",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacher_token}}" }]
+          }
+        },
+        {
+          "name": "Get Exam Results",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/exams/{{exam_id}}/results",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacher_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Progress",
+      "item": [
+        {
+          "name": "Update Progress 50%",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/progress/user/{{student_id}}/lesson/{{lesson_id}}?percentage=50",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student_token}}" }]
+          }
+        },
+        {
+          "name": "Complete Lesson",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/progress/user/{{student_id}}/lesson/{{lesson_id}}/complete",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student_token}}" }]
+          }
+        },
+        {
+          "name": "Get User Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/progress/user/{{student_id}}/stats",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Vocabulary",
+      "item": [
+        {
+          "name": "Get Vocab by Lesson",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/vocabulary/lesson/{{lesson_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student_token}}" }]
+          }
+        },
+        {
+          "name": "Search Vocabulary",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/vocabulary/search?keyword=hello",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student_token}}" }]
+          }
+        },
+        {
+          "name": "Get Flashcards",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/vocabulary/flashcards/{{lesson_id}}?count=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student_token}}" }]
+          }
+        },
+        {
+          "name": "Get Random Flashcards",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/vocabulary/flashcards/random?count=5",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student_token}}" }]
+          }
+        }
+      ]
+    }
+  ]
+}
