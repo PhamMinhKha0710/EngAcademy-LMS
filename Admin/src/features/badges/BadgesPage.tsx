@@ -5,9 +5,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Award, Search, Trash2, ShieldCheck, Loader2, ImageIcon } from 'lucide-react'
+import { AxiosError } from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse, BadgeResponse } from '@/types/api'
 import { toast } from 'sonner'
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof AxiosError && error.response?.data?.message
+        ? String(error.response.data.message)
+        : fallback
+}
 
 export default function BadgesPage() {
     // Award badge form state
@@ -51,9 +58,8 @@ export default function BadgesPage() {
             setBadgeName('')
             setDescription('')
             setIconUrl('')
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Cấp huy hiệu thất bại'
-            toast.error(msg)
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Cấp huy hiệu thất bại'))
         } finally {
             setAwarding(false)
         }
@@ -74,9 +80,8 @@ export default function BadgesPage() {
             if (response.data.data.length === 0) {
                 toast.info('Người dùng chưa có huy hiệu nào')
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Không thể tải danh sách huy hiệu'
-            toast.error(msg)
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Không thể tải danh sách huy hiệu'))
             setBadges([])
             setHasLoaded(true)
         } finally {
@@ -90,9 +95,8 @@ export default function BadgesPage() {
             await api.delete(`/badges/${deletingBadge.id}`)
             setBadges((prev) => prev.filter((b) => b.id !== deletingBadge.id))
             toast.success('Xóa huy hiệu thành công!')
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Xóa huy hiệu thất bại'
-            toast.error(msg)
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Xóa huy hiệu thất bại'))
         } finally {
             setDeleteDialogOpen(false)
             setDeletingBadge(null)
@@ -106,14 +110,13 @@ export default function BadgesPage() {
         }
         setChecking(true)
         try {
-            const response = await api.post<ApiResponse<any>>(
+            const response = await api.post<ApiResponse<{ message?: string }>>(
                 `/badges/${checkUserId}/check-achievements`
             )
             const data = response.data
             toast.success(data.message || 'Kiểm tra thành tích hoàn tất!')
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Kiểm tra thành tích thất bại'
-            toast.error(msg)
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Kiểm tra thành tích thất bại'))
         } finally {
             setChecking(false)
         }

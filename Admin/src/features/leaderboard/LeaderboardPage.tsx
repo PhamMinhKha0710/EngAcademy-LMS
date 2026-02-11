@@ -4,9 +4,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Trophy, Medal, Flame, Coins, Loader2 } from 'lucide-react'
+import { AxiosError } from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse, LeaderboardEntry, Page } from '@/types/api'
 import { toast } from 'sonner'
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof AxiosError && error.response?.data?.message
+        ? String(error.response.data.message)
+        : fallback
+}
 
 type TabType = 'global' | 'coins' | 'streak'
 
@@ -57,9 +64,8 @@ export default function LeaderboardPage() {
             }))
 
             setEntries(ranked)
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Không thể tải bảng xếp hạng'
-            toast.error(msg)
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Không thể tải bảng xếp hạng'))
             setEntries([])
         } finally {
             setLoading(false)
