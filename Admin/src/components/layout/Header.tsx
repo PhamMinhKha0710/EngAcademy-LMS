@@ -17,20 +17,23 @@ import { Moon, Sun, Bell, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useState, useEffect } from 'react'
 
+function getInitialDark(): boolean {
+    if (typeof window === 'undefined') return false
+    const saved = localStorage.getItem('theme')
+    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+}
+
 export default function Header() {
     const dispatch = useAppDispatch()
     const navigate = useNavigate()
     const { user } = useAppSelector((state) => state.auth)
     const { isAdmin, roleBadge } = useRole()
-    const [isDark, setIsDark] = useState(false)
+    const [isDark, setIsDark] = useState(getInitialDark)
 
     useEffect(() => {
-        const saved = localStorage.getItem('theme')
-        if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            setIsDark(true)
-            document.documentElement.classList.add('dark')
-        }
-    }, [])
+        if (isDark) document.documentElement.classList.add('dark')
+        else document.documentElement.classList.remove('dark')
+    }, [isDark])
 
     const toggleTheme = () => {
         setIsDark(!isDark)
