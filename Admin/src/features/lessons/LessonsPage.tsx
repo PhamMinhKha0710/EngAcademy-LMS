@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { BookOpen, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
 import api from '@/lib/api'
 import type { ApiResponse, Page, Lesson, LessonRequest } from '@/types/api'
 
@@ -16,11 +17,13 @@ export default function LessonsPage() {
     const [search, setSearch] = useState('')
     const [page, setPage] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
+    const [totalElements, setTotalElements] = useState(0)
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null)
-    const [form, setForm] = useState<LessonRequest>({ title: '', description: '', content: '', level: '', published: false })
+    const [form, setForm] = useState<LessonRequest>({ title: '', contentHtml: '', difficultyLevel: 1, orderIndex: 1, isPublished: false })
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deletingLesson, setDeletingLesson] = useState<Lesson | null>(null)
+    const [submitting, setSubmitting] = useState(false)
 
     const fetchLessons = async () => {
         setLoading(true)
@@ -28,39 +31,63 @@ export default function LessonsPage() {
             const response = await api.get<ApiResponse<Page<Lesson>>>(`/lessons?page=${page}&size=10`)
             setLessons(response.data.data.content)
             setTotalPages(response.data.data.totalPages)
+            setTotalElements(response.data.data.totalElements)
         } catch {
-            setLessons([
-                { id: 1, title: 'Present Simple Tense', description: 'Thì hiện tại đơn', level: 'Beginner', published: true, orderIndex: 1 },
-                { id: 2, title: 'Past Simple Tense', description: 'Thì quá khứ đơn', level: 'Beginner', published: true, orderIndex: 2 },
-                { id: 3, title: 'Future Simple', description: 'Thì tương lai đơn', level: 'Intermediate', published: false, orderIndex: 3 },
-            ])
-            setTotalPages(1)
+            setLessons([])
+            toast.error('Không thể tải danh sách bài học')
         } finally { setLoading(false) }
     }
 
     useEffect(() => { fetchLessons() }, [page])
 
     const handleSubmit = async () => {
+        if (!form.title.trim()) { toast.error('Tiêu đề không được để trống'); return }
+        setSubmitting(true)
         try {
-            if (editingLesson) await api.put(`/lessons/${editingLesson.id}`, form)
-            else await api.post('/lessons', form)
+            if (editingLesson) {
+                await api.put(`/lessons/${editingLesson.id}`, form)
+                toast.success('Cập nhật bài học thành công')
+            } else {
+                await api.post('/lessons', form)
+                toast.success('Tạo bài học thành công')
+            }
             fetchLessons()
-        } catch { /* ignore */ }
-        resetForm()
+            resetForm()
+        } catch {
+            toast.error('Thao tác thất bại')
+        } finally { setSubmitting(false) }
     }
 
     const handleDelete = async () => {
         if (!deletingLesson) return
-        try { await api.delete(`/lessons/${deletingLesson.id}`) } catch { /* ignore */ }
+        try {
+            await api.delete(`/lessons/${deletingLesson.id}`)
+            toast.success('Đã xóa bài học')
+            fetchLessons()
+        } catch {
+            toast.error('Xóa thất bại')
+        }
         setDeleteDialogOpen(false)
-        fetchLessons()
+        setDeletingLesson(null)
     }
 
-    const resetForm = () => { setDialogOpen(false); setEditingLesson(null); setForm({ title: '', description: '', content: '', level: '', published: false }) }
+    const resetForm = () => {
+        setDialogOpen(false)
+        setEditingLesson(null)
+        setForm({ title: '', contentHtml: '', difficultyLevel: 1, orderIndex: 1, isPublished: false })
+    }
 
     const openEdit = (lesson: Lesson) => {
         setEditingLesson(lesson)
-        setForm({ title: lesson.title, description: lesson.description, content: lesson.content, level: lesson.level, published: lesson.published, orderIndex: lesson.orderIndex })
+        setForm({
+            title: lesson.title,
+            contentHtml: lesson.contentHtml,
+            audioUrl: lesson.audioUrl,
+            videoUrl: lesson.videoUrl,
+            difficultyLevel: lesson.difficultyLevel,
+            orderIndex: lesson.orderIndex,
+            isPublished: lesson.isPublished,
+        })
         setDialogOpen(true)
     }
 
@@ -71,7 +98,7 @@ export default function LessonsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Quản lý bài học</h1>
-                    <p className="text-muted-foreground mt-1">Quản lý nội dung bài học</p>
+                    <p className="text-muted-foreground mt-1">Tổng cộng {totalElements} bài học</p>
                 </div>
                 <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="gap-2">
                     <Plus className="h-4 w-4" /> Thêm bài học
@@ -98,21 +125,29 @@ export default function LessonsPage() {
                                     <TableRow>
                                         <TableHead className="w-12">ID</TableHead>
                                         <TableHead>Tiêu đề</TableHead>
-                                        <TableHead>Mô tả</TableHead>
-                                        <TableHead>Cấp độ</TableHead>
+                                        <TableHead>Độ khó</TableHead>
+                                        <TableHead>Thứ tự</TableHead>
+                                        <TableHead>Từ vựng</TableHead>
+                                        <TableHead>Câu hỏi</TableHead>
                                         <TableHead>Trạng thái</TableHead>
                                         <TableHead className="text-right">Thao tác</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filtered.map((lesson) => (
+                                    {filtered.length === 0 ? (
+                                        <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Không có bài học nào</TableCell></TableRow>
+                                    ) : filtered.map((lesson) => (
                                         <TableRow key={lesson.id}>
                                             <TableCell className="font-medium">{lesson.id}</TableCell>
-                                            <TableCell className="font-medium">{lesson.title}</TableCell>
-                                            <TableCell className="text-muted-foreground max-w-[200px] truncate">{lesson.description}</TableCell>
-                                            <TableCell><Badge variant="outline">{lesson.level || 'N/A'}</Badge></TableCell>
+                                            <TableCell className="font-medium max-w-[250px] truncate">{lesson.title}</TableCell>
+                                            <TableCell><Badge variant="outline">Lv.{lesson.difficultyLevel ?? 1}</Badge></TableCell>
+                                            <TableCell>{lesson.orderIndex ?? '-'}</TableCell>
+                                            <TableCell>{lesson.vocabularyCount ?? 0}</TableCell>
+                                            <TableCell>{lesson.questionCount ?? 0}</TableCell>
                                             <TableCell>
-                                                <Badge variant={lesson.published ? 'default' : 'secondary'}>{lesson.published ? 'Đã xuất bản' : 'Nháp'}</Badge>
+                                                <Badge variant={lesson.isPublished ? 'default' : 'secondary'}>
+                                                    {lesson.isPublished ? 'Đã xuất bản' : 'Nháp'}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-1">
@@ -136,8 +171,9 @@ export default function LessonsPage() {
                 </CardContent>
             </Card>
 
+            {/* Create/Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>{editingLesson ? 'Chỉnh sửa bài học' : 'Thêm bài học mới'}</DialogTitle>
                         <DialogDescription>Điền thông tin bài học</DialogDescription>
@@ -148,27 +184,45 @@ export default function LessonsPage() {
                             <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Tiêu đề bài học" />
                         </div>
                         <div className="space-y-2">
-                            <Label>Mô tả</Label>
-                            <Input value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Mô tả" />
+                            <Label>Nội dung HTML</Label>
+                            <textarea
+                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                value={form.contentHtml || ''}
+                                onChange={(e) => setForm({ ...form, contentHtml: e.target.value })}
+                                placeholder="<p>Nội dung bài học...</p>"
+                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Cấp độ</Label>
-                                <Input value={form.level || ''} onChange={(e) => setForm({ ...form, level: e.target.value })} placeholder="Beginner/Intermediate/Advanced" />
+                                <Label>Độ khó (1-5)</Label>
+                                <Input type="number" min={1} max={5} value={form.difficultyLevel || 1} onChange={(e) => setForm({ ...form, difficultyLevel: Number(e.target.value) })} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Thứ tự</Label>
-                                <Input type="number" value={form.orderIndex || ''} onChange={(e) => setForm({ ...form, orderIndex: Number(e.target.value) })} placeholder="1, 2, 3..." />
+                                <Input type="number" value={form.orderIndex || 1} onChange={(e) => setForm({ ...form, orderIndex: Number(e.target.value) })} />
                             </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="isPublished"
+                                checked={form.isPublished || false}
+                                onChange={(e) => setForm({ ...form, isPublished: e.target.checked })}
+                                className="h-4 w-4 rounded border-gray-300"
+                            />
+                            <Label htmlFor="isPublished">Xuất bản ngay</Label>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={resetForm}>Hủy</Button>
-                        <Button onClick={handleSubmit}>{editingLesson ? 'Cập nhật' : 'Tạo mới'}</Button>
+                        <Button onClick={handleSubmit} disabled={submitting}>
+                            {submitting ? 'Đang xử lý...' : editingLesson ? 'Cập nhật' : 'Tạo mới'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
+            {/* Delete Confirmation */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
