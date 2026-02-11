@@ -1,9 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useRole } from '../../hooks/useRole'
 import NotificationComponent from '../notifications/Notification'
+import ThemeToggle from '../ui/ThemeToggle'
+import Badge from '../ui/Badge'
 
 const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore()
+    const { roleLabel, dashboardPath } = useRole()
     const navigate = useNavigate()
 
     const handleLogout = () => {
@@ -12,7 +16,7 @@ const Header = () => {
     }
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50">
+        <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b transition-colors" style={{ background: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -24,40 +28,41 @@ const Header = () => {
                     </Link>
 
                     {/* Navigation */}
-                    <nav className="hidden md:flex items-center space-x-8">
-                        <Link to="/" className="text-slate-300 hover:text-white transition-colors">
-                            Trang chủ
-                        </Link>
-                        <Link to="/dashboard" className="text-slate-300 hover:text-white transition-colors">
-                            Học tập
-                        </Link>
-                        <a href="#features" className="text-slate-300 hover:text-white transition-colors">
-                            Tính năng
-                        </a>
-                    </nav>
+                    {!isAuthenticated && (
+                        <nav className="hidden md:flex items-center space-x-8">
+                            <Link to="/" className="hover:opacity-80 transition-colors" style={{ color: 'var(--color-text-secondary)' }}>
+                                Trang chủ
+                            </Link>
+                            <a href="#features" className="hover:opacity-80 transition-colors" style={{ color: 'var(--color-text-secondary)' }}>
+                                Tính năng
+                            </a>
+                        </nav>
+                    )}
 
-                    {/* Auth Buttons */}
-                    <div className="flex items-center space-x-4">
+                    {/* Right section */}
+                    <div className="flex items-center space-x-3">
+                        <ThemeToggle />
+
                         {isAuthenticated ? (
-                            <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-3">
                                 {user?.id && <NotificationComponent userId={user.id} />}
-                                <span className="text-slate-300">Xin chào, {user?.fullName}</span>
-                                <button
-                                    onClick={handleLogout}
-                                    className="btn-secondary text-sm py-2"
-                                >
+                                <Badge variant="info">{roleLabel}</Badge>
+                                <Link to={dashboardPath} className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--color-text)' }}>
+                                    {user?.fullName}
+                                </Link>
+                                <button onClick={handleLogout} className="btn-secondary text-sm py-2 px-4">
                                     Đăng xuất
                                 </button>
                             </div>
                         ) : (
-                            <>
-                                <Link to="/login" className="text-slate-300 hover:text-white transition-colors">
+                            <div className="flex items-center space-x-3">
+                                <Link to="/login" className="hover:opacity-80 transition-colors text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                                     Đăng nhập
                                 </Link>
-                                <Link to="/register" className="btn-primary text-sm py-2">
+                                <Link to="/register" className="btn-primary text-sm py-2 px-4">
                                     Đăng ký
                                 </Link>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>

@@ -1,6 +1,6 @@
 const Footer = () => {
     return (
-        <footer className="bg-slate-900 border-t border-slate-700/50">
+        <footer className="border-t transition-colors" style={{ background: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                     {/* Brand */}
@@ -11,36 +11,37 @@ const Footer = () => {
                             </div>
                             <span className="text-xl font-bold gradient-text">EnglishLearn</span>
                         </div>
-                        <p className="text-slate-400 max-w-md">
-                            Nền tảng học tiếng Anh trực tuyến dành cho học sinh lớp 6.
+                        <p style={{ color: 'var(--color-text-secondary)' }} className="max-w-md">
+                            Nền tảng học tiếng Anh trực tuyến dành cho học sinh.
                             Học mọi lúc, mọi nơi với phương pháp hiện đại.
                         </p>
                     </div>
 
                     {/* Quick Links */}
                     <div>
-                        <h3 className="text-white font-semibold mb-4">Liên kết</h3>
+                        <h3 className="font-semibold mb-4" style={{ color: 'var(--color-text)' }}>Liên kết</h3>
                         <ul className="space-y-2">
-                            <li><a href="#" className="text-slate-400 hover:text-white transition-colors">Về chúng tôi</a></li>
-                            <li><a href="#" className="text-slate-400 hover:text-white transition-colors">Tính năng</a></li>
-                            <li><a href="#" className="text-slate-400 hover:text-white transition-colors">Bảng giá</a></li>
-                            <li><a href="#" className="text-slate-400 hover:text-white transition-colors">Liên hệ</a></li>
+                            {['Về chúng tôi', 'Tính năng', 'Bảng giá', 'Liên hệ'].map((text) => (
+                                <li key={text}>
+                                    <a href="#" className="hover:opacity-80 transition-colors" style={{ color: 'var(--color-text-secondary)' }}>{text}</a>
+                                </li>
+                            ))}
                         </ul>
                     </div>
 
                     {/* Contact */}
                     <div>
-                        <h3 className="text-white font-semibold mb-4">Liên hệ</h3>
-                        <ul className="space-y-2 text-slate-400">
-                            <li>📧 support@englishlearn.vn</li>
-                            <li>📞 1900 1234</li>
-                            <li>📍 TP. Hồ Chí Minh, Việt Nam</li>
+                        <h3 className="font-semibold mb-4" style={{ color: 'var(--color-text)' }}>Liên hệ</h3>
+                        <ul className="space-y-2" style={{ color: 'var(--color-text-secondary)' }}>
+                            <li>support@englishlearn.vn</li>
+                            <li>1900 1234</li>
+                            <li>TP. Hồ Chí Minh, Việt Nam</li>
                         </ul>
                     </div>
                 </div>
 
-                <div className="border-t border-slate-700/50 mt-8 pt-8 text-center text-slate-400">
-                    <p>© 2026 EnglishLearn. All rights reserved.</p>
+                <div className="border-t mt-8 pt-8 text-center" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                    <p>&copy; 2026 EnglishLearn. All rights reserved.</p>
                 </div>
             </div>
         </footer>

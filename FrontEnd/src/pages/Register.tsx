@@ -1,194 +1,207 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { getRoleDashboard } from '../lib/roles'
+import { UserPlus } from 'lucide-react'
 
-const Register = () => {
-    const navigate = useNavigate()
-    const { register, isLoading, error, clearError } = useAuthStore()
+type PasswordStrength = 'weak' | 'medium' | 'strong'
 
-    const [formData, setFormData] = useState({
-        fullName: '',
-        email: '',
-        username: '',
-        password: '',
-        confirmPassword: '',
-    })
+function getPasswordStrength(password: string): PasswordStrength {
+    if (password.length === 0) return 'weak'
+
+    let score = 0
+    if (password.length >= 6) score++
+    if (password.length >= 10) score++
+    if (/[A-Z]/.test(password)) score++
+    if (/[0-9]/.test(password)) score++
+    if (/[^A-Za-z0-9]/.test(password)) score++
+
+    if (score <= 1) return 'weak'
+    if (score <= 3) return 'medium'
+    return 'strong'
+}
+
+const strengthConfig: Record<PasswordStrength, { label: string; color: string; width: string }> = {
+    weak: { label: 'Yếu', color: 'bg-red-500', width: 'w-1/3' },
+    medium: { label: 'Trung bình', color: 'bg-yellow-500', width: 'w-2/3' },
+    strong: { label: 'Mạnh', color: 'bg-emerald-500', width: 'w-full' },
+}
+
+export default function Register() {
+    const [fullName, setFullName] = useState('')
+    const [username, setUsername] = useState('')
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
     const [validationError, setValidationError] = useState('')
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        clearError()
-        setValidationError('')
-        setFormData({ ...formData, [e.target.name]: e.target.value })
-    }
+    const { register, isLoading, error, isAuthenticated, user, clearError } = useAuthStore()
+    const navigate = useNavigate()
+
+    const passwordStrength = useMemo(() => getPasswordStrength(password), [password])
+
+    useEffect(() => {
+        if (isAuthenticated && user?.roles?.length) {
+            navigate(getRoleDashboard(user.roles), { replace: true })
+        }
+    }, [isAuthenticated, user, navigate])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setValidationError('')
+        clearError()
 
-        if (formData.password !== formData.confirmPassword) {
-            setValidationError('Mật khẩu xác nhận không khớp')
-            return
-        }
-
-        if (formData.password.length < 6) {
+        if (password.length < 6) {
             setValidationError('Mật khẩu phải có ít nhất 6 ký tự')
             return
         }
 
+        if (password !== confirmPassword) {
+            setValidationError('Mật khẩu xác nhận không khớp')
+            return
+        }
+
         try {
-            await register({
-                fullName: formData.fullName,
-                email: formData.email,
-                username: formData.username,
-                password: formData.password,
-            })
-            navigate('/login', { state: { message: 'Đăng ký thành công! Vui lòng đăng nhập.' } })
+            await register({ fullName, username, email, password })
+            const authState = useAuthStore.getState()
+            const roles = authState.user?.roles || []
+            if (roles.length === 0) {
+                setValidationError('Tài khoản không có quyền truy cập')
+                return
+            }
+            navigate(getRoleDashboard(roles), { replace: true })
         } catch {
-            // Error is handled in store
+            // error handled by store
         }
     }
 
-    return (
-        <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            {/* Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/30 via-slate-900 to-blue-900/20"></div>
+    const displayError = error || validationError
 
-            <div className="relative max-w-md w-full">
+    return (
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+            <div className="w-full max-w-md">
                 <div className="card p-8">
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <span className="text-white font-bold text-2xl">E</span>
+                    {/* Icon */}
+                    <div className="flex items-center justify-center mb-6">
+                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-xl flex items-center justify-center">
+                            <UserPlus className="w-7 h-7 text-white" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white">Tạo tài khoản</h2>
-                        <p className="text-slate-400 mt-2">Bắt đầu hành trình học tiếng Anh</p>
                     </div>
 
-                    {/* Error Message */}
-                    {(error || validationError) && (
-                        <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
-                            {error || validationError}
+                    {/* Heading */}
+                    <h2 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--color-text)' }}>
+                        Tạo tài khoản
+                    </h2>
+                    <p className="text-center mb-6" style={{ color: 'var(--color-text-secondary)' }}>
+                        Bắt đầu hành trình học tiếng Anh
+                    </p>
+
+                    {/* Error */}
+                    {displayError && (
+                        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-sm">
+                            {displayError}
                         </div>
                     )}
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label htmlFor="fullName" className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                                 Họ và tên
                             </label>
                             <input
-                                id="fullName"
-                                name="fullName"
                                 type="text"
-                                required
-                                value={formData.fullName}
-                                onChange={handleChange}
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
                                 className="input-field"
                                 placeholder="Nguyễn Văn A"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
-                                Email
-                            </label>
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
                                 required
-                                value={formData.email}
-                                onChange={handleChange}
-                                className="input-field"
-                                placeholder="email@example.com"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                                 Tên đăng nhập
                             </label>
                             <input
-                                id="username"
-                                name="username"
                                 type="text"
-                                required
-                                value={formData.username}
-                                onChange={handleChange}
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 className="input-field"
-                                placeholder="Chọn tên đăng nhập"
+                                placeholder="username"
+                                required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="input-field"
+                                placeholder="email@example.com"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                                 Mật khẩu
                             </label>
                             <input
-                                id="password"
-                                name="password"
                                 type="password"
-                                required
-                                value={formData.password}
-                                onChange={handleChange}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 className="input-field"
                                 placeholder="Ít nhất 6 ký tự"
+                                required
                             />
+
+                            {/* Password strength indicator */}
+                            {password.length > 0 && (
+                                <div className="mt-2">
+                                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg-tertiary)' }}>
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-300 ${strengthConfig[passwordStrength].color} ${strengthConfig[passwordStrength].width}`}
+                                        />
+                                    </div>
+                                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                                        Độ mạnh: {strengthConfig[passwordStrength].label}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
+                            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                                 Xác nhận mật khẩu
                             </label>
                             <input
-                                id="confirmPassword"
-                                name="confirmPassword"
                                 type="password"
-                                required
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
                                 className="input-field"
                                 placeholder="Nhập lại mật khẩu"
-                            />
-                        </div>
-
-                        <div className="flex items-start">
-                            <input
-                                type="checkbox"
                                 required
-                                className="w-4 h-4 mt-1 rounded border-slate-600 text-blue-500 focus:ring-blue-500 bg-slate-800"
                             />
-                            <span className="ml-2 text-sm text-slate-400">
-                                Tôi đồng ý với{' '}
-                                <a href="#" className="text-blue-400 hover:text-blue-300">Điều khoản sử dụng</a>
-                                {' '}và{' '}
-                                <a href="#" className="text-blue-400 hover:text-blue-300">Chính sách bảo mật</a>
-                            </span>
                         </div>
 
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn-primary w-full disabled:opacity-50"
                         >
-                            {isLoading ? (
-                                <span className="flex items-center justify-center">
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Đang xử lý...
-                                </span>
-                            ) : (
-                                'Đăng ký'
-                            )}
+                            {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
                         </button>
                     </form>
 
                     {/* Footer */}
-                    <p className="mt-8 text-center text-slate-400">
+                    <p className="mt-6 text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                         Đã có tài khoản?{' '}
-                        <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+                        <Link to="/login" className="text-blue-500 hover:text-blue-400 font-medium">
                             Đăng nhập
                         </Link>
                     </p>
@@ -197,5 +210,3 @@ const Register = () => {
         </div>
     )
 }
-
-export default Register
