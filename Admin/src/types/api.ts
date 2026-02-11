@@ -54,6 +54,8 @@ export interface User {
     avatarUrl?: string
     roles: string[]
     coins?: number
+    streakDays?: number
+    isActive?: boolean
     createdAt?: string
     updatedAt?: string
 }
@@ -65,9 +67,12 @@ export interface School {
     address?: string
     phone?: string
     email?: string
-    principalName?: string
-    active: boolean
+    isActive?: boolean
+    trialEndDate?: string
     createdAt?: string
+    teacherCount?: number
+    studentCount?: number
+    classCount?: number
 }
 
 export interface SchoolRequest {
@@ -75,84 +80,124 @@ export interface SchoolRequest {
     address?: string
     phone?: string
     email?: string
-    principalName?: string
+    trialEndDate?: string
+    isActive?: boolean
 }
 
 // ==================== Lesson ====================
 export interface Lesson {
     id: number
     title: string
-    description?: string
-    content?: string
-    level?: string
+    topicId?: number
+    topicName?: string
+    contentHtml?: string
+    audioUrl?: string
+    videoUrl?: string
+    difficultyLevel?: number
     orderIndex?: number
-    published: boolean
+    isPublished?: boolean
+    vocabularyCount?: number
+    questionCount?: number
     createdAt?: string
 }
 
 export interface LessonRequest {
     title: string
-    description?: string
-    content?: string
-    level?: string
+    topicId?: number
+    contentHtml?: string
+    audioUrl?: string
+    videoUrl?: string
+    difficultyLevel?: number
     orderIndex?: number
-    published?: boolean
+    isPublished?: boolean
 }
 
 // ==================== Exam ====================
 export interface Exam {
     id: number
     title: string
-    description?: string
-    duration: number
-    totalQuestions: number
-    passingScore: number
     status: 'DRAFT' | 'PUBLISHED' | 'CLOSED'
-    shuffleQuestions: boolean
-    shuffleOptions: boolean
-    antiCheatEnabled: boolean
-    createdAt?: string
-    teacherId?: number
     classId?: number
+    className?: string
+    teacherId?: number
+    teacherName?: string
+    startTime?: string
+    endTime?: string
+    durationMinutes?: number
+    shuffleQuestions?: boolean
+    shuffleAnswers?: boolean
+    antiCheatEnabled?: boolean
+    questionCount?: number
+    totalPoints?: number
+    submittedCount?: number
+    averageScore?: number
+    createdAt?: string
 }
 
 export interface ExamRequest {
     title: string
-    description?: string
-    duration: number
-    passingScore: number
+    classId: number
+    startTime: string
+    endTime: string
+    durationMinutes: number
     shuffleQuestions?: boolean
-    shuffleOptions?: boolean
+    shuffleAnswers?: boolean
     antiCheatEnabled?: boolean
-    classId?: number
     questionIds?: number[]
+}
+
+// ==================== Exam Result ====================
+export interface ExamResult {
+    id: number
+    examId?: number
+    examTitle?: string
+    studentId?: number
+    studentName?: string
+    score?: number
+    correctCount?: number
+    totalQuestions?: number
+    percentage?: number
+    submittedAt?: string
+    violationCount?: number
+    grade?: string
+    status?: string
+}
+
+// ==================== Anti-Cheat Event ====================
+export interface AntiCheatEvent {
+    id: number
+    examResultId?: number
+    eventType: string
+    timestamp?: string
+    details?: string
 }
 
 // ==================== Question ====================
 export interface QuestionOption {
     id: number
-    content: string
+    optionText: string
     isCorrect: boolean
 }
 
 export interface Question {
     id: number
-    content: string
-    type: string
-    difficulty?: string
+    questionType: string
+    questionText: string
+    points?: number
     explanation?: string
     lessonId?: number
+    lessonTitle?: string
     options: QuestionOption[]
     createdAt?: string
 }
 
 export interface QuestionRequest {
-    content: string
-    type: string
-    difficulty?: string
-    explanation?: string
     lessonId?: number
-    options: { content: string; isCorrect: boolean }[]
+    questionType: string
+    questionText: string
+    points?: number
+    explanation?: string
+    options: { optionText: string; isCorrect: boolean }[]
 }
 
 // ==================== Vocabulary ====================
@@ -161,11 +206,11 @@ export interface Vocabulary {
     word: string
     meaning: string
     pronunciation?: string
-    example?: string
+    exampleSentence?: string
     imageUrl?: string
     audioUrl?: string
     lessonId?: number
-    topicId?: number
+    lessonTitle?: string
     createdAt?: string
 }
 
@@ -173,32 +218,32 @@ export interface VocabularyRequest {
     word: string
     meaning: string
     pronunciation?: string
-    example?: string
+    exampleSentence?: string
     imageUrl?: string
     audioUrl?: string
     lessonId?: number
-    topicId?: number
 }
 
 // ==================== ClassRoom ====================
 export interface ClassRoom {
     id: number
     name: string
-    description?: string
+    academicYear?: string
+    isActive?: boolean
     schoolId?: number
-    teacherId?: number
     schoolName?: string
+    teacherId?: number
     teacherName?: string
     studentCount?: number
-    active: boolean
     createdAt?: string
 }
 
 export interface ClassRoomRequest {
     name: string
-    description?: string
     schoolId?: number
     teacherId?: number
+    academicYear?: string
+    isActive?: boolean
 }
 
 // ==================== Badge ====================
@@ -207,7 +252,35 @@ export interface Badge {
     name: string
     description: string
     iconUrl?: string
+    earnedAt?: string
+}
+
+export interface BadgeResponse {
+    id: number
+    name: string
+    description: string
+    iconUrl?: string
+    earnedAt?: string
+}
+
+// ==================== Leaderboard ====================
+export interface LeaderboardEntry {
+    rank?: number
     userId: number
+    username: string
+    fullName?: string
+    avatarUrl?: string
+    totalCoins?: number
+    streakDays?: number
+    averageScore?: number
+}
+
+// ==================== Notification ====================
+export interface Notification {
+    id: number
+    title: string
+    message: string
+    isRead: boolean
     createdAt?: string
 }
 
@@ -216,29 +289,26 @@ export interface Progress {
     id: number
     userId: number
     lessonId?: number
-    completionRate: number
-    score?: number
-    streak?: number
-    totalVocabularyLearned?: number
-    createdAt?: string
+    lessonTitle?: string
+    completionPercentage?: number
+    isCompleted?: boolean
+    lastAccessed?: string
 }
 
 // ==================== DailyQuest ====================
 export interface DailyQuest {
     id: number
-    date: string
-    userId: number
-    completed: boolean
+    questDate: string
+    isCompleted: boolean
     tasks: DailyQuestTask[]
+    totalCoins?: number
 }
 
 export interface DailyQuestTask {
     id: number
-    title: string
-    description?: string
-    type: string
-    target: number
-    progress: number
+    taskType: string
+    targetCount: number
+    currentProgress: number
     completed: boolean
-    reward: number
+    coins: number
 }

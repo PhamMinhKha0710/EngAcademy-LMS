@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import { login, clearError } from '@/features/auth/authSlice'
+import { canAccessAdminPanel } from '@/lib/roles'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,15 +16,27 @@ export default function LoginPage() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
+    const [roleError, setRoleError] = useState<string | null>(null)
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         dispatch(clearError())
+        setRoleError(null)
+
         const result = await dispatch(login({ username, password }))
+
         if (login.fulfilled.match(result)) {
-            navigate('/dashboard')
+            const userRoles = result.payload.user.roles || []
+            if (canAccessAdminPanel(userRoles)) {
+                navigate('/dashboard')
+            } else {
+                // User logged in but doesn't have admin/school role
+                setRoleError('Tài khoản không có quyền truy cập hệ thống quản lý. Chỉ Admin và Quản lý trường mới được phép.')
+            }
         }
     }
+
+    const displayError = roleError || error
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4">
@@ -48,9 +61,9 @@ export default function LoginPage() {
 
                 <CardContent className="pt-4">
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
+                        {displayError && (
                             <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-                                {error}
+                                {displayError}
                             </div>
                         )}
 
