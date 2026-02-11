@@ -6,60 +6,100 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Languages, Plus, Search, Edit, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import api from '@/lib/api'
-import type { ApiResponse, Vocabulary, VocabularyRequest } from '@/types/api'
+import type { ApiResponse, Vocabulary, VocabularyRequest, Lesson } from '@/types/api'
 
 export default function VocabularyPage() {
     const [vocabs, setVocabs] = useState<Vocabulary[]>([])
+    const [lessons, setLessons] = useState<Lesson[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editing, setEditing] = useState<Vocabulary | null>(null)
-    const [form, setForm] = useState<VocabularyRequest>({ word: '', meaning: '' })
+    const [form, setForm] = useState<VocabularyRequest>({ word: '', meaning: '', lessonId: undefined })
     const [deleteOpen, setDeleteOpen] = useState(false)
     const [deleting, setDeleting] = useState<Vocabulary | null>(null)
+    const [submitting, setSubmitting] = useState(false)
 
-    const fetch = async () => {
+    const fetchVocabs = async () => {
         setLoading(true)
         try {
             const r = await api.get<ApiResponse<Vocabulary[]>>('/vocabulary')
             setVocabs(Array.isArray(r.data.data) ? r.data.data : [])
         } catch {
-            setVocabs([
-                { id: 1, word: 'apple', meaning: 'quả táo', pronunciation: '/ˈæp.əl/', example: 'I eat an apple every day.' },
-                { id: 2, word: 'beautiful', meaning: 'đẹp', pronunciation: '/ˈbjuː.tɪ.fəl/', example: 'She is beautiful.' },
-                { id: 3, word: 'computer', meaning: 'máy tính', pronunciation: '/kəmˈpjuː.tər/', example: 'I use a computer for work.' },
-            ])
+            setVocabs([])
+            toast.error('Không thể tải từ vựng')
         } finally { setLoading(false) }
     }
 
-    useEffect(() => { fetch() }, [])
+    const fetchLessons = async () => {
+        try {
+            const r = await api.get<ApiResponse<{ content: Lesson[] }>>('/lessons?page=0&size=200')
+            setLessons(r.data.data.content || [])
+        } catch { /* ignore */ }
+    }
+
+    useEffect(() => {
+        fetchVocabs()
+        fetchLessons()
+    }, [])
 
     const handleSubmit = async () => {
+        if (!form.word.trim() || !form.meaning.trim()) { toast.error('Từ và nghĩa không được để trống'); return }
+        setSubmitting(true)
         try {
-            if (editing) await api.put(`/vocabulary/${editing.id}`, form)
-            else await api.post('/vocabulary', form)
-            fetch()
-        } catch { /* ignore */ }
-        resetForm()
+            if (editing) {
+                await api.put(`/vocabulary/${editing.id}`, form)
+                toast.success('Cập nhật từ vựng thành công')
+            } else {
+                await api.post('/vocabulary', form)
+                toast.success('Thêm từ vựng thành công')
+            }
+            fetchVocabs()
+            resetForm()
+        } catch {
+            toast.error('Thao tác thất bại')
+        } finally { setSubmitting(false) }
     }
 
     const handleDelete = async () => {
         if (!deleting) return
-        try { await api.delete(`/vocabulary/${deleting.id}`) } catch { /* ignore */ }
+        try {
+            await api.delete(`/vocabulary/${deleting.id}`)
+            toast.success('Đã xóa từ vựng')
+            fetchVocabs()
+        } catch {
+            toast.error('Xóa thất bại')
+        }
         setDeleteOpen(false)
-        fetch()
+        setDeleting(null)
     }
 
-    const resetForm = () => { setDialogOpen(false); setEditing(null); setForm({ word: '', meaning: '' }) }
+    const resetForm = () => {
+        setDialogOpen(false)
+        setEditing(null)
+        setForm({ word: '', meaning: '', lessonId: undefined })
+    }
 
     const openEdit = (v: Vocabulary) => {
         setEditing(v)
-        setForm({ word: v.word, meaning: v.meaning, pronunciation: v.pronunciation, example: v.example })
+        setForm({
+            word: v.word,
+            meaning: v.meaning,
+            pronunciation: v.pronunciation,
+            exampleSentence: v.exampleSentence,
+            imageUrl: v.imageUrl,
+            audioUrl: v.audioUrl,
+            lessonId: v.lessonId,
+        })
         setDialogOpen(true)
     }
 
-    const filtered = vocabs.filter((v) => v.word.toLowerCase().includes(search.toLowerCase()) || v.meaning.toLowerCase().includes(search.toLowerCase()))
+    const filtered = vocabs.filter((v) =>
+        v.word.toLowerCase().includes(search.toLowerCase()) ||
+        v.meaning.toLowerCase().includes(search.toLowerCase())
+    )
 
     return (
         <div className="space-y-6">
@@ -68,7 +108,9 @@ export default function VocabularyPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Quản lý từ vựng</h1>
                     <p className="text-muted-foreground mt-1">Tổng cộng {vocabs.length} từ vựng</p>
                 </div>
-                <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="gap-2"><Plus className="h-4 w-4" /> Thêm từ vựng</Button>
+                <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="gap-2">
+                    <Plus className="h-4 w-4" /> Thêm từ vựng
+                </Button>
             </div>
 
             <Card>
@@ -92,18 +134,22 @@ export default function VocabularyPage() {
                                     <TableHead>Từ</TableHead>
                                     <TableHead>Nghĩa</TableHead>
                                     <TableHead>Phát âm</TableHead>
+                                    <TableHead>Bài học</TableHead>
                                     <TableHead>Ví dụ</TableHead>
                                     <TableHead className="text-right">Thao tác</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filtered.map((v) => (
+                                {filtered.length === 0 ? (
+                                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Không có từ vựng</TableCell></TableRow>
+                                ) : filtered.map((v) => (
                                     <TableRow key={v.id}>
                                         <TableCell className="font-medium">{v.id}</TableCell>
                                         <TableCell className="font-semibold text-primary">{v.word}</TableCell>
                                         <TableCell>{v.meaning}</TableCell>
                                         <TableCell className="text-muted-foreground italic">{v.pronunciation}</TableCell>
-                                        <TableCell className="max-w-[200px] truncate text-muted-foreground">{v.example}</TableCell>
+                                        <TableCell className="text-muted-foreground">{v.lessonTitle || '-'}</TableCell>
+                                        <TableCell className="max-w-[200px] truncate text-muted-foreground">{v.exampleSentence}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-1">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(v)}><Edit className="h-4 w-4" /></Button>
@@ -118,27 +164,66 @@ export default function VocabularyPage() {
                 </CardContent>
             </Card>
 
+            {/* Create/Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>{editing ? 'Chỉnh sửa từ vựng' : 'Thêm từ vựng mới'}</DialogTitle>
                         <DialogDescription>Điền thông tin từ vựng</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label>Từ *</Label><Input value={form.word} onChange={(e) => setForm({ ...form, word: e.target.value })} placeholder="apple" /></div>
-                            <div className="space-y-2"><Label>Nghĩa *</Label><Input value={form.meaning} onChange={(e) => setForm({ ...form, meaning: e.target.value })} placeholder="quả táo" /></div>
+                            <div className="space-y-2">
+                                <Label>Từ *</Label>
+                                <Input value={form.word} onChange={(e) => setForm({ ...form, word: e.target.value })} placeholder="apple" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Nghĩa *</Label>
+                                <Input value={form.meaning} onChange={(e) => setForm({ ...form, meaning: e.target.value })} placeholder="quả táo" />
+                            </div>
                         </div>
-                        <div className="space-y-2"><Label>Phát âm</Label><Input value={form.pronunciation || ''} onChange={(e) => setForm({ ...form, pronunciation: e.target.value })} placeholder="/ˈæp.əl/" /></div>
-                        <div className="space-y-2"><Label>Ví dụ</Label><Input value={form.example || ''} onChange={(e) => setForm({ ...form, example: e.target.value })} placeholder="Câu ví dụ" /></div>
+                        <div className="space-y-2">
+                            <Label>Phát âm</Label>
+                            <Input value={form.pronunciation || ''} onChange={(e) => setForm({ ...form, pronunciation: e.target.value })} placeholder="/ˈæp.əl/" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Bài học</Label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={form.lessonId || ''}
+                                onChange={(e) => setForm({ ...form, lessonId: e.target.value ? Number(e.target.value) : undefined })}
+                            >
+                                <option value="">-- Chọn bài học --</option>
+                                {lessons.map((l) => (
+                                    <option key={l.id} value={l.id}>{l.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Câu ví dụ</Label>
+                            <Input value={form.exampleSentence || ''} onChange={(e) => setForm({ ...form, exampleSentence: e.target.value })} placeholder="I eat an apple every day." />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>URL ảnh</Label>
+                                <Input value={form.imageUrl || ''} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="https://..." />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>URL audio</Label>
+                                <Input value={form.audioUrl || ''} onChange={(e) => setForm({ ...form, audioUrl: e.target.value })} placeholder="https://..." />
+                            </div>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={resetForm}>Hủy</Button>
-                        <Button onClick={handleSubmit}>{editing ? 'Cập nhật' : 'Tạo mới'}</Button>
+                        <Button onClick={handleSubmit} disabled={submitting}>
+                            {submitting ? 'Đang xử lý...' : editing ? 'Cập nhật' : 'Tạo mới'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
+            {/* Delete Confirmation */}
             <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                 <DialogContent>
                     <DialogHeader>
