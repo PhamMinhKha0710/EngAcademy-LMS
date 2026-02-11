@@ -399,6 +399,62 @@ public class TestDataFactory {
                                 .build();
         }
 
+        // ==================== EXAM (ALREADY STARTED - for anti-cheat tests) ====================
+
+        /**
+         * Creates an ExamRequest with startTime in the past so the exam is already started.
+         * Used for anti-cheat integration tests.
+         */
+        public static ExamRequest examRequestAlreadyStarted(Long classId, List<Long> questionIds) {
+                return ExamRequest.builder()
+                                .title("Bài kiểm tra Anti-Cheat - Đã bắt đầu")
+                                .classId(classId)
+                                .startTime(LocalDateTime.now().minusMinutes(10))
+                                .endTime(LocalDateTime.now().plusHours(2))
+                                .durationMinutes(60)
+                                .shuffleQuestions(false)
+                                .shuffleAnswers(false)
+                                .antiCheatEnabled(true)
+                                .questionIds(questionIds)
+                                .build();
+        }
+
+        // ==================== ANTI-CHEAT EVENT DTO ====================
+
+        public static AntiCheatEventDTO antiCheatEventDTO(Long examResultId, String eventType) {
+                return AntiCheatEventDTO.builder()
+                                .examResultId(examResultId)
+                                .eventType(eventType)
+                                .timestamp(LocalDateTime.now())
+                                .details("Auto-generated test event")
+                                .build();
+        }
+
+        // ==================== EXAM SUBMIT DTO (for anti-cheat submit) ====================
+
+        public static ExamSubmitDTO.AnswerDTO examSubmitAnswerDTO(Long questionId, Long selectedOptionId) {
+                return ExamSubmitDTO.AnswerDTO.builder()
+                                .questionId(questionId)
+                                .selectedOptionId(selectedOptionId)
+                                .build();
+        }
+
+        public static ExamSubmitDTO examSubmitDTO(Long examResultId, List<ExamSubmitDTO.AnswerDTO> answers) {
+                return ExamSubmitDTO.builder()
+                                .examResultId(examResultId)
+                                .answers(answers)
+                                .build();
+        }
+
+        // ==================== MISTAKE NOTEBOOK REQUEST ====================
+
+        public static MistakeNotebookRequest mistakeNotebookRequest(Long userId, Long vocabularyId) {
+                return MistakeNotebookRequest.builder()
+                                .userId(userId)
+                                .vocabularyId(vocabularyId)
+                                .build();
+        }
+
         // ==================== UTILITIES ====================
 
         public static String asJsonString(Object obj) {
