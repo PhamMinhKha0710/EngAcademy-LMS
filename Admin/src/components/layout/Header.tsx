@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/app/hooks'
+import { useRole } from '@/app/useRole'
 import { logout } from '@/features/auth/authSlice'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -19,6 +21,7 @@ export default function Header() {
     const dispatch = useAppDispatch()
     const navigate = useNavigate()
     const { user } = useAppSelector((state) => state.auth)
+    const { isAdmin, roleBadge } = useRole()
     const [isDark, setIsDark] = useState(false)
 
     useEffect(() => {
@@ -77,6 +80,11 @@ export default function Header() {
                     <Bell className="h-4 w-4" />
                     <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
                 </Button>
+
+                {/* Role badge */}
+                <Badge variant={isAdmin ? 'destructive' : 'default'} className="text-[10px] px-2 py-0.5">
+                    {roleBadge}
+                </Badge>
 
                 {/* User menu */}
                 <DropdownMenu>

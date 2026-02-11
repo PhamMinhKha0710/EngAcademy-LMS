@@ -17,19 +17,27 @@ import {
     ChevronRight,
     LogOut,
     GraduationCapIcon,
+    Bell,
+    Award,
+    Trophy,
 } from 'lucide-react'
 import { useAppDispatch } from '@/app/hooks'
+import { useRole } from '@/app/useRole'
 import { logout } from '@/features/auth/authSlice'
+import { ROLES } from '@/lib/roles'
 
 const navItems = [
-    { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { title: 'Người dùng', href: '/users', icon: Users },
-    { title: 'Trường học', href: '/schools', icon: School },
-    { title: 'Bài học', href: '/lessons', icon: BookOpen },
-    { title: 'Bài thi', href: '/exams', icon: FileText },
-    { title: 'Câu hỏi', href: '/questions', icon: HelpCircle },
-    { title: 'Từ vựng', href: '/vocabulary', icon: Languages },
-    { title: 'Lớp học', href: '/classrooms', icon: GraduationCap },
+    { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [ROLES.ADMIN, ROLES.SCHOOL] },
+    { title: 'Trường học', href: '/schools', icon: School, roles: [ROLES.ADMIN, ROLES.SCHOOL] },
+    { title: 'Lớp học', href: '/classrooms', icon: GraduationCap, roles: [ROLES.ADMIN, ROLES.SCHOOL] },
+    { title: 'Người dùng', href: '/users', icon: Users, roles: [ROLES.ADMIN] },
+    { title: 'Bài học', href: '/lessons', icon: BookOpen, roles: [ROLES.ADMIN] },
+    { title: 'Bài thi', href: '/exams', icon: FileText, roles: [ROLES.ADMIN] },
+    { title: 'Câu hỏi', href: '/questions', icon: HelpCircle, roles: [ROLES.ADMIN] },
+    { title: 'Từ vựng', href: '/vocabulary', icon: Languages, roles: [ROLES.ADMIN] },
+    { title: 'Huy hiệu', href: '/badges', icon: Award, roles: [ROLES.ADMIN] },
+    { title: 'Bảng xếp hạng', href: '/leaderboard', icon: Trophy, roles: [ROLES.ADMIN] },
+    { title: 'Thông báo', href: '/notifications', icon: Bell, roles: [ROLES.ADMIN] },
 ]
 
 interface SidebarProps {
@@ -41,11 +49,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const location = useLocation()
     const dispatch = useAppDispatch()
     const navigate = useNavigate()
+    const { roles: userRoles, roleBadge } = useRole()
 
     const handleLogout = () => {
         dispatch(logout())
         navigate('/login')
     }
+
+    // Filter menu items based on user roles
+    const visibleItems = navItems.filter((item) =>
+        item.roles.some((role) => userRoles.includes(role))
+    )
 
     return (
         <div
@@ -58,16 +72,19 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div className="flex h-16 items-center gap-2 border-b px-4">
                 <GraduationCapIcon className="h-8 w-8 text-primary shrink-0" />
                 {!collapsed && (
-                    <span className="text-lg font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
-                        Admin Panel
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="text-lg font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-tight">
+                            Admin Panel
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">{roleBadge}</span>
+                    </div>
                 )}
             </div>
 
             {/* Navigation */}
             <ScrollArea className="flex-1 py-4">
                 <nav className="flex flex-col gap-1 px-2">
-                    {navItems.map((item) => {
+                    {visibleItems.map((item) => {
                         const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/')
                         return (
                             <Link
