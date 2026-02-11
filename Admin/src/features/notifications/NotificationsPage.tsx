@@ -5,9 +5,16 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Bell, Send, Search, CheckCircle, Loader2 } from 'lucide-react'
+import { AxiosError } from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse, Notification } from '@/types/api'
 import { toast } from 'sonner'
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof AxiosError && error.response?.data?.message
+        ? String(error.response.data.message)
+        : fallback
+}
 
 export default function NotificationsPage() {
     // Send notification form state
@@ -38,9 +45,8 @@ export default function NotificationsPage() {
             setSendUsername('')
             setSendTitle('')
             setSendMessage('')
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Gửi thông báo thất bại'
-            toast.error(msg)
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Gửi thông báo thất bại'))
         } finally {
             setSending(false)
         }
@@ -61,9 +67,8 @@ export default function NotificationsPage() {
             if (response.data.data.length === 0) {
                 toast.info('Không có thông báo nào')
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Không thể tải thông báo'
-            toast.error(msg)
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Không thể tải thông báo'))
             setNotifications([])
             setHasLoaded(true)
         } finally {
@@ -78,9 +83,8 @@ export default function NotificationsPage() {
                 prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
             )
             toast.success('Đã đánh dấu đã đọc')
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Thao tác thất bại'
-            toast.error(msg)
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, 'Thao tác thất bại'))
         }
     }
 

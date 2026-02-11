@@ -38,7 +38,7 @@ export default function LessonsPage() {
         } finally { setLoading(false) }
     }
 
-    useEffect(() => { fetchLessons() }, [page])
+    useEffect(() => { fetchLessons() }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSubmit = async () => {
         if (!form.title.trim()) { toast.error('Tiêu đề không được để trống'); return }

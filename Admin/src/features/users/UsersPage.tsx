@@ -52,7 +52,7 @@ export default function UsersPage() {
         }
     }
 
-    useEffect(() => { fetchUsers() }, [page])
+    useEffect(() => { fetchUsers() }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleAddCoins = async () => {
         if (!selectedUser || !coinsAmount) return
