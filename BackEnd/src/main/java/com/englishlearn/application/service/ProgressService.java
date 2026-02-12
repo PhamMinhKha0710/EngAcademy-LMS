@@ -95,6 +95,11 @@ public class ProgressService {
         return avg != null ? avg : 0.0;
     }
 
+    @Transactional(readOnly = true)
+    public Long getTotalLessonsCount() {
+        return lessonRepository.count();
+    }
+
     private ProgressResponse mapToResponse(Progress progress) {
         return ProgressResponse.builder()
                 .id(progress.getId())
