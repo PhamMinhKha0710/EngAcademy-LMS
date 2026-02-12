@@ -91,6 +91,15 @@ export default function Login() {
                             />
                         </div>
 
+                        <div className="flex justify-end">
+                            <Link 
+                                to="/forgot-password" 
+                                className="text-sm font-medium text-blue-500 hover:text-blue-400"
+                            >
+                                Quên mật khẩu?
+                            </Link>
+                        </div>
+
                         <button
                             type="submit"
                             disabled={isLoading}

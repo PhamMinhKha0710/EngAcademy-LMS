@@ -26,7 +26,7 @@ const studentMenuItems: MenuItem[] = [
 
 const teacherMenuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/teacher/dashboard' },
-    { icon: GraduationCap, label: 'Lớp học', path: '/teacher/classrooms' },
+    { icon: GraduationCap, label: 'Quản lý lớp', path: '/teacher/management' },
     { icon: BookOpen, label: 'Bài học', path: '/teacher/lessons' },
     { icon: HelpCircle, label: 'Câu hỏi', path: '/teacher/questions' },
     { icon: Languages, label: 'Từ vựng', path: '/teacher/vocabulary' },

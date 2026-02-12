@@ -7,7 +7,7 @@ import Badge from '../ui/Badge'
 
 const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore()
-    const { roleLabel, dashboardPath } = useRole()
+    const { roleLabel } = useRole()
     const navigate = useNavigate()
 
     const handleLogout = () => {
@@ -47,7 +47,7 @@ const Header = () => {
                             <div className="flex items-center space-x-3">
                                 {user?.id && <NotificationComponent userId={user.id} />}
                                 <Badge variant="info">{roleLabel}</Badge>
-                                <Link to={dashboardPath} className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--color-text)' }}>
+                                <Link to="/profile" className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--color-text)' }}>
                                     {user?.fullName}
                                 </Link>
                                 <button onClick={handleLogout} className="btn-secondary text-sm py-2 px-4">

@@ -62,8 +62,12 @@ export const userApi = {
      * PATCH /api/v1/users/me - Update own profile
      */
     updateProfile: async (fullName?: string, avatarUrl?: string): Promise<User> => {
+        const params: any = {}
+        if (fullName) params.fullName = fullName
+        if (avatarUrl) params.avatarUrl = avatarUrl
+
         const response = await api.patch<ApiResponse<User>>('/users/me', null, {
-            params: { fullName, avatarUrl }
+            params
         })
         return response.data.data
     },
@@ -75,5 +79,14 @@ export const userApi = {
         await api.post(`/users/${userId}/coins`, null, {
             params: { amount }
         })
+    },
+
+    /**
+     * Đổi mật khẩu - [LƯU Ý]: Hiện Backend chưa có API này.
+     * Chức năng này hiện chỉ là giao diện ở Frontend.
+     */
+    changePassword: async (_currentPassword: string, _newPassword: string): Promise<void> => {
+        console.warn('Backend chưa hỗ trợ API đổi mật khẩu (/users/me/password)')
+        return Promise.resolve()
     },
 }

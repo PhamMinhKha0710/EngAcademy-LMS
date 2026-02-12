@@ -4,6 +4,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import Profile from './pages/Profile'
 
 // Student pages
 import Dashboard from './pages/student/StudentDashboard'
@@ -19,7 +21,7 @@ import BadgesPage from './pages/student/BadgesPage'
 
 // Teacher pages
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
-import ClassroomsPage from './pages/teacher/ClassroomsPage'
+import ClassManagement from './pages/teacher/ClassManagement'
 import TeacherLessonsPage from './pages/teacher/TeacherLessonsPage'
 import QuestionsPage from './pages/teacher/QuestionsPage'
 import TeacherVocabularyPage from './pages/teacher/TeacherVocabularyPage'
@@ -38,6 +40,7 @@ function App() {
                 <Route index element={<Home />} />
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
+                <Route path="forgot-password" element={<ForgotPassword />} />
 
                 {/* Student routes */}
                 <Route element={<ProtectedRoute allowedRoles={['ROLE_STUDENT']} />}>
@@ -54,9 +57,10 @@ function App() {
                 </Route>
 
                 {/* Teacher routes */}
-                <Route element={<ProtectedRoute allowedRoles={['ROLE_TEACHER']} />}>
+                <Route element={<ProtectedRoute allowedRoles={['ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_SCHOOL']} />}>
                     <Route path="teacher/dashboard" element={<TeacherDashboard />} />
-                    <Route path="teacher/classrooms" element={<ClassroomsPage />} />
+                    <Route path="teacher/management" element={<ClassManagement />} />
+                    <Route path="teacher/classrooms" element={<Navigate to="/teacher/management" replace />} />
                     <Route path="teacher/lessons" element={<TeacherLessonsPage />} />
                     <Route path="teacher/questions" element={<QuestionsPage />} />
                     <Route path="teacher/vocabulary" element={<TeacherVocabularyPage />} />
@@ -67,6 +71,7 @@ function App() {
 
                 {/* Shared routes (any authenticated user) */}
                 <Route element={<ProtectedRoute />}>
+                    <Route path="profile" element={<Profile />} />
                     <Route path="settings" element={<SettingsPage />} />
                 </Route>
 

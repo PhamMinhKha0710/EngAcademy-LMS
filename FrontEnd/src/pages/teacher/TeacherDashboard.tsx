@@ -86,7 +86,7 @@ export default function TeacherDashboard() {
     const quickActions = [
         { label: 'Tạo bài thi', icon: Plus, path: '/teacher/exams', color: 'bg-blue-600 hover:bg-blue-700' },
         { label: 'Xem kết quả', icon: BarChart3, path: '/teacher/exams', color: 'bg-emerald-600 hover:bg-emerald-700' },
-        { label: 'Quản lý lớp', icon: School, path: '/teacher/classrooms', color: 'bg-purple-600 hover:bg-purple-700' },
+        { label: 'Quản lý lớp', icon: School, path: '/teacher/management', color: 'bg-purple-600 hover:bg-purple-700' },
     ]
 
     return (
