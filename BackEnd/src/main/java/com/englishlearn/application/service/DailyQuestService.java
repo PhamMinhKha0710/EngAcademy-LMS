@@ -55,7 +55,7 @@ public class DailyQuestService {
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
 
         LocalDate today = LocalDate.now();
-        
+
         // Check if quest already exists for today
         if (dailyQuestRepository.findByUserAndQuestDate(user, today).isPresent()) {
             throw ApiException.conflict("Bạn đã có quest cho hôm nay rồi");
@@ -102,7 +102,7 @@ public class DailyQuestService {
         }
 
         task.setCurrentCount(progress);
-        
+
         // Check if task is completed
         if (task.getTargetCount() != null && task.getCurrentCount() >= task.getTargetCount()) {
             task.setIsCompleted(true);
@@ -110,7 +110,7 @@ public class DailyQuestService {
 
         dailyQuestTaskRepository.save(task);
         quest = dailyQuestRepository.findById(quest.getId()).get();
-        
+
         // Award coins when task is completed
         if (task.getIsCompleted()) {
             int coins = calculateCoinsForTask(task.getTaskType());
@@ -143,15 +143,15 @@ public class DailyQuestService {
 
         quest.setIsCompleted(true);
         dailyQuestRepository.save(quest);
-        
+
         // Bonus coins for completing entire quest
         int bonusCoins = 50;
         userRepository.addCoinsToUser(userId, bonusCoins);
-        
+
         // Increase streak
         user.setStreakDays(user.getStreakDays() + 1);
         userRepository.save(user);
-        
+
         log.info("Completed daily quest for user: {}", userId);
         return mapToResponse(quest);
     }
@@ -226,8 +226,9 @@ public class DailyQuestService {
                         .id(task.getId())
                         .taskType(task.getTaskType())
                         .targetCount(task.getTargetCount())
-                        .currentCount(task.getCurrentCount())
+                        .currentProgress(task.getCurrentCount())
                         .isCompleted(task.getIsCompleted())
+                        .coins(calculateCoinsForTask(task.getTaskType()))
                         .build())
                 .collect(Collectors.toList());
 
@@ -248,11 +249,11 @@ public class DailyQuestService {
                 .filter(DailyQuestTask::getIsCompleted)
                 .mapToInt(task -> calculateCoinsForTask(task.getTaskType()))
                 .sum();
-        
+
         if (quest.getIsCompleted()) {
             total += 50; // Bonus for completing entire quest
         }
-        
+
         return total;
     }
 }
