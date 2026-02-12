@@ -27,6 +27,19 @@ interface ProgressStats {
     totalTimeSpent: number
 }
 
+const translateTaskType = (type: string) => {
+    switch (type) {
+        case 'LEARN_VOCAB':
+            return 'Học từ vựng mới'
+        case 'COMPLETE_LESSON':
+            return 'Hoàn thành bài học'
+        case 'SCORE_EXAM':
+            return 'Đạt điểm thi'
+        default:
+            return type
+    }
+}
+
 export default function StudentDashboard() {
     const user = useAuthStore((s) => s.user)
 
@@ -164,15 +177,15 @@ export default function StudentDashboard() {
                                                 className={`text-sm ${task.completed ? 'line-through opacity-60' : ''}`}
                                                 style={{ color: 'var(--color-text)' }}
                                             >
-                                                {task.taskType}
+                                                {translateTaskType(task.taskType)}
                                             </p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <ProgressBar
                                                     value={
                                                         task.targetCount > 0
                                                             ? (task.currentProgress /
-                                                                  task.targetCount) *
-                                                              100
+                                                                task.targetCount) *
+                                                            100
                                                             : 0
                                                     }
                                                     height="h-1.5"
@@ -271,8 +284,8 @@ export default function StudentDashboard() {
                                                 >
                                                     {item.lastAccessed
                                                         ? new Date(
-                                                              item.lastAccessed
-                                                          ).toLocaleDateString('vi-VN')
+                                                            item.lastAccessed
+                                                        ).toLocaleDateString('vi-VN')
                                                         : 'Chưa truy cập'}
                                                 </span>
                                             </div>
@@ -332,9 +345,8 @@ export default function StudentDashboard() {
                         {top5.map((entry, index) => (
                             <div
                                 key={entry.userId}
-                                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${
-                                    index === 0 ? 'bg-yellow-500/10' : ''
-                                }`}
+                                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${index === 0 ? 'bg-yellow-500/10' : ''
+                                    }`}
                                 style={
                                     index !== 0
                                         ? { backgroundColor: 'var(--color-bg-tertiary)' }
