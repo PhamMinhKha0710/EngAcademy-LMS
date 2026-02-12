@@ -21,6 +21,7 @@ public class AntiCheatEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exam_result_id", nullable = false)
     private ExamResult examResult;
