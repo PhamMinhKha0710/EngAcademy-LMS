@@ -22,6 +22,9 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # Cấu hình Spring Profile để sử dụng profile 'dev'
+      # Profile 'dev' sẽ tạo dữ liệu mẫu cho hệ thống
+      SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/english_learning?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
