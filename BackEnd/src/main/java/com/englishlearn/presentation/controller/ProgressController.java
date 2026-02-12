@@ -80,10 +80,13 @@ public class ProgressController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUserStats(@PathVariable Long userId) {
         Long completedCount = progressService.getCompletedCount(userId);
         Double avgProgress = progressService.getAverageProgress(userId);
+        Long totalLessons = progressService.getTotalLessonsCount();
 
         Map<String, Object> stats = Map.of(
                 "completedLessons", completedCount,
-                "averageProgress", avgProgress);
+                "totalLessons", totalLessons,
+                "averageScore", avgProgress,
+                "totalTimeSpent", 0);
 
         return ResponseEntity.ok(ApiResponse.success("Lấy thống kê học tập thành công", stats));
     }
