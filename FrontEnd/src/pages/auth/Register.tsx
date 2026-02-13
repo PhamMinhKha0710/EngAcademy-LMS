@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
-import { getRoleDashboard } from '../lib/roles'
+import { useAuthStore } from '../../store/authStore'
+import { getRoleDashboard } from '../../lib/roles'
 import { UserPlus } from 'lucide-react'
 
 type PasswordStrength = 'weak' | 'medium' | 'strong'

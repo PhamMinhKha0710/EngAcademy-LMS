@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
-import { getRoleDashboard } from '../lib/roles'
+import { useAuthStore } from '../../store/authStore'
+import { getRoleDashboard } from '../../lib/roles'
 import { LogIn } from 'lucide-react'
 
 export default function Login() {

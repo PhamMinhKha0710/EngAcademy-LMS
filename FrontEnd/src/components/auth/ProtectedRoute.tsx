@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
-import { useRole } from '../hooks/useRole'
+import { useAuthStore } from '../../store/authStore'
+import { useRole } from '../../hooks/useRole'
 
 interface Props {
     allowedRoles?: string[]
