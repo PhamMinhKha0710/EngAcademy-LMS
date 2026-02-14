@@ -21,4 +21,6 @@ public class UserResponse {
     private Integer streakDays;
     private Boolean isActive;
     private List<String> roles;
+    private Long schoolId;
+    private String schoolName;
 }

@@ -46,6 +46,14 @@ public class ClassRoomService {
     }
 
     @Transactional(readOnly = true)
+    public List<ClassRoomResponse> getClassRoomsBySchool(Long schoolId) {
+        return classRoomRepository.findBySchoolIdAndIsActiveTrue(schoolId, Pageable.unpaged())
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<ClassRoomResponse> getClassRoomsByTeacher(Long teacherId) {
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Giáo viên", "id", teacherId));

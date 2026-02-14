@@ -24,6 +24,8 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
 
     boolean existsByEmail(String email);
 
+    Optional<School> findByName(String name);
+
     @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE u.school.id = :schoolId AND r.name = 'ROLE_TEACHER'")
     Long countTeachersBySchoolId(@Param("schoolId") Long schoolId);
 

@@ -47,14 +47,25 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(user));
     }
 
+
     /**
      * GET /api/v1/users/{id} - Lấy thông tin user theo ID
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Lấy thông tin người dùng theo ID")
-    public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         UserResponse user = userService.getUserById(id);
+        
+        // Security check for SCHOOL role
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(user.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Không có quyền truy cập người dùng này", null));
+            }
+        }
+        
         return ResponseEntity.ok(ApiResponse.success(user));
     }
 
@@ -64,7 +75,22 @@ public class UserController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Lấy danh sách người dùng (phân trang)")
-    public ResponseEntity<ApiResponse<Page<UserResponse>>> getAll(Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<UserResponse>>> getAll(
+            Pageable pageable, 
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        
+        // Filter by school if user has ROLE_SCHOOL
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error("Tài khoản trường học chưa được liên kết với trường nào", null));
+            }
+            Page<UserResponse> users = userService.getAllUsersBySchool(currentUser.getSchoolId(), pageable);
+            return ResponseEntity.ok(ApiResponse.success(users));
+        }
+        
         Page<UserResponse> users = userService.getAllUsers(pageable);
         return ResponseEntity.ok(ApiResponse.success(users));
     }

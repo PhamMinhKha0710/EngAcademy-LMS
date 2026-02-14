@@ -125,6 +125,12 @@ public class UserService {
         log.info("Deleted user: {} (ID: {})", user.getUsername(), userId);
     }
 
+    public Page<UserResponse> getAllUsersBySchool(Long schoolId, Pageable pageable) {
+        com.englishlearn.domain.entity.School school = new com.englishlearn.domain.entity.School();
+        school.setId(schoolId);
+        return userRepository.findAllBySchool(school, pageable).map(this::mapToResponse);
+    }
+
     private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -136,6 +142,8 @@ public class UserService {
                 .streakDays(user.getStreakDays())
                 .isActive(user.getIsActive())
                 .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
+                .schoolId(user.getSchool() != null ? user.getSchool().getId() : null)
+                .schoolName(user.getSchool() != null ? user.getSchool().getName() : null)
                 .build();
     }
 }
