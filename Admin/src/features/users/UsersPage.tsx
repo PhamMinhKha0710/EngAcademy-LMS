@@ -98,8 +98,11 @@ export default function UsersPage() {
             setCreateDialogOpen(false)
             setNewUser({ username: '', email: '', password: '', fullName: '', roles: [] })
             fetchUsers()
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Tạo người dùng thất bại')
+        } catch (error: unknown) {
+            const msg = error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : null
+            toast.error(msg || 'Tạo người dùng thất bại')
         }
     }
 
@@ -121,8 +124,11 @@ export default function UsersPage() {
             await api.delete(`/users/${userId}`)
             toast.success(`Đã xóa người dùng ${username}`)
             fetchUsers()
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Xóa người dùng thất bại')
+        } catch (error: unknown) {
+            const msg = error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : null
+            toast.error(msg || 'Xóa người dùng thất bại')
         }
     }
 
