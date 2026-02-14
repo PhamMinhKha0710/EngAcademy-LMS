@@ -39,8 +39,40 @@ export default function ClassRoomsPage() {
     const fetchRooms = async () => {
         setLoading(true)
         try {
-            const r = await api.get<ApiResponse<ClassRoom[]>>('/classes')
-            setRooms(r.data.data)
+            // Check for SCHOOL role and get schoolId from user profile (we need to fetch profile first or get from context)
+            // Ideally useRole should provide schoolId if present in user object in Redux
+            // For now, let's fetch user profile 'me' to be sure or use the existing logic if backend filters automatically on /classes
+
+            // NOTE: We updated backend /classes to automatic filter for SCHOOL role.
+            // So calling /classes is enough.
+            // BUT requirement said: "When calling GET /classes use GET /classes/school/{schoolId} instead"
+            // So we will try to implement that logic.
+
+            // We need schoolId. Let's assume we can get it from an API call to /users/me or check if user object in redux has it.
+            // Since we updated UserResponse, let's try to get it from current user info if available.
+            // For this implementation, I will call /users/me first if I don't have schoolId, or just rely on backend filter on /classes.
+            // To strictly follow "use GET /classes/school/{schoolId}", I need schoolId.
+
+            // Let's call /users/me to get fresh info including schoolId
+            const meRes = await api.get<ApiResponse<User>>('/users/me')
+            const me = meRes.data.data
+
+            let url = '/classes'
+            if (me.roles.includes('ROLE_SCHOOL') && me.schoolId) {
+                url = `/classes/school/${me.schoolId}`
+            }
+
+            const r = await api.get<ApiResponse<any>>(url) // Type 'any' because it might be Page or List
+
+            // Handle pagination or list response
+            const data = r.data.data
+            if (Array.isArray(data)) {
+                setRooms(data)
+            } else if (data.content) {
+                setRooms(data.content)
+            } else {
+                setRooms([])
+            }
         } catch {
             toast.error('Không thể tải danh sách lớp học')
             setRooms([])
