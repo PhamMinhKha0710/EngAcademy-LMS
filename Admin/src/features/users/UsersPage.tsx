@@ -6,14 +6,14 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Users, Search, ChevronLeft, ChevronRight, Coins, Eye, Flame } from 'lucide-react'
+import { Users, Search, ChevronLeft, ChevronRight, Coins, Eye, Flame, UserPlus, EyeOff, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import api from '@/lib/api'
 import type { ApiResponse, Page, User } from '@/types/api'
+import { useRole } from '@/app/useRole'
 
 const ROLE_OPTIONS = [
     { value: '', label: 'Tất cả' },
-    { value: 'ROLE_ADMIN', label: 'Admin' },
     { value: 'ROLE_SCHOOL', label: 'Trường' },
     { value: 'ROLE_TEACHER', label: 'Giáo viên' },
     { value: 'ROLE_STUDENT', label: 'Học sinh' },
@@ -36,6 +36,20 @@ export default function UsersPage() {
     // Detail dialog
     const [detailOpen, setDetailOpen] = useState(false)
     const [detailUser, setDetailUser] = useState<User | null>(null)
+
+    // Create user dialog
+    const [createDialogOpen, setCreateDialogOpen] = useState(false)
+    const [newUser, setNewUser] = useState({
+        username: '',
+        email: '',
+        password: '',
+        fullName: '',
+        roles: [] as string[]
+    })
+    const [showPassword, setShowPassword] = useState(false)
+
+    // Role-based permissions
+    const { canCreateUser, canDeleteUser, isSchool } = useRole()
 
     const fetchUsers = async () => {
         setLoading(true)
@@ -67,6 +81,51 @@ export default function UsersPage() {
         setCoinsAmount('')
     }
 
+    const handleCreateUser = async () => {
+        // Validation
+        if (!newUser.username || !newUser.email || !newUser.password || !newUser.fullName) {
+            toast.error('Vui lòng điền đầy đủ thông tin')
+            return
+        }
+        if (newUser.roles.length === 0) {
+            toast.error('Vui lòng chọn ít nhất một vai trò')
+            return
+        }
+
+        try {
+            await api.post('/users', newUser)
+            toast.success(`Đã tạo người dùng ${newUser.username}`)
+            setCreateDialogOpen(false)
+            setNewUser({ username: '', email: '', password: '', fullName: '', roles: [] })
+            fetchUsers()
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Tạo người dùng thất bại')
+        }
+    }
+
+    const toggleRole = (role: string) => {
+        setNewUser(prev => ({
+            ...prev,
+            roles: prev.roles.includes(role)
+                ? prev.roles.filter(r => r !== role)
+                : [...prev.roles, role]
+        }))
+    }
+
+    const handleDeleteUser = async (userId: number, username: string) => {
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa người dùng "${username}"?`)) {
+            return
+        }
+
+        try {
+            await api.delete(`/users/${userId}`)
+            toast.success(`Đã xóa người dùng ${username}`)
+            fetchUsers()
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Xóa người dùng thất bại')
+        }
+    }
+
     const getRoleBadge = (role: string) => {
         const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
             ROLE_ADMIN: { label: 'Admin', variant: 'destructive' },
@@ -95,6 +154,12 @@ export default function UsersPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Quản lý người dùng</h1>
                     <p className="text-muted-foreground mt-1">Tổng cộng {totalElements} người dùng</p>
                 </div>
+                {canCreateUser && (
+                    <Button onClick={() => setCreateDialogOpen(true)}>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Tạo người dùng
+                    </Button>
+                )}
             </div>
 
             <Card>
@@ -167,14 +232,40 @@ export default function UsersPage() {
                                                     {user.isActive !== false ? 'Hoạt động' : 'Bị khóa'}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Xem chi tiết" onClick={() => { setDetailUser(user); setDetailOpen(true) }}>
-                                                        <Eye className="h-4 w-4" />
+                                            <TableCell>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setDetailUser(user)
+                                                            setDetailOpen(true)
+                                                        }}
+                                                    >
+                                                        <Eye className="h-4 w-4 mr-1" />
+                                                        Chi tiết
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Thêm xu" onClick={() => { setSelectedUser(user); setCoinsDialogOpen(true) }}>
-                                                        <Coins className="h-4 w-4 text-amber-500" />
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setSelectedUser(user)
+                                                            setCoinsDialogOpen(true)
+                                                        }}
+                                                    >
+                                                        <Coins className="h-4 w-4 mr-1" />
+                                                        Thêm xu
                                                     </Button>
+                                                    {canDeleteUser && (
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => handleDeleteUser(user.id, user.username)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4 mr-1" />
+                                                            Xóa
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -201,8 +292,98 @@ export default function UsersPage() {
                 </CardContent>
             </Card>
 
-            {/* User Detail Dialog */}
-            <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+            {/* Create User Dialog */}
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Tạo người dùng mới</DialogTitle>
+                        <DialogDescription>Nhập thông tin để tạo tài khoản người dùng mới</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="username">Username *</Label>
+                            <Input
+                                id="username"
+                                placeholder="Nhập username"
+                                value={newUser.username}
+                                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email *</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="Nhập email"
+                                value={newUser.email}
+                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="password">Mật khẩu *</Label>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Nhập mật khẩu"
+                                    value={newUser.password}
+                                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-0 top-0 h-full px-3"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="fullName">Họ tên *</Label>
+                            <Input
+                                id="fullName"
+                                placeholder="Nhập họ tên"
+                                value={newUser.fullName}
+                                onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Vai trò *</Label>
+                            <div className="space-y-2">
+                                {[
+                                    { value: 'ROLE_SCHOOL', label: 'Trường' },
+                                    { value: 'ROLE_TEACHER', label: 'Giáo viên' },
+                                    { value: 'ROLE_STUDENT', label: 'Học sinh' },
+                                ]
+                                    .filter(role => !isSchool || role.value !== 'ROLE_SCHOOL') // Hide SCHOOL option for SCHOOL users
+                                    .map((role) => (
+                                        <div key={role.value} className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id={role.value}
+                                                checked={newUser.roles.includes(role.value)}
+                                                onChange={() => toggleRole(role.value)}
+                                                className="h-4 w-4 rounded border-gray-300"
+                                            />
+                                            <label htmlFor={role.value} className="text-sm cursor-pointer">
+                                                {role.label}
+                                            </label>
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Hủy</Button>
+                        <Button onClick={handleCreateUser}>Tạo người dùng</Button>
+                    </DialogFooter>
+                </DialogContent >
+            </Dialog >
+
+            {/* Add Coins Dialog */}
+            < Dialog open={detailOpen} onOpenChange={setDetailOpen} >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Chi tiết người dùng</DialogTitle>
@@ -254,10 +435,10 @@ export default function UsersPage() {
                         <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             {/* Add Coins Dialog */}
-            <Dialog open={coinsDialogOpen} onOpenChange={setCoinsDialogOpen}>
+            < Dialog open={coinsDialogOpen} onOpenChange={setCoinsDialogOpen} >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Thêm xu cho {selectedUser?.fullName}</DialogTitle>
@@ -274,7 +455,7 @@ export default function UsersPage() {
                         <Button onClick={handleAddCoins}>Thêm xu</Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
-        </div>
+            </Dialog >
+        </div >
     )
 }
