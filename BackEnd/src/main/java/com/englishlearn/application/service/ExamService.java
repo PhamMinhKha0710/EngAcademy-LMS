@@ -200,7 +200,8 @@ public class ExamService {
 
         for (SubmitExamRequest.AnswerSubmission answer : request.getAnswers()) {
             Question question = questionRepository.findById(answer.getQuestionId()).orElse(null);
-            if (question == null) continue;
+            if (question == null)
+                continue;
 
             totalPoints += question.getPoints();
             boolean isCorrect = false;
@@ -231,7 +232,8 @@ public class ExamService {
 
                 case "FILL_IN_BLANK":
                     if (answer.getAnswerText() != null) {
-                        List<QuestionOption> correctOptions = questionOptionRepository.findByQuestionId(question.getId());
+                        List<QuestionOption> correctOptions = questionOptionRepository
+                                .findByQuestionId(question.getId());
                         isCorrect = correctOptions.stream()
                                 .filter(opt -> Boolean.TRUE.equals(opt.getIsCorrect()))
                                 .anyMatch(opt -> opt.getOptionText().equalsIgnoreCase(answer.getAnswerText().trim()));
@@ -317,8 +319,9 @@ public class ExamService {
     /**
      * Map exam to response kèm danh sách câu hỏi.
      *
-     * @param exam         Entity bài kiểm tra
-     * @param forStudent   true = ẩn đáp án đúng + áp dụng shuffle; false = hiển thị đầy đủ cho teacher
+     * @param exam       Entity bài kiểm tra
+     * @param forStudent true = ẩn đáp án đúng + áp dụng shuffle; false = hiển thị
+     *                   đầy đủ cho teacher
      */
     private ExamResponse mapToResponseWithQuestions(Exam exam, boolean forStudent) {
         ExamResponse response = mapToResponse(exam);
@@ -415,7 +418,8 @@ public class ExamService {
     // ========================= ANTI-CHEAT EXAM METHODS =========================
 
     /**
-     * Lấy bài thi để làm bài (có shuffle questions và answers, tạo ExamResult in-progress)
+     * Lấy bài thi để làm bài (có shuffle questions và answers, tạo ExamResult
+     * in-progress)
      */
     @Transactional
     public ExamTakeDTO takeExam(Long examId, Long studentId) {
@@ -484,7 +488,8 @@ public class ExamService {
     /**
      * Map Question entity sang ExamQuestionDTO với shuffle options
      */
-    private ExamQuestionDTO mapToExamQuestionDTO(Question question, Boolean shuffleAnswers, Long studentId, Long examId) {
+    private ExamQuestionDTO mapToExamQuestionDTO(Question question, Boolean shuffleAnswers, Long studentId,
+            Long examId) {
         List<QuestionOption> options = questionOptionRepository.findByQuestionId(question.getId());
 
         if (Boolean.TRUE.equals(shuffleAnswers)) {
@@ -513,9 +518,16 @@ public class ExamService {
      * Ghi nhận sự kiện anti-cheat
      */
     @Transactional
-    public void logAntiCheatEvent(AntiCheatEventDTO dto) {
+    public void logAntiCheatEvent(AntiCheatEventDTO dto, Long userId) {
         ExamResult examResult = examResultRepository.findById(dto.getExamResultId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả thi", "id", dto.getExamResultId()));
+
+        // Security: Validate ownership
+        if (!examResult.getStudent().getId().equals(userId)) {
+            log.warn("User {} attempted to log anti-cheat event for exam result {} owned by user {}",
+                    userId, dto.getExamResultId(), examResult.getStudent().getId());
+            throw new IllegalArgumentException("Bạn không có quyền ghi nhận sự kiện cho bài thi này");
+        }
 
         if (examResult.getSubmittedAt() != null) {
             log.warn("Attempt to log anti-cheat event after submission for result {}", dto.getExamResultId());
@@ -541,9 +553,16 @@ public class ExamService {
      * Submit bài thi với anti-cheat validation
      */
     @Transactional
-    public ExamResultDTO submitExamWithAntiCheat(ExamSubmitDTO dto) {
+    public ExamResultDTO submitExamWithAntiCheat(ExamSubmitDTO dto, Long userId) {
         ExamResult examResult = examResultRepository.findById(dto.getExamResultId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả thi", "id", dto.getExamResultId()));
+
+        // Security: Validate ownership
+        if (!examResult.getStudent().getId().equals(userId)) {
+            log.warn("User {} attempted to submit exam result {} owned by user {}",
+                    userId, dto.getExamResultId(), examResult.getStudent().getId());
+            throw new IllegalArgumentException("Bạn không có quyền nộp bài thi này");
+        }
 
         if (examResult.getSubmittedAt() != null) {
             throw new IllegalStateException("Bài thi đã được nộp trước đó");
@@ -607,6 +626,12 @@ public class ExamService {
         log.info("Exam submitted: resultId={}, score={}, correctCount={}/{}, status={}",
                 dto.getExamResultId(), score, correctCount, examResult.getTotalQuestions(), status);
 
+        // Calculate percentage and grade for response
+        double percentage = examResult.getTotalQuestions() > 0
+                ? (double) correctCount / examResult.getTotalQuestions() * 100
+                : 0;
+        String grade = calculateGrade(score);
+
         return ExamResultDTO.builder()
                 .id(examResult.getId())
                 .examId(exam.getId())
@@ -616,6 +641,8 @@ public class ExamService {
                 .score(score)
                 .correctCount(correctCount)
                 .totalQuestions(examResult.getTotalQuestions())
+                .percentage(percentage)
+                .grade(grade)
                 .submittedAt(now)
                 .violationCount(examResult.getViolationCount())
                 .status(status)

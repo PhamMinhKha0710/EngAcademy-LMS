@@ -25,6 +25,8 @@ public class ExamResultDTO {
     private BigDecimal score;
     private Integer correctCount;
     private Integer totalQuestions;
+    private Double percentage;
+    private String grade;
     private LocalDateTime submittedAt;
     private Integer violationCount;
     private String status; // COMPLETED, LATE, FLAGGED

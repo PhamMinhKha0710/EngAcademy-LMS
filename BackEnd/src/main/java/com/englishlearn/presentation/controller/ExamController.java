@@ -10,6 +10,8 @@ import com.englishlearn.application.dto.response.ExamResultDTO;
 import com.englishlearn.application.dto.response.ExamResultResponse;
 import com.englishlearn.application.dto.response.ExamTakeDTO;
 import com.englishlearn.application.service.ExamService;
+import com.englishlearn.application.service.UserService;
+import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.domain.entity.AntiCheatEvent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +36,7 @@ import java.util.List;
 public class ExamController {
 
     private final ExamService examService;
+    private final UserService userService;
 
     @GetMapping("/teacher/{teacherId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
@@ -141,14 +146,23 @@ public class ExamController {
     // ========================= ANTI-CHEAT EXAM ENDPOINTS =========================
 
     /**
-     * POST /api/v1/exams/{examId}/start - Bắt đầu làm bài thi (tạo ExamResult, shuffle, trả về anti-cheat info)
+     * POST /api/v1/exams/{examId}/start - Bắt đầu làm bài thi (tạo ExamResult,
+     * shuffle, trả về anti-cheat info)
      */
     @PostMapping("/{examId}/start")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Bắt đầu làm bài thi (có shuffle câu hỏi/đáp án, tạo phiên thi)")
     public ResponseEntity<ApiResponse<ExamTakeDTO>> startExam(
             @Parameter(description = "ID của bài thi") @PathVariable Long examId,
-            @Parameter(description = "ID của sinh viên") @RequestParam Long studentId) {
+            @Parameter(description = "ID của sinh viên") @RequestParam Long studentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Security: Validate that studentId matches the authenticated user
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (!currentUser.getId().equals(studentId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Bạn chỉ có thể bắt đầu bài thi cho chính mình"));
+        }
+
         ExamTakeDTO exam = examService.takeExam(examId, studentId);
         return ResponseEntity.ok(ApiResponse.success("Bắt đầu bài thi thành công", exam));
     }
@@ -161,26 +175,34 @@ public class ExamController {
     @Operation(summary = "Ghi nhận sự kiện chống gian lận (tab switch, copy/paste, v.v.)")
     public ResponseEntity<ApiResponse<Void>> logAntiCheatEvent(
             @Parameter(description = "ID của bài thi") @PathVariable Long examId,
-            @RequestBody @Valid AntiCheatEventDTO dto) {
-        examService.logAntiCheatEvent(dto);
+            @RequestBody @Valid AntiCheatEventDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Security: Pass authenticated user ID to service for ownership validation
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        examService.logAntiCheatEvent(dto, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận sự kiện"));
     }
 
     /**
-     * POST /api/v1/exams/{examId}/submit-anticheat - Nộp bài thi với anti-cheat validation
+     * POST /api/v1/exams/{examId}/submit-anticheat - Nộp bài thi với anti-cheat
+     * validation
      */
     @PostMapping("/{examId}/submit-anticheat")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Nộp bài thi (với kiểm tra thời gian và anti-cheat)")
     public ResponseEntity<ApiResponse<ExamResultDTO>> submitExamWithAntiCheat(
             @Parameter(description = "ID của bài thi") @PathVariable Long examId,
-            @RequestBody @Valid ExamSubmitDTO dto) {
-        ExamResultDTO result = examService.submitExamWithAntiCheat(dto);
+            @RequestBody @Valid ExamSubmitDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Security: Pass authenticated user ID to service for ownership validation
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        ExamResultDTO result = examService.submitExamWithAntiCheat(dto, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Nộp bài thành công", result));
     }
 
     /**
-     * GET /api/v1/exams/results/{examResultId}/anti-cheat-events - Lấy lịch sử vi phạm
+     * GET /api/v1/exams/results/{examResultId}/anti-cheat-events - Lấy lịch sử vi
+     * phạm
      */
     @GetMapping("/results/{examResultId}/anti-cheat-events")
     @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
