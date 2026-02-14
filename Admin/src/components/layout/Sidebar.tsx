@@ -5,13 +5,8 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import {
-    LayoutDashboard,
     Users,
     School,
-    BookOpen,
-    FileText,
-    HelpCircle,
-    Languages,
     GraduationCap,
     ChevronLeft,
     ChevronRight,
@@ -27,17 +22,18 @@ import { logout } from '@/features/auth/authSlice'
 import { ROLES } from '@/lib/roles'
 
 const navItems = [
-    { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [ROLES.ADMIN, ROLES.SCHOOL] },
-    { title: 'Trường học', href: '/schools', icon: School, roles: [ROLES.ADMIN, ROLES.SCHOOL] },
-    { title: 'Lớp học', href: '/classrooms', icon: GraduationCap, roles: [ROLES.ADMIN, ROLES.SCHOOL] },
-    { title: 'Người dùng', href: '/users', icon: Users, roles: [ROLES.ADMIN] },
-    { title: 'Bài học', href: '/lessons', icon: BookOpen, roles: [ROLES.ADMIN] },
-    { title: 'Bài thi', href: '/exams', icon: FileText, roles: [ROLES.ADMIN] },
-    { title: 'Câu hỏi', href: '/questions', icon: HelpCircle, roles: [ROLES.ADMIN] },
-    { title: 'Từ vựng', href: '/vocabulary', icon: Languages, roles: [ROLES.ADMIN] },
-    { title: 'Huy hiệu', href: '/badges', icon: Award, roles: [ROLES.ADMIN] },
-    { title: 'Bảng xếp hạng', href: '/leaderboard', icon: Trophy, roles: [ROLES.ADMIN] },
+    // ADMIN only pages
+    { title: 'Trường học', href: '/schools', icon: School, roles: [ROLES.ADMIN] },
+    { title: 'Tất cả người dùng', href: '/users', icon: Users, roles: [ROLES.ADMIN] },
     { title: 'Thông báo', href: '/notifications', icon: Bell, roles: [ROLES.ADMIN] },
+    { title: 'Xếp hạng', href: '/leaderboard', icon: Trophy, roles: [ROLES.ADMIN] },
+    { title: 'Huy hiệu', href: '/badges', icon: Award, roles: [ROLES.ADMIN] },
+
+    // SCHOOL only pages - ordered from largest to smallest scope
+    { title: 'Lớp học', href: '/classrooms', icon: GraduationCap, roles: [ROLES.SCHOOL] },
+    { title: 'Giáo viên', href: '/teachers', icon: GraduationCapIcon, roles: [ROLES.SCHOOL] },
+    { title: 'Học sinh', href: '/students', icon: Users, roles: [ROLES.SCHOOL] },
+    { title: 'Điểm', href: '/grades', icon: Award, roles: [ROLES.SCHOOL] },
 ]
 
 interface SidebarProps {

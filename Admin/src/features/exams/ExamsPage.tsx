@@ -103,11 +103,20 @@ export default function ExamsPage() {
         }
     }
 
-    const fetchExams = useCallback(async (classId: number) => {
+    const fetchExams = useCallback(async (classId?: number | null) => {
         setLoading(true)
         try {
-            const response = await api.get<ApiResponse<Exam[]>>(`/exams/class/${classId}`)
-            setExams(Array.isArray(response.data.data) ? response.data.data : [])
+            const url = classId ? `/exams/class/${classId}` : '/exams'
+            const response = await api.get<ApiResponse<any>>(url)
+            const data = response.data.data
+            // Handle both array and paginated response
+            if (Array.isArray(data)) {
+                setExams(data)
+            } else if (data && 'content' in data) {
+                setExams(data.content)
+            } else {
+                setExams([])
+            }
         } catch {
             toast.error('Không thể tải danh sách bài thi')
             setExams([])
@@ -119,14 +128,11 @@ export default function ExamsPage() {
     useEffect(() => {
         fetchClasses()
         fetchQuestions()
+        fetchExams() // Fetch all exams on initial load
     }, [])
 
     useEffect(() => {
-        if (selectedClassId) {
-            fetchExams(selectedClassId)
-        } else {
-            setExams([])
-        }
+        fetchExams(selectedClassId)
     }, [selectedClassId, fetchExams])
 
     const resetForm = () => {
@@ -138,10 +144,6 @@ export default function ExamsPage() {
 
     const openCreate = () => {
         resetForm()
-        setForm({
-            ...emptyForm,
-            classId: selectedClassId ?? 0,
-        })
         setDialogOpen(true)
     }
 
@@ -192,7 +194,7 @@ export default function ExamsPage() {
                 toast.success('Tạo bài thi thành công')
             }
             resetForm()
-            if (selectedClassId) fetchExams(selectedClassId)
+            fetchExams(selectedClassId)
         } catch {
             toast.error(editing ? 'Cập nhật bài thi thất bại' : 'Tạo bài thi thất bại')
         } finally {
@@ -205,7 +207,7 @@ export default function ExamsPage() {
         try {
             await api.delete(`/exams/${deleting.id}`)
             toast.success('Xóa bài thi thành công')
-            if (selectedClassId) fetchExams(selectedClassId)
+            fetchExams(selectedClassId)
         } catch {
             toast.error('Xóa bài thi thất bại')
         }
@@ -217,7 +219,7 @@ export default function ExamsPage() {
         try {
             await api.post(`/exams/${exam.id}/publish`)
             toast.success(`Đã xuất bản bài thi "${exam.title}"`)
-            if (selectedClassId) fetchExams(selectedClassId)
+            fetchExams(selectedClassId)
         } catch {
             toast.error('Xuất bản bài thi thất bại')
         }
@@ -227,7 +229,7 @@ export default function ExamsPage() {
         try {
             await api.post(`/exams/${exam.id}/close`)
             toast.success(`Đã đóng bài thi "${exam.title}"`)
-            if (selectedClassId) fetchExams(selectedClassId)
+            fetchExams(selectedClassId)
         } catch {
             toast.error('Đóng bài thi thất bại')
         }
@@ -278,10 +280,10 @@ export default function ExamsPage() {
                     <p className="text-muted-foreground mt-1">
                         {selectedClassId
                             ? `${exams.length} bài thi trong lớp`
-                            : 'Chọn lớp để xem danh sách bài thi'}
+                            : `Tổng cộng ${exams.length} bài thi`}
                     </p>
                 </div>
-                <Button onClick={openCreate} className="gap-2" disabled={!selectedClassId}>
+                <Button onClick={openCreate} className="gap-2">
                     <Plus className="h-4 w-4" /> Tạo bài thi
                 </Button>
             </div>
@@ -290,7 +292,7 @@ export default function ExamsPage() {
             <Card>
                 <CardContent className="pt-6">
                     <div className="flex items-center gap-4">
-                        <Label className="shrink-0 font-medium">Chọn lớp:</Label>
+                        <Label className="shrink-0 font-medium">Lọc theo lớp:</Label>
                         <select
                             className="flex h-10 w-full max-w-xs rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             value={selectedClassId ?? ''}
@@ -298,7 +300,7 @@ export default function ExamsPage() {
                                 setSelectedClassId(e.target.value ? Number(e.target.value) : null)
                             }
                         >
-                            <option value="">-- Chọn lớp --</option>
+                            <option value="">-- Tất cả lớp --</option>
                             {classes.map((c) => (
                                 <option key={c.id} value={c.id}>
                                     {c.name} {c.schoolName ? `(${c.schoolName})` : ''}
@@ -310,7 +312,7 @@ export default function ExamsPage() {
             </Card>
 
             {/* Exams Table */}
-            {selectedClassId && (
+            {(
                 <Card>
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">

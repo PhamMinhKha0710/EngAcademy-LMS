@@ -1,13 +1,16 @@
 package com.englishlearn.presentation.controller;
 
+import com.englishlearn.application.dto.request.CreateUserRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.application.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -48,7 +51,7 @@ public class UserController {
      * GET /api/v1/users/{id} - Lấy thông tin user theo ID
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL') or hasRole('TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Lấy thông tin người dùng theo ID")
     public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable Long id) {
         UserResponse user = userService.getUserById(id);
@@ -64,6 +67,30 @@ public class UserController {
     public ResponseEntity<ApiResponse<Page<UserResponse>>> getAll(Pageable pageable) {
         Page<UserResponse> users = userService.getAllUsers(pageable);
         return ResponseEntity.ok(ApiResponse.success(users));
+    }
+
+    /**
+     * POST /api/v1/users - Tạo người dùng mới (Admin and School)
+     */
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
+    @Operation(summary = "Tạo người dùng mới")
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(
+            @RequestBody @Valid CreateUserRequest request) {
+        UserResponse user = userService.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo người dùng thành công", user));
+    }
+
+    /**
+     * DELETE /api/v1/users/{id} - Xóa người dùng (Admin and School)
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
+    @Operation(summary = "Xóa người dùng")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.ok(ApiResponse.success("Đã xóa người dùng"));
     }
 
     /**

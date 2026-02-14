@@ -42,6 +42,11 @@ public class ExamService {
     private final QuestionOptionRepository questionOptionRepository;
     private final AntiCheatEventRepository antiCheatEventRepository;
 
+    public Page<ExamResponse> getAllExams(Pageable pageable) {
+        Page<Exam> exams = examRepository.findAll(pageable);
+        return exams.map(this::mapToResponse);
+    }
+
     @Transactional(readOnly = true)
     public Page<ExamResponse> getExamsByTeacher(Long teacherId, Pageable pageable) {
         return examRepository.findByTeacherId(teacherId, pageable)

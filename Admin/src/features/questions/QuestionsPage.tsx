@@ -136,8 +136,10 @@ export default function QuestionsPage() {
             }
             resetForm()
             fetchQuestions()
-        } catch {
-            toast.error(editing ? 'Cập nhật câu hỏi thất bại' : 'Tạo câu hỏi thất bại')
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.message || (editing ? 'Cập nhật câu hỏi thất bại' : 'Tạo câu hỏi thất bại')
+            toast.error(errorMsg)
+            console.error('Question submit error:', error.response?.data)
         } finally {
             setSubmitting(false)
         }
@@ -345,13 +347,13 @@ export default function QuestionsPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 {/* Points */}
                                 <div className="space-y-2">
-                                    <Label>Điểm</Label>
+                                    <Label>Điểm *</Label>
                                     <Input
                                         type="number"
                                         min={0}
-                                        value={form.points ?? ''}
+                                        value={form.points ?? 1}
                                         onChange={(e) =>
-                                            setForm({ ...form, points: e.target.value ? Number(e.target.value) : undefined })
+                                            setForm({ ...form, points: e.target.value ? Number(e.target.value) : 1 })
                                         }
                                         placeholder="1"
                                     />

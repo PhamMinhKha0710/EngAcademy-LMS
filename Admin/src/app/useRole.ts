@@ -19,6 +19,10 @@ export function useRole() {
             hasRole: (role: string) => hasRole(roles, role),
             roleLabel: getRoleLabel(roles),
             roleBadge: getRoleBadge(roles),
+            // User management permissions
+            canCreateUser: isAdmin(roles) || isSchool(roles),
+            canDeleteUser: isAdmin(roles) || isSchool(roles),
+            canViewAllUsers: isAdmin(roles) || isSchool(roles),
         }),
         [roles]
     )

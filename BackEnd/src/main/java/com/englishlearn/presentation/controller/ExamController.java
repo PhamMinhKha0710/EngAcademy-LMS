@@ -33,6 +33,14 @@ public class ExamController {
 
     private final ExamService examService;
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Get all exams")
+    public ResponseEntity<ApiResponse<Page<ExamResponse>>> getAllExams(Pageable pageable) {
+        Page<ExamResponse> exams = examService.getAllExams(pageable);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài kiểm tra thành công", exams));
+    }
+
     @GetMapping("/teacher/{teacherId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
     @Operation(summary = "Get exams by teacher")
