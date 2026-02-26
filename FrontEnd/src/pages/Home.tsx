@@ -36,6 +36,8 @@ const features = [
 ]
 
 export default function Home() {
+    // Kiểm tra Error Boundary (Bắt lỗi toàn cục chống trắng màn hình)
+    // throw new Error("Đây là lỗi test ErrorBoundary!");
     // TODO: Fetch real system statistics from a public API when available.
     // Tạm thời sử dụng placeholder data theo yêu cầu cho tới khi có API ("tạm ẩn/dùng placeholder có ghi chú").
     const [stats] = useState([
