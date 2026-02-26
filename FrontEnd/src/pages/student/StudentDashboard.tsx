@@ -19,6 +19,7 @@ import { questApi, DailyQuestResponse } from '../../services/api/questApi'
 import { leaderboardApi, LeaderboardEntry } from '../../services/api/leaderboardApi'
 import StatCard from '../../components/ui/StatCard'
 import ProgressBar from '../../components/ui/ProgressBar'
+import { DashboardStatSkeleton, LessonSkeleton } from '../../components/ui/Skeleton'
 
 interface ProgressStats {
     completedLessons: number
@@ -74,8 +75,22 @@ export default function StudentDashboard() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+            <div className="p-6 lg:p-8 space-y-8">
+                <div>
+                    <div className="h-8 w-64 bg-gray-200 dark:bg-gray-700 animate-pulse rounded mb-2"></div>
+                    <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    {[1, 2, 3, 4].map(i => <DashboardStatSkeleton key={i} />)}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="card p-6 min-h-[300px] animate-pulse bg-gray-100 dark:bg-gray-800/50"></div>
+                    <div className="card p-6 lg:col-span-2">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            {[1, 2].map(i => <LessonSkeleton key={i} />)}
+                        </div>
+                    </div>
+                </div>
             </div>
         )
     }
@@ -171,8 +186,8 @@ export default function StudentDashboard() {
                                                     value={
                                                         task.targetCount > 0
                                                             ? (task.currentProgress /
-                                                                  task.targetCount) *
-                                                              100
+                                                                task.targetCount) *
+                                                            100
                                                             : 0
                                                     }
                                                     height="h-1.5"
@@ -271,8 +286,8 @@ export default function StudentDashboard() {
                                                 >
                                                     {item.lastAccessed
                                                         ? new Date(
-                                                              item.lastAccessed
-                                                          ).toLocaleDateString('vi-VN')
+                                                            item.lastAccessed
+                                                        ).toLocaleDateString('vi-VN')
                                                         : 'Chưa truy cập'}
                                                 </span>
                                             </div>
@@ -332,9 +347,8 @@ export default function StudentDashboard() {
                         {top5.map((entry, index) => (
                             <div
                                 key={entry.userId}
-                                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${
-                                    index === 0 ? 'bg-yellow-500/10' : ''
-                                }`}
+                                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${index === 0 ? 'bg-yellow-500/10' : ''
+                                    }`}
                                 style={
                                     index !== 0
                                         ? { backgroundColor: 'var(--color-bg-tertiary)' }

@@ -11,6 +11,7 @@ import {
 import { lessonApi, Lesson } from '../../services/api/lessonApi'
 import Badge from '../../components/ui/Badge'
 import EmptyState from '../../components/ui/EmptyState'
+import { LessonSkeleton } from '../../components/ui/Skeleton'
 
 const DIFFICULTY_LABELS: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
     1: { label: 'Dễ', variant: 'success' },
@@ -67,8 +68,19 @@ export default function LessonsPage() {
 
     if (loading && lessons.length === 0) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+            <div className="p-6 lg:p-8 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 animate-pulse rounded mb-2"></div>
+                        <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                    </div>
+                    <div className="h-10 w-full sm:w-80 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-lg"></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <LessonSkeleton key={i} />
+                    ))}
+                </div>
             </div>
         )
     }
@@ -214,17 +226,16 @@ export default function LessonsPage() {
                             <button
                                 key={i}
                                 onClick={() => setPage(i)}
-                                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                                    i === page
+                                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${i === page
                                         ? 'bg-blue-500 text-white'
                                         : ''
-                                }`}
+                                    }`}
                                 style={
                                     i !== page
                                         ? {
-                                              backgroundColor: 'var(--color-bg-tertiary)',
-                                              color: 'var(--color-text-secondary)',
-                                          }
+                                            backgroundColor: 'var(--color-bg-tertiary)',
+                                            color: 'var(--color-text-secondary)',
+                                        }
                                         : undefined
                                 }
                             >

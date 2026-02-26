@@ -5,6 +5,7 @@ import { examApi, ExamResponse } from '../../services/api/examApi'
 import { classroomApi, ClassRoomResponse } from '../../services/api/classroomApi'
 import Badge from '../../components/ui/Badge'
 import EmptyState from '../../components/ui/EmptyState'
+import { ExamSkeleton } from '../../components/ui/Skeleton'
 
 export default function StudentExamsPage() {
     const navigate = useNavigate()
@@ -162,8 +163,10 @@ export default function StudentExamsPage() {
 
             {/* Loading exams */}
             {loadingExams && (
-                <div className="flex items-center justify-center py-16">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <ExamSkeleton key={i} />
+                    ))}
                 </div>
             )}
 
@@ -230,11 +233,10 @@ export default function StudentExamsPage() {
                                 <button
                                     onClick={() => navigate(`/exams/${exam.id}/take`)}
                                     disabled={!available}
-                                    className={`mt-auto flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-                                        available
+                                    className={`mt-auto flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${available
                                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/25'
                                             : 'opacity-50 cursor-not-allowed'
-                                    }`}
+                                        }`}
                                     style={!available ? { background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' } : undefined}
                                 >
                                     <Play className="w-4 h-4" />

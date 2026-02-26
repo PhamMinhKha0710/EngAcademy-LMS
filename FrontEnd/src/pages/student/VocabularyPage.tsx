@@ -16,6 +16,7 @@ import { vocabularyApi, VocabularyResponse } from '../../services/api/vocabulary
 import { mistakeApi } from '../../services/api/mistakeApi'
 import FlashCard from '../../components/ui/FlashCard'
 import DataTable from '../../components/ui/DataTable'
+import { VocabularySkeleton } from '../../components/ui/Skeleton'
 
 type ViewMode = 'flashcard' | 'list'
 
@@ -90,7 +91,7 @@ export default function VocabularyPage() {
 
     const playAudio = (url: string) => {
         const audio = new Audio(url)
-        audio.play().catch(() => {})
+        audio.play().catch(() => { })
     }
 
     const handleAddMistake = async (vocabId: number) => {
@@ -179,11 +180,10 @@ export default function VocabularyPage() {
                 >
                     <button
                         onClick={() => setMode('flashcard')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                            mode === 'flashcard'
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${mode === 'flashcard'
                                 ? 'bg-blue-500 text-white shadow-sm'
                                 : ''
-                        }`}
+                            }`}
                         style={
                             mode !== 'flashcard'
                                 ? { color: 'var(--color-text-secondary)' }
@@ -195,11 +195,10 @@ export default function VocabularyPage() {
                     </button>
                     <button
                         onClick={() => setMode('list')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                            mode === 'list'
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${mode === 'list'
                                 ? 'bg-blue-500 text-white shadow-sm'
                                 : ''
-                        }`}
+                            }`}
                         style={
                             mode !== 'list'
                                 ? { color: 'var(--color-text-secondary)' }
@@ -216,8 +215,8 @@ export default function VocabularyPage() {
             {mode === 'flashcard' && (
                 <div>
                     {flashcardLoading ? (
-                        <div className="flex items-center justify-center py-24">
-                            <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                        <div className="max-w-lg mx-auto">
+                            <VocabularySkeleton />
                         </div>
                     ) : flashcardError ? (
                         <div className="flex flex-col items-center justify-center py-24">
@@ -359,11 +358,10 @@ export default function VocabularyPage() {
                                         disabled={
                                             addingMistake || mistakeAdded.has(currentCard.id)
                                         }
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                                            mistakeAdded.has(currentCard.id)
+                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${mistakeAdded.has(currentCard.id)
                                                 ? 'bg-green-500/15 text-green-400'
                                                 : 'bg-red-500/15 text-red-400 hover:bg-red-500/25'
-                                        } disabled:cursor-not-allowed`}
+                                            } disabled:cursor-not-allowed`}
                                     >
                                         <BookmarkPlus className="w-3.5 h-3.5" />
                                         {mistakeAdded.has(currentCard.id)
