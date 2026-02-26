@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ErrorBoundary from './components/common/ErrorBoundary'
+import ToastContainer from './components/ui/ToastContainer'
 import MainLayout from './components/layout/MainLayout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import Home from './pages/Home'
@@ -37,6 +38,7 @@ import SettingsPage from './pages/SettingsPage'
 function App() {
     return (
         <ErrorBoundary>
+            <ToastContainer />
             <Routes>
                 <Route path="/" element={<MainLayout />}>
                     {/* Public routes */}

@@ -46,6 +46,20 @@ body {
 .gradient-text {
   @apply bg-gradient-to-r from-blue-500 to-emerald-500 bg-clip-text text-transparent;
 }
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 .card {
   background: var(--color-card);
   @apply backdrop-blur-sm rounded-xl border transition-colors;
