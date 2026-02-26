@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BookOpen, Languages, FileText, Trophy, Flame, Award } from 'lucide-react'
 
@@ -34,13 +35,15 @@ const features = [
     },
 ]
 
-const stats = [
-    { value: '1000+', label: 'Học sinh' },
-    { value: '200+', label: 'Bài học' },
-    { value: '5000+', label: 'Từ vựng' },
-]
-
 export default function Home() {
+    // TODO: Fetch real system statistics from a public API when available.
+    // Tạm thời sử dụng placeholder data theo yêu cầu cho tới khi có API ("tạm ẩn/dùng placeholder có ghi chú").
+    const [stats] = useState([
+        { value: '1000+', label: 'Học sinh' },
+        { value: '200+', label: 'Bài học' },
+        { value: '5000+', label: 'Từ vựng' },
+    ])
+
     return (
         <div className="min-h-screen">
             {/* Hero Section */}
