@@ -7,7 +7,6 @@ import {
     Trophy,
     Target,
     ChevronRight,
-    Loader2,
     Star,
     Clock,
     CheckCircle,

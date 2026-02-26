@@ -5,7 +5,6 @@ import {
     ChevronLeft,
     ChevronRight,
     BookOpen,
-    Loader2,
     AlertCircle,
 } from 'lucide-react'
 import { lessonApi, Lesson } from '../../services/api/lessonApi'
@@ -227,8 +226,8 @@ export default function LessonsPage() {
                                 key={i}
                                 onClick={() => setPage(i)}
                                 className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${i === page
-                                        ? 'bg-blue-500 text-white'
-                                        : ''
+                                    ? 'bg-blue-500 text-white'
+                                    : ''
                                     }`}
                                 style={
                                     i !== page
