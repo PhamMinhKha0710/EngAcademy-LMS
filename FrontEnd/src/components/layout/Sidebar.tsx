@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useRole } from '../../hooks/useRole'
+import { questApi, DailyQuestResponse } from '../../services/api/questApi'
 import {
     LayoutDashboard, BookOpen, Languages, FileText, Trophy,
     BookMarked, Award, Settings, GraduationCap, HelpCircle,
@@ -38,6 +40,15 @@ const teacherMenuItems: MenuItem[] = [
 const Sidebar = () => {
     const location = useLocation()
     const { isTeacher, isStudent } = useRole()
+    const [dailyQuest, setDailyQuest] = useState<DailyQuestResponse | null>(null)
+
+    useEffect(() => {
+        if (isStudent) {
+            questApi.getToday()
+                .then(setDailyQuest)
+                .catch(err => console.error('Failed to fetch daily quest:', err))
+        }
+    }, [isStudent])
 
     const menuItems = isTeacher ? teacherMenuItems : studentMenuItems
 
@@ -68,16 +79,32 @@ const Sidebar = () => {
             {/* Daily Quest Widget (student only) */}
             {isStudent && (
                 <div className="absolute bottom-4 left-4 right-4">
-                    <div className="card p-4">
+                    <Link to="/dashboard" className="block card p-4 hover:border-orange-500/50 transition-colors">
                         <div className="flex items-center space-x-2 mb-2">
                             <Flame className="w-4 h-4 text-orange-500" />
                             <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Nhiệm vụ hôm nay</span>
                         </div>
-                        <div className="w-full rounded-full h-2 mb-2" style={{ background: 'var(--color-bg-tertiary)' }}>
-                            <div className="bg-gradient-to-r from-orange-500 to-yellow-500 h-2 rounded-full transition-all" style={{ width: '60%' }} />
-                        </div>
-                        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>3/5 nhiệm vụ hoàn thành</p>
-                    </div>
+                        {dailyQuest ? (() => {
+                            const totalTasks = dailyQuest.tasks.length;
+                            const completedTasks = dailyQuest.tasks.filter(t => t.completed).length;
+                            const progressPercent = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                            return (
+                                <>
+                                    <div className="w-full rounded-full h-2 mb-2" style={{ background: 'var(--color-bg-tertiary)' }}>
+                                        <div className="bg-gradient-to-r from-orange-500 to-yellow-500 h-2 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+                                    </div>
+                                    <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                        {completedTasks}/{totalTasks} nhiệm vụ hoàn thành
+                                    </p>
+                                </>
+                            )
+                        })() : (
+                            <div className="animate-pulse space-y-2 mt-2">
+                                <div className="h-2 bg-gray-600 rounded w-full"></div>
+                                <div className="h-2 bg-gray-600 rounded w-3/4"></div>
+                            </div>
+                        )}
+                    </Link>
                 </div>
             )}
         </aside>
