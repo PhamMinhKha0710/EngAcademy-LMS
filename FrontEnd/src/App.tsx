@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import MainLayout from './components/layout/MainLayout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import Home from './pages/Home'
@@ -6,6 +7,7 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import Profile from './pages/Profile'
+import NotFound from './pages/NotFound'
 
 // Student pages
 import Dashboard from './pages/student/StudentDashboard'
@@ -34,51 +36,53 @@ import SettingsPage from './pages/SettingsPage'
 
 function App() {
     return (
-        <Routes>
-            <Route path="/" element={<MainLayout />}>
-                {/* Public routes */}
-                <Route index element={<Home />} />
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
+        <ErrorBoundary>
+            <Routes>
+                <Route path="/" element={<MainLayout />}>
+                    {/* Public routes */}
+                    <Route index element={<Home />} />
+                    <Route path="login" element={<Login />} />
+                    <Route path="register" element={<Register />} />
+                    <Route path="forgot-password" element={<ForgotPassword />} />
 
-                {/* Student routes */}
-                <Route element={<ProtectedRoute allowedRoles={['ROLE_STUDENT']} />}>
-                    <Route path="dashboard" element={<Dashboard />} />
-                    <Route path="lessons" element={<LessonsPage />} />
-                    <Route path="lessons/:id" element={<LessonDetailPage />} />
-                    <Route path="vocabulary" element={<VocabularyPage />} />
-                    <Route path="exams" element={<StudentExamsPage />} />
-                    <Route path="exams/:id/take" element={<ExamTakePage />} />
-                    <Route path="exams/:id/result" element={<ExamResultPage />} />
-                    <Route path="leaderboard" element={<LeaderboardPage />} />
-                    <Route path="mistakes" element={<MistakeNotebookPage />} />
-                    <Route path="badges" element={<BadgesPage />} />
+                    {/* Student routes */}
+                    <Route element={<ProtectedRoute allowedRoles={['ROLE_STUDENT']} />}>
+                        <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="lessons" element={<LessonsPage />} />
+                        <Route path="lessons/:id" element={<LessonDetailPage />} />
+                        <Route path="vocabulary" element={<VocabularyPage />} />
+                        <Route path="exams" element={<StudentExamsPage />} />
+                        <Route path="exams/:id/take" element={<ExamTakePage />} />
+                        <Route path="exams/:id/result" element={<ExamResultPage />} />
+                        <Route path="leaderboard" element={<LeaderboardPage />} />
+                        <Route path="mistakes" element={<MistakeNotebookPage />} />
+                        <Route path="badges" element={<BadgesPage />} />
+                    </Route>
+
+                    {/* Teacher routes */}
+                    <Route element={<ProtectedRoute allowedRoles={['ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_SCHOOL']} />}>
+                        <Route path="teacher/dashboard" element={<TeacherDashboard />} />
+                        <Route path="teacher/management" element={<ClassManagement />} />
+                        <Route path="teacher/classrooms" element={<Navigate to="/teacher/management" replace />} />
+                        <Route path="teacher/lessons" element={<TeacherLessonsPage />} />
+                        <Route path="teacher/questions" element={<QuestionsPage />} />
+                        <Route path="teacher/vocabulary" element={<TeacherVocabularyPage />} />
+                        <Route path="teacher/exams" element={<TeacherExamsPage />} />
+                        <Route path="teacher/exams/:examId/results" element={<TeacherExamResultsPage />} />
+                        <Route path="teacher/progress" element={<StudentProgressPage />} />
+                    </Route>
+
+                    {/* Shared routes (any authenticated user) */}
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="profile" element={<Profile />} />
+                        <Route path="settings" element={<SettingsPage />} />
+                    </Route>
+
+                    {/* Fallback */}
+                    <Route path="*" element={<NotFound />} />
                 </Route>
-
-                {/* Teacher routes */}
-                <Route element={<ProtectedRoute allowedRoles={['ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_SCHOOL']} />}>
-                    <Route path="teacher/dashboard" element={<TeacherDashboard />} />
-                    <Route path="teacher/management" element={<ClassManagement />} />
-                    <Route path="teacher/classrooms" element={<Navigate to="/teacher/management" replace />} />
-                    <Route path="teacher/lessons" element={<TeacherLessonsPage />} />
-                    <Route path="teacher/questions" element={<QuestionsPage />} />
-                    <Route path="teacher/vocabulary" element={<TeacherVocabularyPage />} />
-                    <Route path="teacher/exams" element={<TeacherExamsPage />} />
-                    <Route path="teacher/exams/:examId/results" element={<TeacherExamResultsPage />} />
-                    <Route path="teacher/progress" element={<StudentProgressPage />} />
-                </Route>
-
-                {/* Shared routes (any authenticated user) */}
-                <Route element={<ProtectedRoute />}>
-                    <Route path="profile" element={<Profile />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                </Route>
-
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-        </Routes>
+            </Routes>
+        </ErrorBoundary>
     )
 }
 
