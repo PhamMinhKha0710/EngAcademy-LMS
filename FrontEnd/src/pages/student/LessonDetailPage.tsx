@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-    ArrowLeft,
     BookOpen,
     Languages,
     Dumbbell,
@@ -18,6 +17,7 @@ import { progressApi } from '../../services/api/progressApi'
 import FlashCard from '../../components/ui/FlashCard'
 import QuizQuestion from '../../components/ui/QuizQuestion'
 import Badge from '../../components/ui/Badge'
+import Breadcrumb from '../../components/ui/Breadcrumb'
 
 type TabKey = 'content' | 'vocabulary' | 'practice'
 
@@ -114,7 +114,7 @@ export default function LessonDetailPage() {
 
     const playAudio = (url: string) => {
         const audio = new Audio(url)
-        audio.play().catch(() => {})
+        audio.play().catch(() => { })
     }
 
     // Compute quiz score
@@ -153,16 +153,16 @@ export default function LessonDetailPage() {
 
     return (
         <div className="p-6 lg:p-8 space-y-6">
-            {/* Back + Header */}
+            import Breadcrumb from '../../components/ui/Breadcrumb'
+
+            // ... existing code ...
+
+            {/* Breadcrumb + Header */}
             <div>
-                <Link
-                    to="/lessons"
-                    className="inline-flex items-center gap-1.5 text-sm mb-4 hover:opacity-80 transition-opacity"
-                    style={{ color: 'var(--color-text-secondary)' }}
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Quay lại danh sách
-                </Link>
+                <Breadcrumb items={[
+                    { label: 'Bài học', path: '/lessons' },
+                    { label: lesson.title }
+                ]} />
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
@@ -175,10 +175,10 @@ export default function LessonDetailPage() {
                                     lesson.difficultyLevel <= 1
                                         ? 'success'
                                         : lesson.difficultyLevel === 2
-                                          ? 'info'
-                                          : lesson.difficultyLevel === 3
-                                            ? 'warning'
-                                            : 'danger'
+                                            ? 'info'
+                                            : lesson.difficultyLevel === 3
+                                                ? 'warning'
+                                                : 'danger'
                                 }
                             >
                                 Cấp {lesson.difficultyLevel}
@@ -203,11 +203,10 @@ export default function LessonDetailPage() {
                     <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                            activeTab === tab.key
-                                ? 'bg-blue-500 text-white shadow-sm'
-                                : ''
-                        }`}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.key
+                            ? 'bg-blue-500 text-white shadow-sm'
+                            : ''
+                            }`}
                         style={
                             activeTab !== tab.key
                                 ? { color: 'var(--color-text-secondary)' }
