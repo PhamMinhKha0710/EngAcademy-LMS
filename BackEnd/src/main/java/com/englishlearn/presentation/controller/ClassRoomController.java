@@ -3,6 +3,7 @@ package com.englishlearn.presentation.controller;
 import com.englishlearn.application.dto.request.ClassRoomRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.ClassRoomResponse;
+import com.englishlearn.application.dto.response.ClassStudentResponse;
 import com.englishlearn.application.service.ClassRoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -107,6 +108,15 @@ public class ClassRoomController {
             @PathVariable Long studentId) {
         classRoomService.removeStudentFromClass(classId, studentId);
         return ResponseEntity.ok(ApiResponse.success("Xóa học sinh khỏi lớp thành công", null));
+    }
+
+    @GetMapping("/{classId}/students")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Get active students in classroom")
+    public ResponseEntity<ApiResponse<List<ClassStudentResponse>>> getStudentsByClass(
+            @PathVariable Long classId) {
+        List<ClassStudentResponse> students = classRoomService.getStudentsByClass(classId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách học sinh trong lớp thành công", students));
     }
 
     @DeleteMapping("/{id}")

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
-import { classroomApi, ClassRoomResponse } from '../../services/api/classroomApi'
+import { classroomApi, ClassRoomResponse, ClassStudentResponse } from '../../services/api/classroomApi'
 import { Users, Plus, LayoutGrid, GraduationCap, X, Search, Loader2 } from 'lucide-react'
 
 export default function ClassManagement() {
     const { user } = useAuthStore()
     const [classes, setClasses] = useState<ClassRoomResponse[]>([])
     const [selectedClass, setSelectedClass] = useState<ClassRoomResponse | null>(null)
+    const [students, setStudents] = useState<ClassStudentResponse[]>([])
+    const [studentsLoading, setStudentsLoading] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [isAddStudentOpen, setIsAddStudentOpen] = useState(false)
     const [studentId, setStudentId] = useState('')
@@ -40,6 +42,27 @@ export default function ClassManagement() {
         }
     }
 
+    const fetchStudents = async (classId: number) => {
+        setStudentsLoading(true)
+        try {
+            const data = await classroomApi.getStudents(classId)
+            setStudents(data || [])
+        } catch (error) {
+            console.error('Failed to fetch students:', error)
+            setStudents([])
+        } finally {
+            setStudentsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        if (selectedClass?.id) {
+            fetchStudents(selectedClass.id)
+        } else {
+            setStudents([])
+        }
+    }, [selectedClass?.id])
+
     const handleAddStudent = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!selectedClass || !studentId) return
@@ -53,6 +76,7 @@ export default function ClassManagement() {
             setIsAddStudentOpen(false)
             // Refresh class data if student count increases
             fetchClasses()
+            fetchStudents(selectedClass.id)
         } catch (err: any) {
             setActionMsg({ type: 'error', text: err.response?.data?.message || 'Có lỗi xảy ra khi thêm học sinh.' })
         } finally {
@@ -140,17 +164,55 @@ export default function ClassManagement() {
                                 </div>
                             </div>
 
-                            <div className="p-8 flex-1 flex flex-col items-center justify-center text-center opacity-70">
-                                <div className="bg-blue-500/10 p-6 rounded-full mb-4">
-                                    <Users className="w-12 h-12 text-blue-500/50" />
-                                </div>
-                                <h3 className="text-lg font-bold mb-2">Danh sách học sinh</h3>
-                                <p className="max-w-sm mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                                    Hiện chưa có danh sách học sinh chi tiết. Bạn có thể thêm học sinh mới vào lớp này bằng ID của họ.
-                                </p>
-                                <p className="text-xs italic text-orange-400">
-                                    (Lưu ý: Chức năng hiển thị danh sách học viên hiện chưa có API từ Backend)
-                                </p>
+                            <div className="p-6 flex-1">
+                                <h3 className="text-lg font-bold mb-4">Danh sách học sinh</h3>
+                                {studentsLoading ? (
+                                    <div className="flex items-center justify-center min-h-[220px]">
+                                        <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
+                                    </div>
+                                ) : students.length === 0 ? (
+                                    <div className="p-8 flex flex-col items-center justify-center text-center opacity-70 min-h-[220px]">
+                                        <div className="bg-blue-500/10 p-6 rounded-full mb-4">
+                                            <Users className="w-12 h-12 text-blue-500/50" />
+                                        </div>
+                                        <p className="max-w-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                            Lớp này chưa có học sinh nào.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {students.map((student) => (
+                                            <div
+                                                key={student.id}
+                                                className="flex items-center justify-between p-3 rounded-xl border"
+                                                style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-secondary)' }}
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="size-10 rounded-full overflow-hidden bg-blue-100 dark:bg-slate-700 flex items-center justify-center">
+                                                        {student.avatarUrl ? (
+                                                            <img src={student.avatarUrl} alt={student.fullName || student.username} className="size-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-sm font-bold text-blue-600 dark:text-blue-300">
+                                                                {(student.fullName || student.username)?.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-medium truncate" style={{ color: 'var(--color-text)' }}>
+                                                            {student.fullName || student.username}
+                                                        </p>
+                                                        <p className="text-sm truncate" style={{ color: 'var(--color-text-secondary)' }}>
+                                                            @{student.username} {student.email ? `• ${student.email}` : ''}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500">
+                                                    {student.status || 'ACTIVE'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (

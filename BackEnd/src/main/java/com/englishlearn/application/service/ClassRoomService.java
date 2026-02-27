@@ -2,6 +2,7 @@ package com.englishlearn.application.service;
 
 import com.englishlearn.application.dto.request.ClassRoomRequest;
 import com.englishlearn.application.dto.response.ClassRoomResponse;
+import com.englishlearn.application.dto.response.ClassStudentResponse;
 import com.englishlearn.domain.entity.ClassRoom;
 import com.englishlearn.domain.entity.School;
 import com.englishlearn.domain.entity.StudentClass;
@@ -175,6 +176,24 @@ public class ClassRoomService {
         studentClass.setStatus("REMOVED");
         studentClassRepository.save(studentClass);
         log.info("Removed student {} from class {}", student.getFullName(), classRoom.getName());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClassStudentResponse> getStudentsByClass(Long classId) {
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", classId));
+
+        return studentClassRepository.findActiveStudentsByClassId(classRoom.getId()).stream()
+                .map(sc -> ClassStudentResponse.builder()
+                        .id(sc.getStudent().getId())
+                        .username(sc.getStudent().getUsername())
+                        .fullName(sc.getStudent().getFullName())
+                        .email(sc.getStudent().getEmail())
+                        .avatarUrl(sc.getStudent().getAvatarUrl())
+                        .status(sc.getStatus())
+                        .joinedAt(sc.getJoinedAt())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Transactional
