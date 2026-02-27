@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, ArrowLeft, Loader2, Trophy, AlertTriangle } from 
 import { useAuthStore } from '../../store/authStore'
 import { examApi, ExamResultResponse } from '../../services/api/examApi'
 import ProgressBar from '../../components/ui/ProgressBar'
+import Breadcrumb from '../../components/ui/Breadcrumb'
 
 export default function ExamResultPage() {
     const { id } = useParams<{ id: string }>()
@@ -111,15 +112,10 @@ export default function ExamResultPage() {
 
     return (
         <div className="max-w-3xl mx-auto px-4 py-8">
-            {/* Back button */}
-            <button
-                onClick={() => navigate('/exams')}
-                className="flex items-center gap-2 text-sm mb-6 transition-colors hover:text-blue-500"
-                style={{ color: 'var(--color-text-secondary)' }}
-            >
-                <ArrowLeft className="w-4 h-4" />
-                Quay về danh sách bài thi
-            </button>
+            <Breadcrumb items={[
+                { label: 'Bài thi', path: '/exams' },
+                { label: result.examTitle ? `Kết quả: ${result.examTitle}` : 'Kết quả bài thi' }
+            ]} />
 
             {/* Result card */}
             <div className="card overflow-hidden">
@@ -177,8 +173,8 @@ export default function ExamResultPage() {
                                 percentage >= 80
                                     ? 'from-green-500 to-emerald-500'
                                     : percentage >= 50
-                                      ? 'from-yellow-500 to-orange-500'
-                                      : 'from-red-500 to-rose-500'
+                                        ? 'from-yellow-500 to-orange-500'
+                                        : 'from-red-500 to-rose-500'
                             }
                             height="h-3"
                         />
