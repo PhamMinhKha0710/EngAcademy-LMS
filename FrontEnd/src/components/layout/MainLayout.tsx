@@ -25,7 +25,7 @@ const MainLayout = () => {
             <div className="flex flex-1 pt-16">
                 {showSidebar && <Sidebar />}
 
-                <main className={`flex-1 transition-all duration-300 ${showSidebar ? 'ml-64' : ''}`}>
+                <main className={`flex-1 transition-all duration-300 w-full ${showSidebar ? 'md:ml-64' : ''}`}>
                     <Outlet />
                 </main>
             </div>
