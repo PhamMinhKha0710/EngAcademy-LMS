@@ -2,11 +2,22 @@ import api from './axios'
 interface ApiResponse<T> { success: boolean; message: string; data: T }
 
 export interface QuestTask {
-    id: number; taskType: string; targetCount: number; currentProgress: number;
-    completed: boolean; coins: number;
+    id: number
+    taskType: string
+    targetCount: number
+    currentProgress?: number
+    currentCount?: number
+    completed?: boolean
+    isCompleted?: boolean
+    coins?: number
 }
 export interface DailyQuestResponse {
-    id: number; questDate: string; isCompleted: boolean; tasks: QuestTask[]; totalCoins?: number;
+    id: number
+    questDate: string
+    isCompleted?: boolean
+    completed?: boolean
+    tasks: QuestTask[]
+    totalCoins?: number
 }
 
 export const questApi = {

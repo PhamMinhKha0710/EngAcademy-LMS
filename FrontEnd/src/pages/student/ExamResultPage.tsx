@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { CheckCircle, XCircle, ArrowLeft, Loader2, Trophy, AlertTriangle } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { examApi, ExamResultResponse } from '../../services/api/examApi'
 import ProgressBar from '../../components/ui/ProgressBar'
+import ActivitySuccessCelebrationOverlay from '../../components/ui/ActivitySuccessCelebrationOverlay'
 
 export default function ExamResultPage() {
     const { id } = useParams<{ id: string }>()
@@ -12,6 +13,9 @@ export default function ExamResultPage() {
     const examId = Number(id)
 
     const [result, setResult] = useState<ExamResultResponse | null>(null)
+    const [showSubmitSuccess, setShowSubmitSuccess] = useState(false)
+    const [showCelebration, setShowCelebration] = useState(false)
+    const [awaitingPublish, setAwaitingPublish] = useState(false)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -22,39 +26,38 @@ export default function ExamResultPage() {
             try {
                 setLoading(true)
                 setError(null)
-                const results = await examApi.getResults(examId)
-
-                // Find the current student's result
-                const studentResult = results?.find(
-                    (r: ExamResultResponse) => r.studentId === user.id
-                )
-
-                // Fallback: check by examResultId stored in sessionStorage
-                if (!studentResult) {
-                    const storedId = sessionStorage.getItem(`exam_result_${examId}`)
-                    if (storedId) {
-                        const fallback = results?.find(
-                            (r: ExamResultResponse) => r.id === Number(storedId)
-                        )
-                        if (fallback) {
-                            setResult(fallback)
-                            return
-                        }
-                    }
-                    setError('Không tìm thấy kết quả bài thi của bạn')
-                    return
+                setAwaitingPublish(false)
+                const submittedKey = `exam_submit_success_${user.id}_${examId}`
+                const legacySubmittedKey = `exam_submit_success_${examId}`
+                const submitted = sessionStorage.getItem(submittedKey) || sessionStorage.getItem(legacySubmittedKey)
+                if (submitted === '1') {
+                    setShowSubmitSuccess(true)
+                    sessionStorage.removeItem(submittedKey)
+                    sessionStorage.removeItem(legacySubmittedKey)
                 }
-
+                const studentResult = await examApi.getMyResult(examId)
                 setResult(studentResult)
             } catch (err: any) {
                 console.error('Failed to fetch result:', err)
-                setError(err.response?.data?.message || 'Không thể tải kết quả bài thi')
+                const message = err.response?.data?.message || 'Không thể tải kết quả bài thi'
+                if (typeof message === 'string' && message.includes('Giáo viên chưa công bố kết quả bài thi')) {
+                    setAwaitingPublish(true)
+                    setError(null)
+                    return
+                }
+                setError(message)
             } finally {
                 setLoading(false)
             }
         }
         fetchResult()
     }, [examId, user?.id])
+
+    useEffect(() => {
+        if (showSubmitSuccess) {
+            setShowCelebration(true)
+        }
+    }, [showSubmitSuccess])
 
     const getScoreColor = (percentage?: number) => {
         if (!percentage) return { text: 'text-slate-400', bg: 'from-slate-500 to-slate-600', ring: 'ring-slate-500/20' }
@@ -85,6 +88,56 @@ export default function ExamResultPage() {
     }
 
     if (error || !result) {
+        if (awaitingPublish) {
+            return (
+                <>
+                    <ActivitySuccessCelebrationOverlay
+                        open={showCelebration}
+                        title="Nop bai thanh cong!"
+                        subtitle="Bai lam da duoc ghi nhan. Cho giao vien cong bo diem de xem ket qua chi tiet."
+                        xpLabel="+10 XP"
+                        streakLabel="1 Ngay"
+                        primaryLabel="Quay ve danh sach"
+                        secondaryLabel="Dong"
+                        onClose={() => setShowCelebration(false)}
+                        onPrimaryAction={() => {
+                            setShowCelebration(false)
+                            navigate('/exams')
+                        }}
+                        onSecondaryAction={() => setShowCelebration(false)}
+                    />
+
+                    <div className="max-w-3xl mx-auto px-4 py-8">
+                        <div className="card overflow-hidden">
+                        <div className="px-6 py-8 text-center bg-gradient-to-r from-emerald-500 to-teal-500">
+                            <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-1">
+                                Nộp bài thành công
+                            </h1>
+                            <p className="text-white/85 text-sm mt-2">
+                                Bài làm của bạn đã được ghi nhận. Vui lòng chờ giáo viên công bố điểm để xem kết quả chi tiết.
+                            </p>
+                            {!showSubmitSuccess && (
+                                <p className="text-white/75 text-xs mt-3">
+                                    Bạn đã nộp bài trước đó và đang ở trạng thái chờ công bố điểm.
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="p-6 text-center">
+                            <button
+                                onClick={() => navigate('/exams')}
+                                className="btn-primary inline-flex items-center gap-2"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                Quay về danh sách bài thi
+                            </button>
+                        </div>
+                    </div>
+                    </div>
+                </>
+            )
+        }
+
         return (
             <div className="max-w-2xl mx-auto px-4 py-16 text-center">
                 <div className="card p-8 flex flex-col items-center gap-4">
@@ -110,7 +163,26 @@ export default function ExamResultPage() {
     const colors = getScoreColor(percentage)
 
     return (
-        <div className="max-w-3xl mx-auto px-4 py-8">
+        <>
+            <ActivitySuccessCelebrationOverlay
+                open={showCelebration}
+                title="Nop bai thanh cong!"
+                subtitle="Ban da hoan thanh bai thi. Day la ket qua cua ban."
+                xpLabel="+10 XP"
+                streakLabel="1 Ngay"
+                primaryLabel="Tiep tuc"
+                secondaryLabel="Dong"
+                onClose={() => setShowCelebration(false)}
+                onPrimaryAction={() => setShowCelebration(false)}
+                onSecondaryAction={() => setShowCelebration(false)}
+            />
+
+            <div className="max-w-3xl mx-auto px-4 py-8">
+            {showSubmitSuccess && (
+                <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-400 text-sm font-medium">
+                    Nộp bài thành công! Đây là kết quả của bạn.
+                </div>
+            )}
             {/* Back button */}
             <button
                 onClick={() => navigate('/exams')}
@@ -258,6 +330,7 @@ export default function ExamResultPage() {
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     )
 }

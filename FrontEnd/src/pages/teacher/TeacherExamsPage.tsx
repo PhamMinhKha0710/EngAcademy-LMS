@@ -17,6 +17,8 @@ import {
     Lock,
     BarChart3,
     Clock,
+    Megaphone,
+    CheckCircle2,
 } from 'lucide-react'
 
 interface ExamForm {
@@ -163,6 +165,16 @@ export default function TeacherExamsPage() {
         }
     }
 
+    const handlePublishScores = async (id: number) => {
+        if (!confirm('Công bố điểm để học sinh xem kết quả?')) return
+        try {
+            await examApi.publishScores(id)
+            await fetchData()
+        } catch {
+            alert('Công bố điểm thất bại.')
+        }
+    }
+
     const toggleQuestion = (qId: number) => {
         setForm((prev) => ({
             ...prev,
@@ -272,6 +284,23 @@ export default function TeacherExamsPage() {
                             >
                                 <Lock className="w-4 h-4" />
                             </button>
+                        )}
+                        {(exam.status === 'PUBLISHED' || exam.status === 'CLOSED') && !exam.scorePublished && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handlePublishScores(exam.id) }}
+                                className="p-2 rounded-lg hover:bg-violet-500/15 text-violet-400 transition-colors"
+                                title="Công bố điểm"
+                            >
+                                <Megaphone className="w-4 h-4" />
+                            </button>
+                        )}
+                        {Boolean(exam.scorePublished) && (
+                            <span
+                                className="p-2 rounded-lg text-emerald-400"
+                                title="Đã công bố điểm"
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                            </span>
                         )}
                         <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/teacher/exams/${exam.id}/results`) }}

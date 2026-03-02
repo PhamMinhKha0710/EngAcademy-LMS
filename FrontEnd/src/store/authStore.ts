@@ -2,6 +2,16 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authApi, LoginRequest, RegisterRequest, User, AuthResponse } from '../services/api/authApi'
 
+const clearExamSessionCache = () => {
+    if (typeof sessionStorage === 'undefined') return
+    const keys = Object.keys(sessionStorage)
+    for (const key of keys) {
+        if (key.startsWith('exam_result_') || key.startsWith('exam_submit_success_')) {
+            sessionStorage.removeItem(key)
+        }
+    }
+}
+
 interface AuthState {
     user: User | null
     accessToken: string | null
@@ -32,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
             login: async (credentials: LoginRequest) => {
                 set({ isLoading: true, error: null })
                 try {
+                    clearExamSessionCache()
                     const response: AuthResponse = await authApi.login(credentials)
 
                     // Map AuthResponse to User
@@ -65,6 +76,7 @@ export const useAuthStore = create<AuthState>()(
             register: async (data: RegisterRequest) => {
                 set({ isLoading: true, error: null })
                 try {
+                    clearExamSessionCache()
                     const response: AuthResponse = await authApi.register(data)
 
                     const user: User = {
@@ -101,6 +113,7 @@ export const useAuthStore = create<AuthState>()(
             },
 
             logout: () => {
+                clearExamSessionCache()
                 set({
                     user: null,
                     accessToken: null,

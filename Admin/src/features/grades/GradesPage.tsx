@@ -5,6 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Award, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import api from '@/lib/api'
+import type { ApiResponse, Page } from '@/types/api'
+import { useAppSelector } from '@/app/hooks'
 
 interface ExamResultResponse {
     id: number
@@ -22,6 +25,7 @@ interface ExamResultResponse {
 }
 
 export default function GradesPage() {
+    const user = useAppSelector((state) => state.auth.user)
     const [results, setResults] = useState<ExamResultResponse[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
@@ -29,123 +33,34 @@ export default function GradesPage() {
     const fetchGrades = async () => {
         setLoading(true)
         try {
-            // Mock data for demonstration
-            const mockResults: ExamResultResponse[] = [
-                {
-                    id: 1,
-                    examId: 1,
-                    examTitle: 'Kiểm tra giữa kỳ - Tiếng Anh 6',
-                    studentId: 101,
-                    studentName: 'Nguyễn Văn An',
-                    score: 9.5,
-                    correctCount: 19,
-                    totalQuestions: 20,
-                    percentage: 95,
-                    submittedAt: '2026-02-10T14:30:00',
-                    violationCount: 0,
-                    grade: 'A'
-                },
-                {
-                    id: 2,
-                    examId: 1,
-                    examTitle: 'Kiểm tra giữa kỳ - Tiếng Anh 6',
-                    studentId: 102,
-                    studentName: 'Trần Thị Bình',
-                    score: 8.0,
-                    correctCount: 16,
-                    totalQuestions: 20,
-                    percentage: 80,
-                    submittedAt: '2026-02-10T14:25:00',
-                    violationCount: 0,
-                    grade: 'B'
-                },
-                {
-                    id: 3,
-                    examId: 2,
-                    examTitle: 'Bài tập về nhà - Unit 1',
-                    studentId: 101,
-                    studentName: 'Nguyễn Văn An',
-                    score: 10.0,
-                    correctCount: 10,
-                    totalQuestions: 10,
-                    percentage: 100,
-                    submittedAt: '2026-02-09T10:15:00',
-                    violationCount: 0,
-                    grade: 'A'
-                },
-                {
-                    id: 4,
-                    examId: 2,
-                    examTitle: 'Bài tập về nhà - Unit 1',
-                    studentId: 103,
-                    studentName: 'Lê Minh Châu',
-                    score: 7.5,
-                    correctCount: 15,
-                    totalQuestions: 20,
-                    percentage: 75,
-                    submittedAt: '2026-02-09T11:00:00',
-                    violationCount: 1,
-                    grade: 'B'
-                },
-                {
-                    id: 5,
-                    examId: 3,
-                    examTitle: 'Kiểm tra cuối kỳ - Tiếng Anh 6',
-                    studentId: 104,
-                    studentName: 'Phạm Thị Dung',
-                    score: 6.5,
-                    correctCount: 13,
-                    totalQuestions: 20,
-                    percentage: 65,
-                    submittedAt: '2026-02-08T15:45:00',
-                    violationCount: 0,
-                    grade: 'C'
-                },
-                {
-                    id: 6,
-                    examId: 3,
-                    examTitle: 'Kiểm tra cuối kỳ - Tiếng Anh 6',
-                    studentId: 102,
-                    studentName: 'Trần Thị Bình',
-                    score: 8.5,
-                    correctCount: 17,
-                    totalQuestions: 20,
-                    percentage: 85,
-                    submittedAt: '2026-02-08T15:30:00',
-                    violationCount: 0,
-                    grade: 'A'
-                },
-                {
-                    id: 7,
-                    examId: 4,
-                    examTitle: 'Bài kiểm tra 15 phút - Grammar',
-                    studentId: 105,
-                    studentName: 'Hoàng Văn Em',
-                    score: 5.0,
-                    correctCount: 5,
-                    totalQuestions: 10,
-                    percentage: 50,
-                    submittedAt: '2026-02-07T09:20:00',
-                    violationCount: 2,
-                    grade: 'D'
-                },
-                {
-                    id: 8,
-                    examId: 4,
-                    examTitle: 'Bài kiểm tra 15 phút - Grammar',
-                    studentId: 101,
-                    studentName: 'Nguyễn Văn An',
-                    score: 9.0,
-                    correctCount: 9,
-                    totalQuestions: 10,
-                    percentage: 90,
-                    submittedAt: '2026-02-07T09:15:00',
-                    violationCount: 0,
-                    grade: 'A'
-                },
-            ]
+            const isTeacher = user?.roles?.includes('TEACHER')
+            const teacherId = user?.id
 
-            setResults(mockResults)
+            if (!isTeacher || !teacherId) {
+                setResults([])
+                return
+            }
+
+            const examsRes = await api.get<ApiResponse<Page<{ id: number; title: string }>>>(
+                `/exams/teacher/${teacherId}?size=100&page=0`
+            )
+            const exams = examsRes.data?.data?.content ?? []
+
+            const allResults: ExamResultResponse[] = []
+            for (const exam of exams) {
+                const res = await api.get<ApiResponse<ExamResultResponse[]>>(`/exams/${exam.id}/results`)
+                const list = res.data?.data ?? []
+                for (const r of list) {
+                    allResults.push({
+                        ...r,
+                        score: Number(r.score),
+                        percentage: Number(r.percentage ?? 0),
+                        submittedAt: typeof r.submittedAt === 'string' ? r.submittedAt : '',
+                    })
+                }
+            }
+
+            setResults(allResults)
         } catch {
             toast.error('Không thể tải danh sách điểm')
             setResults([])
@@ -156,7 +71,7 @@ export default function GradesPage() {
 
     useEffect(() => {
         fetchGrades()
-    }, [])
+    }, [user?.id, user?.roles])
 
     const filtered = results.filter((r) =>
         r.studentName?.toLowerCase().includes(search.toLowerCase()) ||

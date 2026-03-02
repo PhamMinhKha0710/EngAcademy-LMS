@@ -5,7 +5,6 @@ import Home from './pages/Home'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
-import Profile from './pages/Profile'
 
 // Student pages
 import Dashboard from './pages/student/StudentDashboard'
@@ -13,11 +12,13 @@ import LessonsPage from './pages/student/LessonsPage'
 import LessonDetailPage from './pages/student/LessonDetailPage'
 import VocabularyPage from './pages/student/VocabularyPage'
 import StudentExamsPage from './pages/student/StudentExamsPage'
+import ExamIntroductionPage from './pages/student/ExamIntroductionPage'
 import ExamTakePage from './pages/student/ExamTakePage'
 import ExamResultPage from './pages/student/ExamResultPage'
 import LeaderboardPage from './pages/student/LeaderboardPage'
 import MistakeNotebookPage from './pages/student/MistakeNotebookPage'
 import BadgesPage from './pages/student/BadgesPage'
+import DailyQuestsPage from './pages/student/DailyQuestsPage'
 
 // Teacher pages
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
@@ -49,9 +50,11 @@ function App() {
                     <Route path="lessons/:id" element={<LessonDetailPage />} />
                     <Route path="vocabulary" element={<VocabularyPage />} />
                     <Route path="exams" element={<StudentExamsPage />} />
+                    <Route path="exams/:id/introduction" element={<ExamIntroductionPage />} />
                     <Route path="exams/:id/take" element={<ExamTakePage />} />
                     <Route path="exams/:id/result" element={<ExamResultPage />} />
                     <Route path="leaderboard" element={<LeaderboardPage />} />
+                    <Route path="quests" element={<DailyQuestsPage />} />
                     <Route path="mistakes" element={<MistakeNotebookPage />} />
                     <Route path="badges" element={<BadgesPage />} />
                 </Route>
@@ -71,8 +74,8 @@ function App() {
 
                 {/* Shared routes (any authenticated user) */}
                 <Route element={<ProtectedRoute />}>
-                    <Route path="profile" element={<Profile />} />
                     <Route path="settings" element={<SettingsPage />} />
+                    <Route path="profile" element={<Navigate to="/settings" replace />} />
                 </Route>
 
                 {/* Fallback */}

@@ -6,15 +6,10 @@ import { useRole } from '@/app/useRole'
 import api from '@/lib/api'
 import type { ApiResponse, Page, User, School as SchoolType, Lesson, ClassRoom, LeaderboardEntry } from '@/types/api'
 
-const userGrowth = [
-    { month: 'T1', users: 400 },
-    { month: 'T2', users: 520 },
-    { month: 'T3', users: 680 },
-    { month: 'T4', users: 790 },
-    { month: 'T5', users: 890 },
-    { month: 'T6', users: 1020 },
-    { month: 'T7', users: 1234 },
-]
+interface UserGrowthPoint {
+    month: string
+    users: number
+}
 
 interface DashboardStats {
     userCount: number
@@ -28,6 +23,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState<DashboardStats>({ userCount: 0, schoolCount: 0, lessonCount: 0, classroomCount: 0 })
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+    const [userGrowth, setUserGrowth] = useState<UserGrowthPoint[]>([])
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -138,27 +134,35 @@ export default function DashboardPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={userGrowth}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                                <XAxis dataKey="month" className="text-xs" />
-                                <YAxis className="text-xs" />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'hsl(var(--card))',
-                                        border: '1px solid hsl(var(--border))',
-                                        borderRadius: '8px',
-                                    }}
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="users"
-                                    stroke="hsl(var(--primary))"
-                                    strokeWidth={3}
-                                    dot={{ fill: 'hsl(var(--primary))' }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        {userGrowth.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                                <TrendingUp className="h-12 w-12 mb-2 opacity-50" />
+                                <p className="text-sm">Chưa có dữ liệu tăng trưởng</p>
+                                <p className="text-xs mt-1">Dữ liệu sẽ hiển thị khi có API thống kê theo tháng</p>
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={userGrowth}>
+                                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                                    <XAxis dataKey="month" className="text-xs" />
+                                    <YAxis className="text-xs" />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'hsl(var(--card))',
+                                            border: '1px solid hsl(var(--border))',
+                                            borderRadius: '8px',
+                                        }}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="users"
+                                        stroke="hsl(var(--primary))"
+                                        strokeWidth={3}
+                                        dot={{ fill: 'hsl(var(--primary))' }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -246,6 +250,44 @@ function StatCard({ title, value, icon: Icon, color, bg }: StatCardProps) {
 }
 
 function SchoolDashboard() {
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [schoolStats, setSchoolStats] = useState<{
+        classCount: number
+        teacherCount: number
+        studentCount: number
+    } | null>(null)
+
+    useEffect(() => {
+        const fetchSchoolStats = async () => {
+            setLoading(true)
+            setError(null)
+            try {
+                const response = await api.get<ApiResponse<SchoolType[]>>('/schools')
+                const schools = response.data?.data ?? []
+                const school = schools[0]
+                if (school) {
+                    setSchoolStats({
+                        classCount: school.classCount ?? 0,
+                        teacherCount: school.teacherCount ?? 0,
+                        studentCount: school.studentCount ?? 0,
+                    })
+                } else {
+                    setSchoolStats({ classCount: 0, teacherCount: 0, studentCount: 0 })
+                }
+            } catch {
+                setError('Không thể tải thống kê trường học.')
+                setSchoolStats(null)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchSchoolStats()
+    }, [])
+
+    const display = (value: number | undefined) =>
+        loading || schoolStats === null ? '--' : (value ?? 0).toLocaleString()
+
     return (
         <div className="space-y-6">
             <div>
@@ -253,47 +295,53 @@ function SchoolDashboard() {
                 <p className="text-muted-foreground mt-1">Chào mừng đến trang quản lý trường học</p>
             </div>
 
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
-                <p className="text-sm text-blue-800 dark:text-blue-300">
-                    Chức năng này đang phát triển. Các tính năng nâng cao sẽ được cập nhật sớm.
-                </p>
-            </div>
+            {error && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                    {error}
+                </div>
+            )}
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="hover:shadow-md transition-shadow">
-                    <CardContent className="flex items-center gap-4 p-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/50">
-                            <GraduationCap className="h-6 w-6 text-emerald-600" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm text-muted-foreground">Lớp học</p>
-                            <p className="text-2xl font-bold">--</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="hover:shadow-md transition-shadow">
-                    <CardContent className="flex items-center gap-4 p-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/50">
-                            <Users className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm text-muted-foreground">Giáo viên</p>
-                            <p className="text-2xl font-bold">--</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="hover:shadow-md transition-shadow">
-                    <CardContent className="flex items-center gap-4 p-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-950/50">
-                            <BookOpen className="h-6 w-6 text-purple-600" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm text-muted-foreground">Học sinh</p>
-                            <p className="text-2xl font-bold">--</p>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+            {loading ? (
+                <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                </div>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="flex items-center gap-4 p-6">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/50">
+                                <GraduationCap className="h-6 w-6 text-emerald-600" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm text-muted-foreground">Lớp học</p>
+                                <p className="text-2xl font-bold">{display(schoolStats?.classCount)}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="flex items-center gap-4 p-6">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/50">
+                                <Users className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm text-muted-foreground">Giáo viên</p>
+                                <p className="text-2xl font-bold">{display(schoolStats?.teacherCount)}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="flex items-center gap-4 p-6">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-950/50">
+                                <BookOpen className="h-6 w-6 text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm text-muted-foreground">Học sinh</p>
+                                <p className="text-2xl font-bold">{display(schoolStats?.studentCount)}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     )
 }

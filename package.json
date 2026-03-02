@@ -1,0 +1,11 @@
+{
+  "name": "weblearnenglish",
+  "private": true,
+  "description": "Web Learn English - monorepo root",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.0.11"
+  }
+}

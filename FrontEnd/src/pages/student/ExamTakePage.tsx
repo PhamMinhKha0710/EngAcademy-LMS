@@ -45,7 +45,8 @@ export default function ExamTakePage() {
                 setExamData(data)
 
                 // Store examResultId for result page
-                sessionStorage.setItem(`exam_result_${examId}`, String(data.examResultId))
+                sessionStorage.removeItem(`exam_result_${examId}`)
+                sessionStorage.setItem(`exam_result_${user.id}_${examId}`, String(data.examResultId))
 
                 // Extract questions and duration from exam data
                 const examQuestions = (data as any).questions || []
@@ -55,7 +56,12 @@ export default function ExamTakePage() {
                 setDurationSeconds(duration * 60)
             } catch (err: any) {
                 console.error('Failed to start exam:', err)
-                setError(err.response?.data?.message || 'Không thể bắt đầu bài thi. Có thể bạn đã làm bài thi này rồi.')
+                const message = err.response?.data?.message || ''
+                if (typeof message === 'string' && message.includes('Bạn đã hoàn thành bài thi này')) {
+                    navigate(`/exams/${examId}/result`, { replace: true })
+                    return
+                }
+                setError(message || 'Không thể bắt đầu bài thi. Có thể bạn đã làm bài thi này rồi.')
             } finally {
                 setLoading(false)
             }
@@ -99,7 +105,11 @@ export default function ExamTakePage() {
 
             const answerPayload: SubmitExamRequest['answers'] = []
             answers.forEach((selectedOptionIds, questionId) => {
-                answerPayload.push({ questionId, selectedOptionIds })
+                answerPayload.push({
+                    questionId,
+                    selectedOptionId: selectedOptionIds?.[0],
+                    selectedOptionIds,
+                })
             })
 
             await examApi.submitExam(examId, {
@@ -107,6 +117,8 @@ export default function ExamTakePage() {
                 answers: answerPayload,
             })
 
+            sessionStorage.removeItem(`exam_submit_success_${examId}`)
+            sessionStorage.setItem(`exam_submit_success_${user?.id}_${examId}`, '1')
             navigate(`/exams/${examId}/result`, { replace: true })
         } catch (err: any) {
             console.error('Failed to submit exam:', err)
@@ -114,7 +126,7 @@ export default function ExamTakePage() {
             submittedRef.current = false
             setSubmitting(false)
         }
-    }, [examId, examResultId, answers, navigate])
+    }, [examId, examResultId, answers, navigate, user?.id])
 
     // Handle time up
     const handleTimeUp = useCallback(() => {
@@ -125,12 +137,13 @@ export default function ExamTakePage() {
 
     const answeredCount = answers.size
     const totalCount = questions.length
+    const examTitle = (examData as any)?.title as string | undefined
 
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-                <p style={{ color: 'var(--color-text-secondary)' }}>Đang tải bài thi...</p>
+                <p style={{ color: 'var(--color-text-secondary)' }}>Đang khởi tạo phiên làm bài...</p>
             </div>
         )
     }
@@ -173,6 +186,11 @@ export default function ExamTakePage() {
             >
                 <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-4">
+                        {examTitle && (
+                            <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                                {examTitle}
+                            </span>
+                        )}
                         {durationSeconds > 0 && (
                             <Timer
                                 durationSeconds={durationSeconds}

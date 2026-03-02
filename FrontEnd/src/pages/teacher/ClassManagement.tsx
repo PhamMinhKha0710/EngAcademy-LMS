@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
-import { classroomApi, ClassRoomResponse } from '../../services/api/classroomApi'
+import { classroomApi, ClassRoomResponse, ClassStudentResponse } from '../../services/api/classroomApi'
 import { Users, Plus, LayoutGrid, GraduationCap, X, Search, Loader2 } from 'lucide-react'
 
 export default function ClassManagement() {
     const { user } = useAuthStore()
     const [classes, setClasses] = useState<ClassRoomResponse[]>([])
     const [selectedClass, setSelectedClass] = useState<ClassRoomResponse | null>(null)
+    const [students, setStudents] = useState<ClassStudentResponse[]>([])
+    const [studentsLoading, setStudentsLoading] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [isAddStudentOpen, setIsAddStudentOpen] = useState(false)
-    const [studentId, setStudentId] = useState('')
+    const [studentKeyword, setStudentKeyword] = useState('')
+    const [searchResults, setSearchResults] = useState<ClassStudentResponse[]>([])
+    const [searching, setSearching] = useState(false)
+    const [selectedCandidate, setSelectedCandidate] = useState<ClassStudentResponse | null>(null)
     const [actionMsg, setActionMsg] = useState({ type: '', text: '' })
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -40,25 +45,78 @@ export default function ClassManagement() {
         }
     }
 
+    const fetchStudents = async (classId: number) => {
+        setStudentsLoading(true)
+        try {
+            const data = await classroomApi.getStudents(classId)
+            setStudents(data || [])
+        } catch (error) {
+            console.error('Failed to fetch students:', error)
+            setStudents([])
+        } finally {
+            setStudentsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        if (selectedClass?.id) {
+            fetchStudents(selectedClass.id)
+        } else {
+            setStudents([])
+        }
+    }, [selectedClass?.id])
+
     const handleAddStudent = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedClass || !studentId) return
+        if (!selectedClass || !selectedCandidate) return
         
         setIsSubmitting(true)
         setActionMsg({ type: '', text: '' })
         try {
-            await classroomApi.addStudent(selectedClass.id, parseInt(studentId))
+            await classroomApi.addStudent(selectedClass.id, selectedCandidate.id)
             setActionMsg({ type: 'success', text: 'Thêm học sinh vào lớp thành công!' })
-            setStudentId('')
+            setStudentKeyword('')
+            setSearchResults([])
+            setSelectedCandidate(null)
             setIsAddStudentOpen(false)
             // Refresh class data if student count increases
             fetchClasses()
+            fetchStudents(selectedClass.id)
         } catch (err: any) {
             setActionMsg({ type: 'error', text: err.response?.data?.message || 'Có lỗi xảy ra khi thêm học sinh.' })
         } finally {
             setIsSubmitting(false)
         }
     }
+
+    useEffect(() => {
+        if (!isAddStudentOpen || !selectedClass) return
+        const keyword = studentKeyword.trim()
+
+        if (keyword.length < 2) {
+            setSearchResults([])
+            setSearching(false)
+            setSelectedCandidate(null)
+            return
+        }
+
+        const timer = setTimeout(async () => {
+            try {
+                setSearching(true)
+                const data = await classroomApi.searchStudents(selectedClass.id, keyword)
+                setSearchResults(data || [])
+                if (selectedCandidate && !data.find((s) => s.id === selectedCandidate.id)) {
+                    setSelectedCandidate(null)
+                }
+            } catch {
+                setSearchResults([])
+            } finally {
+                setSearching(false)
+            }
+        }, 250)
+
+        return () => clearTimeout(timer)
+    }, [isAddStudentOpen, selectedClass?.id, studentKeyword])
 
     if (isLoading) {
         return (
@@ -140,17 +198,55 @@ export default function ClassManagement() {
                                 </div>
                             </div>
 
-                            <div className="p-8 flex-1 flex flex-col items-center justify-center text-center opacity-70">
-                                <div className="bg-blue-500/10 p-6 rounded-full mb-4">
-                                    <Users className="w-12 h-12 text-blue-500/50" />
-                                </div>
-                                <h3 className="text-lg font-bold mb-2">Danh sách học sinh</h3>
-                                <p className="max-w-sm mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                                    Hiện chưa có danh sách học sinh chi tiết. Bạn có thể thêm học sinh mới vào lớp này bằng ID của họ.
-                                </p>
-                                <p className="text-xs italic text-orange-400">
-                                    (Lưu ý: Chức năng hiển thị danh sách học viên hiện chưa có API từ Backend)
-                                </p>
+                            <div className="p-6 flex-1">
+                                <h3 className="text-lg font-bold mb-4">Danh sách học sinh</h3>
+                                {studentsLoading ? (
+                                    <div className="flex items-center justify-center min-h-[220px]">
+                                        <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
+                                    </div>
+                                ) : students.length === 0 ? (
+                                    <div className="p-8 flex flex-col items-center justify-center text-center opacity-70 min-h-[220px]">
+                                        <div className="bg-blue-500/10 p-6 rounded-full mb-4">
+                                            <Users className="w-12 h-12 text-blue-500/50" />
+                                        </div>
+                                        <p className="max-w-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                            Lớp này chưa có học sinh nào.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {students.map((student) => (
+                                            <div
+                                                key={student.id}
+                                                className="flex items-center justify-between p-3 rounded-xl border"
+                                                style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-secondary)' }}
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="size-10 rounded-full overflow-hidden bg-blue-100 dark:bg-slate-700 flex items-center justify-center">
+                                                        {student.avatarUrl ? (
+                                                            <img src={student.avatarUrl} alt={student.fullName || student.username} className="size-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-sm font-bold text-blue-600 dark:text-blue-300">
+                                                                {(student.fullName || student.username)?.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-medium truncate" style={{ color: 'var(--color-text)' }}>
+                                                            {student.fullName || student.username}
+                                                        </p>
+                                                        <p className="text-sm truncate" style={{ color: 'var(--color-text-secondary)' }}>
+                                                            @{student.username} {student.email ? `• ${student.email}` : ''}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500">
+                                                    {student.status || 'ACTIVE'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -181,21 +277,63 @@ export default function ClassManagement() {
                         <form onSubmit={handleAddStudent} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                                    Nhập ID học sinh
+                                    Tìm học sinh (tên / username / email)
                                 </label>
-                                <input
-                                    type="number"
-                                    value={studentId}
-                                    onChange={(e) => setStudentId(e.target.value)}
+                                <div className="relative">
+                                    <input
+                                    type="text"
+                                    value={studentKeyword}
+                                    onChange={(e) => setStudentKeyword(e.target.value)}
                                     className="input-field"
-                                    placeholder="Ví dụ: 123"
+                                    placeholder="Ví dụ: minhkhoa hoặc Trần Minh Khoa"
                                     required
                                     autoFocus
-                                />
+                                    />
+                                    {searching && (
+                                        <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-blue-500" />
+                                    )}
+                                </div>
                                 <p className="mt-2 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                                    ID này được cấp khi học sinh đăng ký tài khoản.
+                                    Gõ ít nhất 2 ký tự để tìm kiếm học sinh chưa nằm trong lớp này.
                                 </p>
                             </div>
+
+                            {searchResults.length > 0 && (
+                                <div className="max-h-56 overflow-y-auto rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
+                                    {searchResults.map((candidate) => (
+                                        <button
+                                            key={candidate.id}
+                                            type="button"
+                                            onClick={() => setSelectedCandidate(candidate)}
+                                            className={`w-full text-left px-3 py-2.5 border-b last:border-b-0 transition-colors ${
+                                                selectedCandidate?.id === candidate.id
+                                                    ? 'bg-blue-500/10'
+                                                    : 'hover:bg-slate-500/5'
+                                            }`}
+                                            style={{ borderColor: 'var(--color-border)' }}
+                                        >
+                                            <p className="font-medium" style={{ color: 'var(--color-text)' }}>
+                                                {candidate.fullName || candidate.username}
+                                            </p>
+                                            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                                @{candidate.username} • {candidate.email || `ID: ${candidate.id}`}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {studentKeyword.trim().length >= 2 && !searching && searchResults.length === 0 && (
+                                <div className="p-3 rounded-lg text-sm border bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400">
+                                    Không tìm thấy học sinh phù hợp, thử bằng username hoặc email.
+                                </div>
+                            )}
+
+                            {selectedCandidate && (
+                                <div className="p-3 rounded-lg text-sm border bg-blue-500/10 border-blue-500/30">
+                                    <span className="font-medium">Đã chọn:</span> {selectedCandidate.fullName || selectedCandidate.username} (ID: {selectedCandidate.id})
+                                </div>
+                            )}
 
                             {actionMsg.text && (
                                 <div className={`p-3 rounded-lg text-sm border ${
@@ -217,7 +355,7 @@ export default function ClassManagement() {
                                 </button>
                                 <button 
                                     type="submit"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || !selectedCandidate}
                                     className="flex-1 btn-primary py-2 flex items-center justify-center gap-2"
                                 >
                                     {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}

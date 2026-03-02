@@ -117,6 +117,14 @@ public class ExamController {
         return ResponseEntity.ok(ApiResponse.success("Đóng bài kiểm tra thành công", exam));
     }
 
+    @PostMapping("/{id}/publish-scores")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @Operation(summary = "Publish exam scores for students")
+    public ResponseEntity<ApiResponse<ExamResponse>> publishScores(@PathVariable Long id) {
+        ExamResponse exam = examService.publishScores(id);
+        return ResponseEntity.ok(ApiResponse.success("Công bố điểm thành công", exam));
+    }
+
     @PostMapping("/submit")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Submit exam answers")
@@ -133,6 +141,17 @@ public class ExamController {
     public ResponseEntity<ApiResponse<List<ExamResultResponse>>> getExamResults(@PathVariable Long id) {
         List<ExamResultResponse> results = examService.getExamResults(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy kết quả bài kiểm tra thành công", results));
+    }
+
+    @GetMapping("/{id}/my-result")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Get current student's result for an exam")
+    public ResponseEntity<ApiResponse<ExamResultResponse>> getMyExamResult(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        ExamResultResponse result = examService.getStudentExamResult(id, currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success("Lấy kết quả bài kiểm tra thành công", result));
     }
 
     @DeleteMapping("/{id}")

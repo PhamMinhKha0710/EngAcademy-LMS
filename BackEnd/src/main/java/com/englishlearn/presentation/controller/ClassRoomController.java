@@ -3,7 +3,9 @@ package com.englishlearn.presentation.controller;
 import com.englishlearn.application.dto.request.ClassRoomRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.ClassRoomResponse;
+import com.englishlearn.application.dto.response.ClassStudentResponse;
 import com.englishlearn.application.service.ClassRoomService;
+import com.englishlearn.application.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,22 +28,12 @@ import java.util.List;
 public class ClassRoomController {
 
     private final ClassRoomService classRoomService;
-    private final com.englishlearn.application.service.UserService userService;
+    private final UserService userService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
     @Operation(summary = "Get all classrooms")
-    public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getAllClassRooms(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        
-        // If user is SCHOOL, filter by school
-        if (userDetails != null && userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SCHOOL"))) {
-             com.englishlearn.application.dto.response.UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-             if (currentUser.getSchoolId() != null) {
-                 return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRoomService.getClassRoomsBySchool(currentUser.getSchoolId())));
-             }
-        }
-        
+    public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getAllClassRooms() {
         List<ClassRoomResponse> classRooms = classRoomService.getAllClassRooms();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRooms));
     }
@@ -61,6 +53,25 @@ public class ClassRoomController {
     public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getClassRoomsByTeacher(
             @PathVariable Long teacherId) {
         List<ClassRoomResponse> classRooms = classRoomService.getClassRoomsByTeacher(teacherId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRooms));
+    }
+
+    @GetMapping("/student/{studentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER', 'STUDENT')")
+    @Operation(summary = "Get classrooms by student")
+    public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getClassRoomsByStudent(
+            @PathVariable Long studentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Student chỉ được xem lớp của chính mình
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (currentUser.getRoles() != null
+                && currentUser.getRoles().contains("ROLE_STUDENT")
+                && !currentUser.getId().equals(studentId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Bạn không có quyền xem lớp của học sinh khác"));
+        }
+
+        List<ClassRoomResponse> classRooms = classRoomService.getClassRoomsByStudent(studentId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRooms));
     }
 
@@ -112,15 +123,6 @@ public class ClassRoomController {
         return ResponseEntity.ok(ApiResponse.success("Thêm học sinh vào lớp thành công", null));
     }
 
-    @GetMapping("/{classId}/students")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
-    @Operation(summary = "Get students in a classroom")
-    public ResponseEntity<ApiResponse<List<com.englishlearn.application.dto.response.UserResponse>>> getStudentsByClass(
-            @PathVariable Long classId) {
-        List<com.englishlearn.application.dto.response.UserResponse> students = classRoomService.getStudentsByClass(classId);
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách học sinh thành công", students));
-    }
-
     @DeleteMapping("/{classId}/students/{studentId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
     @Operation(summary = "Remove a student from classroom")
@@ -129,6 +131,25 @@ public class ClassRoomController {
             @PathVariable Long studentId) {
         classRoomService.removeStudentFromClass(classId, studentId);
         return ResponseEntity.ok(ApiResponse.success("Xóa học sinh khỏi lớp thành công", null));
+    }
+
+    @GetMapping("/{classId}/students")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Get active students in classroom")
+    public ResponseEntity<ApiResponse<List<ClassStudentResponse>>> getStudentsByClass(
+            @PathVariable Long classId) {
+        List<ClassStudentResponse> students = classRoomService.getStudentsByClass(classId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách học sinh trong lớp thành công", students));
+    }
+
+    @GetMapping("/{classId}/students/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Search students by username/fullName/email to add into classroom")
+    public ResponseEntity<ApiResponse<List<ClassStudentResponse>>> searchStudentsForClass(
+            @PathVariable Long classId,
+            @RequestParam String keyword) {
+        List<ClassStudentResponse> students = classRoomService.searchStudentsForClass(classId, keyword);
+        return ResponseEntity.ok(ApiResponse.success("Tìm kiếm học sinh thành công", students));
     }
 
     @DeleteMapping("/{id}")

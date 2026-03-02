@@ -17,6 +17,7 @@ public class ExamResponse {
     private Long id;
     private String title;
     private String status;
+    private Boolean scorePublished;
 
     // Class info
     private Long classId;

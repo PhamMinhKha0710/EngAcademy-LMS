@@ -7,7 +7,6 @@ interface ProgressBarProps {
 
 export default function ProgressBar({
     value,
-    color = 'from-blue-500 to-blue-600',
     height = 'h-2',
     showLabel = false,
 }: ProgressBarProps) {
@@ -36,7 +35,7 @@ export default function ProgressBar({
                 style={{ backgroundColor: 'var(--color-bg-secondary)' }}
             >
                 <div
-                    className={`${height} rounded-full bg-gradient-to-r ${color} transition-all duration-500 ease-out`}
+                    className={`${height} rounded-full bg-primary-500 transition-all duration-500 ease-out`}
                     style={{ width: `${clampedValue}%` }}
                 />
             </div>

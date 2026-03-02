@@ -13,7 +13,7 @@ const tabs: { key: TabKey; label: string; icon: typeof Trophy }[] = [
 ]
 
 export default function LeaderboardPage() {
-    const { user } = useAuthStore()
+    const { user, fetchCurrentUser } = useAuthStore()
 
     const [activeTab, setActiveTab] = useState<TabKey>('global')
     const [entries, setEntries] = useState<LeaderboardEntry[]>([])
@@ -22,6 +22,10 @@ export default function LeaderboardPage() {
     const [error, setError] = useState<string | null>(null)
 
     // Fetch my rank once
+    useEffect(() => {
+        void fetchCurrentUser()
+    }, [fetchCurrentUser])
+
     useEffect(() => {
         const fetchMyRank = async () => {
             try {
@@ -74,7 +78,7 @@ export default function LeaderboardPage() {
             case 'streak':
                 return `${entry.streakDays ?? 0} ngày`
             default:
-                return entry.averageScore != null ? `${entry.averageScore.toFixed(1)} điểm` : `${entry.totalCoins?.toLocaleString() ?? 0} xu`
+                return `${entry.totalCoins?.toLocaleString() ?? 0} xu`
         }
     }
 

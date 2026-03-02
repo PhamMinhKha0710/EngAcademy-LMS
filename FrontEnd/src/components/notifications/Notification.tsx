@@ -31,10 +31,10 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
       webSocketFactory: () => socket,
       onConnect: (frame) => {
         console.log('Connected to STOMP broker:', frame);
-        
+
         const destination = `/topic/notifications/${user?.username}`;
         console.log('Subscribing to:', destination);
-        
+
         stompClient.subscribe(destination, (message) => {
           console.log('Received notification message:', message.body);
           const newNotification = JSON.parse(message.body);
@@ -142,9 +142,8 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${
-                    !notification.isRead ? "bg-blue-50/30" : ""
-                  }`}
+                  className={`p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${!notification.isRead ? "bg-blue-50/30" : ""
+                    }`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">

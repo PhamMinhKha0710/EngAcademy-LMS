@@ -2,6 +2,7 @@ package com.englishlearn.application.service;
 
 import com.englishlearn.application.dto.request.ClassRoomRequest;
 import com.englishlearn.application.dto.response.ClassRoomResponse;
+import com.englishlearn.application.dto.response.ClassStudentResponse;
 import com.englishlearn.domain.entity.ClassRoom;
 import com.englishlearn.domain.entity.School;
 import com.englishlearn.domain.entity.StudentClass;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -59,6 +61,19 @@ public class ClassRoomService {
                 .orElseThrow(() -> new ResourceNotFoundException("Giáo viên", "id", teacherId));
 
         return classRoomRepository.findByTeacher(teacher).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClassRoomResponse> getClassRoomsByStudent(Long studentId) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Học sinh", "id", studentId));
+
+        return studentClassRepository.findByStudent(student).stream()
+                .filter(sc -> "ACTIVE".equalsIgnoreCase(sc.getStatus()))
+                .map(StudentClass::getClassRoom)
+                .filter(classRoom -> Boolean.TRUE.equals(classRoom.getIsActive()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -183,6 +198,51 @@ public class ClassRoomService {
         studentClass.setStatus("REMOVED");
         studentClassRepository.save(studentClass);
         log.info("Removed student {} from class {}", student.getFullName(), classRoom.getName());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClassStudentResponse> getStudentsByClass(Long classId) {
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", classId));
+
+        return studentClassRepository.findActiveStudentsByClassId(classRoom.getId()).stream()
+                .map(sc -> ClassStudentResponse.builder()
+                        .id(sc.getStudent().getId())
+                        .username(sc.getStudent().getUsername())
+                        .fullName(sc.getStudent().getFullName())
+                        .email(sc.getStudent().getEmail())
+                        .avatarUrl(sc.getStudent().getAvatarUrl())
+                        .status(sc.getStatus())
+                        .joinedAt(sc.getJoinedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClassStudentResponse> searchStudentsForClass(Long classId, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return List.of();
+        }
+
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", classId));
+
+        Set<Long> activeStudentIds = studentClassRepository.findActiveStudentsByClassId(classRoom.getId()).stream()
+                .map(sc -> sc.getStudent().getId())
+                .collect(Collectors.toSet());
+
+        return userRepository.searchStudentsByKeyword(keyword.trim()).stream()
+                .filter(student -> !activeStudentIds.contains(student.getId()))
+                .limit(10)
+                .map(student -> ClassStudentResponse.builder()
+                        .id(student.getId())
+                        .username(student.getUsername())
+                        .fullName(student.getFullName())
+                        .email(student.getEmail())
+                        .avatarUrl(student.getAvatarUrl())
+                        .status("AVAILABLE")
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Transactional

@@ -25,8 +25,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     boolean existsByExamAndStudent(Exam exam, User student);
 
-    @Query("SELECT COUNT(er) FROM ExamResult er WHERE er.exam.id = :examId")
-    Long countByExamId(@Param("examId") Long examId);
+    @Query("SELECT COUNT(DISTINCT er.student.id) FROM ExamResult er WHERE er.exam.id = :examId AND er.submittedAt IS NOT NULL")
+    Long countSubmittedStudentsByExamId(@Param("examId") Long examId);
 
     @Query("SELECT AVG(er.score) FROM ExamResult er WHERE er.exam.id = :examId")
     Double averageScoreByExamId(@Param("examId") Long examId);
@@ -38,9 +38,14 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     List<ExamResult> findTopScoresByExamId(@Param("examId") Long examId);
 
     /**
-     * Tìm kết quả thi theo exam ID và student ID
+     * Lấy phiên làm bài đang mở gần nhất (chưa nộp) của một học sinh cho một bài thi.
      */
-    Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
+    Optional<ExamResult> findTopByExamIdAndStudentIdAndSubmittedAtIsNullOrderByIdDesc(Long examId, Long studentId);
+
+    /**
+     * Lấy kết quả đã nộp mới nhất của một học sinh cho một bài thi.
+     */
+    Optional<ExamResult> findTopByExamIdAndStudentIdAndSubmittedAtIsNotNullOrderBySubmittedAtDescIdDesc(Long examId, Long studentId);
 
     /**
      * Lấy tất cả kết quả của một bài thi, sắp xếp theo điểm giảm dần

@@ -12,6 +12,8 @@
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
     "axios": "^1.6.2",
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^12.34.0",
     "global": "^4.4.0",
     "lucide-react": "^0.563.0",
     "react": "^18.2.0",
@@ -21,6 +23,7 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^25.2.2",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",

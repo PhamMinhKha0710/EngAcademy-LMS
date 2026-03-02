@@ -87,6 +87,15 @@ public class ExamService {
             throw new IllegalStateException("Bài kiểm tra chưa được công bố");
         }
 
+        // Enforce exam availability window for student preview/take flow.
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(exam.getStartTime())) {
+            throw new IllegalStateException("Bài thi chưa bắt đầu. Thời gian bắt đầu: " + exam.getStartTime());
+        }
+        if (now.isAfter(exam.getEndTime())) {
+            throw new IllegalStateException("Bài thi đã kết thúc. Thời gian kết thúc: " + exam.getEndTime());
+        }
+
         return mapToResponseWithQuestions(exam, true);
     }
 
@@ -178,6 +187,22 @@ public class ExamService {
         log.info("Closed exam: {} (ID: {})", closedExam.getTitle(), closedExam.getId());
 
         return mapToResponse(closedExam);
+    }
+
+    @Transactional
+    public ExamResponse publishScores(Long id) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", id));
+
+        if (!"PUBLISHED".equals(exam.getStatus()) && !"CLOSED".equals(exam.getStatus())) {
+            throw new IllegalStateException("Chỉ có thể công bố điểm cho bài thi đã phát hành");
+        }
+
+        exam.setScorePublished(true);
+        Exam publishedScoresExam = examRepository.save(exam);
+        log.info("Published scores for exam: {} (ID: {})", publishedScoresExam.getTitle(), publishedScoresExam.getId());
+
+        return mapToResponse(publishedScoresExam);
     }
 
     @Transactional
@@ -274,8 +299,24 @@ public class ExamService {
     public List<ExamResultResponse> getExamResults(Long examId) {
         return examResultRepository.findTopScoresByExamId(examId)
                 .stream()
+                // Chỉ hiển thị kết quả đã nộp; bỏ các phiên đang làm dở
+                .filter(er -> er.getSubmittedAt() != null)
                 .map(this::mapToResultResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ExamResultResponse getStudentExamResult(Long examId, Long studentId) {
+        ExamResult result = examResultRepository
+                .findTopByExamIdAndStudentIdAndSubmittedAtIsNotNullOrderBySubmittedAtDescIdDesc(examId, studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kết quả bài thi", "examId", examId));
+
+        // Học sinh chỉ xem chi tiết sau khi giáo viên công bố điểm
+        if (!Boolean.TRUE.equals(result.getExam().getScorePublished())) {
+            throw new IllegalStateException("Giáo viên chưa công bố kết quả bài thi");
+        }
+
+        return mapToResultResponse(result);
     }
 
     @Transactional
@@ -288,7 +329,7 @@ public class ExamService {
     }
 
     private ExamResponse mapToResponse(Exam exam) {
-        Long submittedCount = examResultRepository.countByExamId(exam.getId());
+        Long submittedCount = examResultRepository.countSubmittedStudentsByExamId(exam.getId());
         Double avgScore = examResultRepository.averageScoreByExamId(exam.getId());
 
         int totalPoints = exam.getQuestions().stream()
@@ -299,6 +340,7 @@ public class ExamService {
                 .id(exam.getId())
                 .title(exam.getTitle())
                 .status(exam.getStatus())
+                .scorePublished(exam.getScorePublished())
                 .classId(exam.getClassRoom().getId())
                 .className(exam.getClassRoom().getName())
                 .teacherId(exam.getTeacher().getId())
@@ -378,8 +420,10 @@ public class ExamService {
     }
 
     private ExamResultResponse mapToResultResponse(ExamResult result) {
-        double percentage = result.getTotalQuestions() > 0
-                ? (double) result.getCorrectCount() / result.getTotalQuestions() * 100
+        int correctCount = result.getCorrectCount() != null ? result.getCorrectCount() : 0;
+        int totalQuestions = result.getTotalQuestions() != null ? result.getTotalQuestions() : 0;
+        double percentage = totalQuestions > 0
+                ? (double) correctCount / totalQuestions * 100
                 : 0;
 
         String grade = calculateGrade(result.getScore());
@@ -391,8 +435,8 @@ public class ExamService {
                 .studentId(result.getStudent().getId())
                 .studentName(result.getStudent().getFullName())
                 .score(result.getScore())
-                .correctCount(result.getCorrectCount())
-                .totalQuestions(result.getTotalQuestions())
+                .correctCount(correctCount)
+                .totalQuestions(totalQuestions)
                 .percentage(percentage)
                 .submittedAt(result.getSubmittedAt())
                 .violationCount(result.getViolationCount())
@@ -404,6 +448,21 @@ public class ExamService {
         if (score == null)
             return "F";
         double s = score.doubleValue();
+        // Backward compatible with both score scales:
+        // - legacy flow: 0-10
+        // - anti-cheat flow: 0-100
+        if (s > 10) {
+            if (s >= 90)
+                return "A";
+            if (s >= 80)
+                return "B";
+            if (s >= 65)
+                return "C";
+            if (s >= 50)
+                return "D";
+            return "F";
+        }
+
         if (s >= 9)
             return "A";
         if (s >= 8)
@@ -443,8 +502,18 @@ public class ExamService {
             throw new IllegalStateException("Bài thi chưa được công bố");
         }
 
-        // Kiểm tra hoặc tạo ExamResult (in-progress, chưa submit)
-        ExamResult examResult = examResultRepository.findByExamIdAndStudentId(examId, studentId)
+        // Nếu đã có bản ghi đã nộp trước đó thì không cho làm lại
+        boolean alreadySubmitted = examResultRepository
+                .findTopByExamIdAndStudentIdAndSubmittedAtIsNotNullOrderBySubmittedAtDescIdDesc(examId, studentId)
+                .isPresent();
+        if (alreadySubmitted) {
+            throw new IllegalStateException("Bạn đã hoàn thành bài thi này");
+        }
+
+        // Lấy phiên làm bài đang mở gần nhất (nếu có), tránh lỗi duplicate dữ liệu cũ.
+        // Nếu chưa có phiên mở thì tạo mới.
+        ExamResult examResult = examResultRepository
+                .findTopByExamIdAndStudentIdAndSubmittedAtIsNullOrderByIdDesc(examId, studentId)
                 .orElseGet(() -> {
                     ExamResult newResult = ExamResult.builder()
                             .exam(exam)
@@ -453,11 +522,6 @@ public class ExamService {
                             .build();
                     return examResultRepository.save(newResult);
                 });
-
-        // Nếu đã submit thì không cho làm lại
-        if (examResult.getSubmittedAt() != null) {
-            throw new IllegalStateException("Bạn đã hoàn thành bài thi này");
-        }
 
         // Chuyển đổi questions sang DTO với shuffle
         List<Question> questions = new ArrayList<>(exam.getQuestions());
@@ -589,8 +653,13 @@ public class ExamService {
 
         if (dto.getAnswers() != null) {
             for (ExamSubmitDTO.AnswerDTO answer : dto.getAnswers()) {
-                if (answer.getSelectedOptionId() != null) {
-                    QuestionOption selectedOption = questionOptionRepository.findById(answer.getSelectedOptionId())
+                Long selectedOptionId = answer.getSelectedOptionId();
+                if (selectedOptionId == null && answer.getSelectedOptionIds() != null && !answer.getSelectedOptionIds().isEmpty()) {
+                    selectedOptionId = answer.getSelectedOptionIds().get(0);
+                }
+
+                if (selectedOptionId != null) {
+                    QuestionOption selectedOption = questionOptionRepository.findById(selectedOptionId)
                             .orElse(null);
                     if (selectedOption != null) {
                         Question question = selectedOption.getQuestion();

@@ -29,6 +29,8 @@ public class ExamSubmitDTO {
     public static class AnswerDTO {
         private Long questionId;
         private Long selectedOptionId;
+        // Backward compatibility với frontend cũ gửi mảng selectedOptionIds
+        private List<Long> selectedOptionIds;
         private String textAnswer; // Cho câu hỏi tự luận
     }
 }
