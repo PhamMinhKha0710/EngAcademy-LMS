@@ -6,6 +6,7 @@ import { examApi, ExamTakeDTO, SubmitExamRequest } from '../../services/api/exam
 import Timer from '../../components/ui/Timer'
 import QuizQuestion from '../../components/ui/QuizQuestion'
 import Dialog from '../../components/ui/Dialog'
+import Breadcrumb from '../../components/ui/Breadcrumb'
 
 interface ExamQuestion {
     id: number
@@ -176,6 +177,11 @@ export default function ExamTakePage() {
 
     return (
         <div className="max-w-4xl mx-auto px-4 py-6">
+            <Breadcrumb items={[
+                { label: 'Bài thi', path: '/exams' },
+                { label: String((examData as any)?.examTitle || 'Đang làm bài...') }
+            ]} />
+
             {/* Sticky header with timer */}
             <div
                 className="sticky top-0 z-40 -mx-4 px-4 py-4 backdrop-blur-md border-b mb-6"

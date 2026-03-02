@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { examApi, ExamResponse, ExamResultResponse, AntiCheatEvent } from '../../services/api/examApi'
 import Badge from '../../components/ui/Badge'
 import EmptyState from '../../components/ui/EmptyState'
+import Breadcrumb from '../../components/ui/Breadcrumb'
 import {
-    ArrowLeft,
     Loader2,
     AlertTriangle,
     ChevronDown,
@@ -16,7 +16,6 @@ import {
 
 export default function ExamResultsPage() {
     const { examId } = useParams<{ examId: string }>()
-    const navigate = useNavigate()
 
     const [exam, setExam] = useState<ExamResponse | null>(null)
     const [results, setResults] = useState<ExamResultResponse[]>([])
@@ -109,15 +108,13 @@ export default function ExamResultsPage() {
 
     return (
         <div className="p-6 lg:p-8 space-y-6">
+            <Breadcrumb items={[
+                { label: 'Quản lý bài thi', path: '/teacher/exams' },
+                { label: exam?.title ? `Kết quả: ${exam.title}` : 'Kết quả bài thi' }
+            ]} />
+
             {/* Header */}
             <div className="flex items-center gap-4">
-                <button
-                    onClick={() => navigate('/teacher/exams')}
-                    className="p-2 rounded-lg transition-colors hover:bg-slate-700/50"
-                    title="Quay lại"
-                >
-                    <ArrowLeft className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
-                </button>
                 <div>
                     <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
                         Kết quả: {exam?.title}
@@ -178,10 +175,10 @@ export default function ExamResultsPage() {
                                                         r.grade === 'A' || r.grade === 'A+'
                                                             ? 'success'
                                                             : r.grade === 'B' || r.grade === 'B+'
-                                                              ? 'info'
-                                                              : r.grade === 'C'
-                                                                ? 'warning'
-                                                                : 'danger'
+                                                                ? 'info'
+                                                                : r.grade === 'C'
+                                                                    ? 'warning'
+                                                                    : 'danger'
                                                     }
                                                 >
                                                     {r.grade}
