@@ -255,28 +255,6 @@ public class ClassRoomService {
         log.info("Soft deleted class: {} (ID: {})", classRoom.getName(), classRoom.getId());
     }
 
-    @Transactional(readOnly = true)
-    public List<com.englishlearn.application.dto.response.UserResponse> getStudentsByClass(Long classId) {
-        if (!classRoomRepository.existsById(classId)) {
-            throw new ResourceNotFoundException("Lớp học", "id", classId);
-        }
-
-        return studentClassRepository.findActiveStudentsByClassId(classId).stream()
-                .map(sc -> {
-                    User s = sc.getStudent();
-                    return com.englishlearn.application.dto.response.UserResponse.builder()
-                            .id(s.getId())
-                            .username(s.getUsername())
-                            .email(s.getEmail())
-                            .fullName(s.getFullName())
-                            .roles(java.util.Collections.singletonList(com.englishlearn.domain.entity.Role.STUDENT))
-                            .schoolId(s.getSchool() != null ? s.getSchool().getId() : null)
-                            .schoolName(s.getSchool() != null ? s.getSchool().getName() : null)
-                            .build();
-                })
-                .collect(Collectors.toList());
-    }
-
     private ClassRoomResponse mapToResponse(ClassRoom classRoom) {
         Long studentCount = classRoomRepository.countStudentsByClassId(classRoom.getId());
 
