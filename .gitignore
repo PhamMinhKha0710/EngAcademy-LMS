@@ -5,6 +5,9 @@
 # ===== Plans & Documentation =====
 Plans/
 docs/private/
+.cursor/
+.husky/
+memory/
 
 # ===== Backend (Java/Spring Boot) =====
 
