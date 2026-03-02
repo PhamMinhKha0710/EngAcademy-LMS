@@ -24,6 +24,7 @@ import java.util.List;
 public class SchoolController {
 
     private final SchoolService schoolService;
+    private final com.englishlearn.application.service.UserService userService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
@@ -73,7 +74,19 @@ public class SchoolController {
     @Operation(summary = "Update a school")
     public ResponseEntity<ApiResponse<SchoolResponse>> updateSchool(
             @PathVariable Long id,
-            @Valid @RequestBody SchoolRequest request) {
+            @Valid @RequestBody SchoolRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        
+        com.englishlearn.application.dto.response.UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        
+        // Security check for SCHOOL role
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn chỉ có quyền cập nhật thông tin trường của mình", null));
+            }
+        }
+        
         SchoolResponse school = schoolService.updateSchool(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật trường học thành công", school));
     }

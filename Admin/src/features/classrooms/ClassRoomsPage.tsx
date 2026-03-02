@@ -39,8 +39,40 @@ export default function ClassRoomsPage() {
     const fetchRooms = async () => {
         setLoading(true)
         try {
-            const r = await api.get<ApiResponse<ClassRoom[]>>('/classes')
-            setRooms(r.data.data)
+            // Check for SCHOOL role and get schoolId from user profile (we need to fetch profile first or get from context)
+            // Ideally useRole should provide schoolId if present in user object in Redux
+            // For now, let's fetch user profile 'me' to be sure or use the existing logic if backend filters automatically on /classes
+
+            // NOTE: We updated backend /classes to automatic filter for SCHOOL role.
+            // So calling /classes is enough.
+            // BUT requirement said: "When calling GET /classes use GET /classes/school/{schoolId} instead"
+            // So we will try to implement that logic.
+
+            // We need schoolId. Let's assume we can get it from an API call to /users/me or check if user object in redux has it.
+            // Since we updated UserResponse, let's try to get it from current user info if available.
+            // For this implementation, I will call /users/me first if I don't have schoolId, or just rely on backend filter on /classes.
+            // To strictly follow "use GET /classes/school/{schoolId}", I need schoolId.
+
+            // Let's call /users/me to get fresh info including schoolId
+            const meRes = await api.get<ApiResponse<User>>('/users/me')
+            const me = meRes.data.data
+
+            let url = '/classes'
+            if (me.roles.includes('ROLE_SCHOOL') && me.schoolId) {
+                url = `/classes/school/${me.schoolId}`
+            }
+
+            const r = await api.get<ApiResponse<any>>(url) // Type 'any' because it might be Page or List
+
+            // Handle pagination or list response
+            const data = r.data.data
+            if (Array.isArray(data)) {
+                setRooms(data)
+            } else if (data.content) {
+                setRooms(data.content)
+            } else {
+                setRooms([])
+            }
         } catch {
             toast.error('Không thể tải danh sách lớp học')
             setRooms([])
@@ -134,6 +166,75 @@ export default function ClassRoomsPage() {
         setDialogOpen(true)
     }
 
+    const [viewingStudents, setViewingStudents] = useState<ClassRoom | null>(null)
+    const [classStudents, setClassStudents] = useState<User[]>([])
+    const [loadingStudents, setLoadingStudents] = useState(false)
+
+    const fetchClassStudents = async (classId: number) => {
+        setLoadingStudents(true)
+        try {
+            const res = await api.get<ApiResponse<User[]>>(`/classes/${classId}/students`)
+            setClassStudents(res.data.data)
+        } catch {
+            toast.error('Không thể tải danh sách học sinh')
+            setClassStudents([])
+        } finally {
+            setLoadingStudents(false)
+        }
+    }
+
+    const openStudentList = (r: ClassRoom) => {
+        setViewingStudents(r)
+        fetchClassStudents(r.id)
+    }
+
+    const [addingStudentOpen, setAddingStudentOpen] = useState(false)
+    const [searchStudent, setSearchStudent] = useState('')
+    const [searchResult, setSearchResult] = useState<User[]>([])
+    const [searchingStudent, setSearchingStudent] = useState(false)
+
+    const handleSearchStudents = async () => {
+        if (!searchStudent.trim()) return
+        setSearchingStudent(true)
+        try {
+            const res = await api.get<ApiResponse<Page<User>>>('/users/students', {
+                params: { keyword: searchStudent, size: 5 }
+            })
+            setSearchResult(res.data.data.content)
+        } catch {
+            setSearchResult([])
+        } finally {
+            setSearchingStudent(false)
+        }
+    }
+
+    const handleAddStudent = async (studentId: number) => {
+        if (!viewingStudents) return
+        try {
+            await api.post(`/classes/${viewingStudents.id}/students/${studentId}`)
+            toast.success('Đã thêm học sinh vào lớp')
+            // Refresh list
+            fetchClassStudents(viewingStudents.id)
+            fetchRooms()
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Không thể thêm học sinh')
+        }
+    }
+
+    const handleRemoveStudent = async (studentId: number) => {
+        if (!viewingStudents) return
+        if (!confirm('Bạn có chắc muốn xóa học sinh này khỏi lớp?')) return
+
+        try {
+            await api.delete(`/classes/${viewingStudents.id}/students/${studentId}`)
+            toast.success('Đã xóa học sinh khỏi lớp')
+            fetchClassStudents(viewingStudents.id)
+            fetchRooms() // Refresh student count
+        } catch {
+            toast.error('Xóa học sinh thất bại')
+        }
+    }
+
     const filtered = rooms.filter((r) =>
         r.name.toLowerCase().includes(search.toLowerCase()) ||
         (r.schoolName && r.schoolName.toLowerCase().includes(search.toLowerCase())) ||
@@ -204,7 +305,11 @@ export default function ClassRoomsPage() {
                                         <TableCell className="text-muted-foreground">{r.schoolName || '—'}</TableCell>
                                         <TableCell>{r.teacherName || '—'}</TableCell>
                                         <TableCell className="text-muted-foreground">{r.academicYear || '—'}</TableCell>
-                                        <TableCell>{r.studentCount ?? 0}</TableCell>
+                                        <TableCell>
+                                            <Button variant="link" className="p-0 h-auto font-normal" onClick={() => openStudentList(r)}>
+                                                {r.studentCount ?? 0} học sinh
+                                            </Button>
+                                        </TableCell>
                                         <TableCell>
                                             <Badge variant={r.isActive ? 'default' : 'secondary'}>
                                                 {r.isActive ? 'Hoạt động' : 'Tạm dừng'}
@@ -353,6 +458,133 @@ export default function ClassRoomsPage() {
                             Xóa
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Student List Dialog */}
+            <Dialog open={!!viewingStudents} onOpenChange={(open) => !open && setViewingStudents(null)}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <DialogTitle>Học sinh lớp {viewingStudents?.name}</DialogTitle>
+                                <DialogDescription>Danh sách học sinh trong lớp</DialogDescription>
+                            </div>
+                            <Button size="sm" onClick={() => setAddingStudentOpen(true)}>
+                                <Plus className="h-4 w-4 mr-1" /> Thêm học sinh
+                            </Button>
+                        </div>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto">
+                        {loadingStudents ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                        ) : classStudents.length === 0 ? (
+                            <p className="text-center text-muted-foreground py-8">Lớp chưa có học sinh nào</p>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>ID</TableHead>
+                                        <TableHead>Username</TableHead>
+                                        <TableHead>Họ tên</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead className="text-right">Thao tác</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {classStudents.map((s) => (
+                                        <TableRow key={s.id}>
+                                            <TableCell>{s.id}</TableCell>
+                                            <TableCell>{s.username}</TableCell>
+                                            <TableCell className="font-medium">{s.fullName}</TableCell>
+                                            <TableCell>{s.email}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-destructive"
+                                                    onClick={() => handleRemoveStudent(s.id)}
+                                                    title="Xóa khỏi lớp"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Student Search Dialog */}
+            <Dialog open={addingStudentOpen} onOpenChange={setAddingStudentOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Thêm học sinh vào lớp {viewingStudents?.name}</DialogTitle>
+                        <DialogDescription>Tìm kiếm học sinh theo tên, email hoặc username</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="Nhập tên, email hoặc username..."
+                                value={searchStudent}
+                                onChange={(e) => setSearchStudent(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearchStudents()}
+                            />
+                            <Button onClick={() => handleSearchStudents()} disabled={searchingStudent}>
+                                {searchingStudent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                            </Button>
+                        </div>
+
+                        <div className="max-h-[300px] overflow-y-auto border rounded-md">
+                            {searchingStudent ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : searchResult.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-8">
+                                    {searchStudent ? 'Không tìm thấy học sinh nào' : 'Nhập từ khóa để tìm kiếm'}
+                                </p>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Họ tên</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead className="text-right">Hành động</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {searchResult.map((u) => {
+                                            const isAlreadyInClass = classStudents.some(cs => cs.id === u.id);
+                                            return (
+                                                <TableRow key={u.id}>
+                                                    <TableCell className="font-medium">
+                                                        <div>{u.fullName}</div>
+                                                        <div className="text-xs text-muted-foreground">{u.username}</div>
+                                                    </TableCell>
+                                                    <TableCell>{u.email}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        {isAlreadyInClass ? (
+                                                            <Badge variant="secondary">Đã trong lớp</Badge>
+                                                        ) : (
+                                                            <Button size="sm" onClick={() => handleAddStudent(u.id)}>
+                                                                Thêm
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

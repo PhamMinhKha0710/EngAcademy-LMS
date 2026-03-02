@@ -15,12 +15,22 @@ import LeaderboardPage from '@/features/leaderboard/LeaderboardPage'
 import TeachersPage from '@/features/teachers/TeachersPage'
 import StudentsPage from '@/features/students/StudentsPage'
 import GradesPage from '@/features/grades/GradesPage'
+import UnauthorizedPage from '@/features/error/UnauthorizedPage'
+import SettingsPage from '@/features/settings/SettingsPage'
 
 function AppRoutes() {
     return (
         <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+            {/* Routes for both ADMIN and SCHOOL */}
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_SCHOOL']} />}>
+                <Route element={<AdminLayout />}>
+                    <Route path="/settings" element={<SettingsPage />} />
+                </Route>
+            </Route>
 
             {/* SCHOOL role routes - only 4 pages: Students, Classes, Teachers, Grades */}
             <Route element={<ProtectedRoute allowedRoles={['ROLE_SCHOOL']} />}>
@@ -32,7 +42,7 @@ function AppRoutes() {
                 </Route>
             </Route>
 
-            {/* ADMIN role routes - only 6 pages: Schools, Users, Notifications, Leaderboard, Badges, Settings */}
+            {/* ADMIN role routes - only 5 pages: Schools, Users, Notifications, Leaderboard, Badges */}
             <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN']} />}>
                 <Route element={<AdminLayout />}>
                     <Route path="/schools" element={<SchoolsPage />} />

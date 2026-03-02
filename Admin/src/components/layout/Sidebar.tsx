@@ -15,6 +15,7 @@ import {
     Bell,
     Award,
     Trophy,
+    Settings,
 } from 'lucide-react'
 import { useAppDispatch } from '@/app/hooks'
 import { useRole } from '@/app/useRole'
@@ -34,6 +35,9 @@ const navItems = [
     { title: 'Giáo viên', href: '/teachers', icon: GraduationCapIcon, roles: [ROLES.SCHOOL] },
     { title: 'Học sinh', href: '/students', icon: Users, roles: [ROLES.SCHOOL] },
     { title: 'Điểm', href: '/grades', icon: Award, roles: [ROLES.SCHOOL] },
+
+    // COMMON pages
+    { title: 'Cài đặt', href: '/settings', icon: Settings, roles: [ROLES.ADMIN, ROLES.SCHOOL] },
 ]
 
 interface SidebarProps {

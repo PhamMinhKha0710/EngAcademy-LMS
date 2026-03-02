@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,11 +26,22 @@ import java.util.List;
 public class ClassRoomController {
 
     private final ClassRoomService classRoomService;
+    private final com.englishlearn.application.service.UserService userService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
     @Operation(summary = "Get all classrooms")
-    public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getAllClassRooms() {
+    public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getAllClassRooms(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        // If user is SCHOOL, filter by school
+        if (userDetails != null && userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SCHOOL"))) {
+             com.englishlearn.application.dto.response.UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+             if (currentUser.getSchoolId() != null) {
+                 return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRoomService.getClassRoomsBySchool(currentUser.getSchoolId())));
+             }
+        }
+        
         List<ClassRoomResponse> classRooms = classRoomService.getAllClassRooms();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRooms));
     }
@@ -97,6 +110,15 @@ public class ClassRoomController {
             @PathVariable Long studentId) {
         classRoomService.addStudentToClass(classId, studentId);
         return ResponseEntity.ok(ApiResponse.success("Thêm học sinh vào lớp thành công", null));
+    }
+
+    @GetMapping("/{classId}/students")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Get students in a classroom")
+    public ResponseEntity<ApiResponse<List<com.englishlearn.application.dto.response.UserResponse>>> getStudentsByClass(
+            @PathVariable Long classId) {
+        List<com.englishlearn.application.dto.response.UserResponse> students = classRoomService.getStudentsByClass(classId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách học sinh thành công", students));
     }
 
     @DeleteMapping("/{classId}/students/{studentId}")

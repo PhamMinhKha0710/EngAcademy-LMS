@@ -1,5 +1,6 @@
 package com.englishlearn.application.service;
 
+import com.englishlearn.application.dto.request.ChangePasswordRequest;
 import com.englishlearn.application.dto.request.CreateUserRequest;
 import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.domain.entity.Role;
@@ -125,6 +126,37 @@ public class UserService {
         log.info("Deleted user: {} (ID: {})", user.getUsername(), userId);
     }
 
+    public Page<UserResponse> getAllUsersBySchool(Long schoolId, Pageable pageable) {
+        com.englishlearn.domain.entity.School school = new com.englishlearn.domain.entity.School();
+        school.setId(schoolId);
+        return userRepository.findAllBySchool(school, pageable).map(this::mapToResponse);
+    }
+
+    public Page<UserResponse> searchStudents(String keyword, Long schoolId, Pageable pageable) {
+        return userRepository.searchStudents(keyword, schoolId, pageable).map(this::mapToResponse);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
+
+        // Validate old password
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw ApiException.badRequest("Mật khẩu cũ không chính xác");
+        }
+
+        // Validate password confirmation
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw ApiException.badRequest("Mật khẩu xác nhận không khớp");
+        }
+
+        // Update password
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        log.info("Password changed for user: {}", userId);
+    }
+
     private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -136,6 +168,8 @@ public class UserService {
                 .streakDays(user.getStreakDays())
                 .isActive(user.getIsActive())
                 .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
+                .schoolId(user.getSchool() != null ? user.getSchool().getId() : null)
+                .schoolName(user.getSchool() != null ? user.getSchool().getName() : null)
                 .build();
     }
 }
