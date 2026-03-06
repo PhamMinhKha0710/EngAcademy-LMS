@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { School, Plus, Search, Edit, Trash2, Loader2 } from 'lucide-react'
+import { School, Plus, Search, Edit, Trash2, Loader2, Eye, TrendingUp, Filter, CheckCircle, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 import { useRole } from '@/app/useRole'
@@ -113,103 +113,199 @@ export default function SchoolsPage() {
         (s.email && s.email.toLowerCase().includes(search.toLowerCase()))
     )
 
+    const stats = [
+        { title: 'Tổng số trường', value: '128', change: '+12%', icon: School, color: 'text-primary', bg: 'bg-primary/10', trend: 'up' },
+        { title: 'Trường đang hoạt động', value: '124', change: 'Đang hoạt động', icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { title: 'Yêu cầu mới', value: '12', change: '4 Chờ xử lý', icon: ClipboardList, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    ]
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 pb-10">
+            {/* Header Section */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Quản lý trường học</h1>
-                    <p className="text-muted-foreground mt-1">Tổng cộng {schools.length} trường học</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Quản lý trường học</h1>
+                    <p className="text-muted-foreground mt-1.5 font-medium">Theo dõi và quản lý mạng lưới các cơ sở giáo dục của bạn.</p>
                 </div>
                 {isAdmin && (
-                    <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="gap-2">
-                        <Plus className="h-4 w-4" /> Thêm trường
+                    <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="h-12 px-6 rounded-xl gap-2 font-bold transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary">
+                        <Plus className="h-5 w-5" /> Thêm trường học
                     </Button>
                 )}
             </div>
 
-            <Card>
-                <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center gap-2">
-                            <School className="h-5 w-5 text-primary" />
-                            Danh sách trường học
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {stats.map((stat) => (
+                    <Card key={stat.title} className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden">
+                        <CardContent className="p-7 flex justify-between items-start">
+                            <div className="flex flex-col">
+                                <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center mb-5", stat.bg)}>
+                                    <stat.icon className={cn("h-6 w-6", stat.color)} />
+                                </div>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{stat.title}</p>
+                                <p className="text-4xl font-black mt-2 text-foreground">{stat.value}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                {stat.trend === 'up' && (
+                                    <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs bg-emerald-500/10 px-2 rounded-lg py-1 uppercase tracking-wider">
+                                        <TrendingUp className="h-3 w-3" /> {stat.change}
+                                    </div>
+                                )}
+                                {stat.title.includes('đang hoạt động') && (
+                                    <div className="text-muted-foreground/30 font-black text-[10px] uppercase tracking-widest pt-1">
+                                        {stat.change}
+                                    </div>
+                                )}
+                                {stat.title.includes('Yêu cầu') && (
+                                    <div className="text-amber-500/60 font-black text-[10px] uppercase tracking-widest pt-1 border-b border-amber-500/20">
+                                        {stat.change}
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Main Content Area */}
+            <Card className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden">
+                <CardHeader className="p-8 pb-0">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <CardTitle className="flex items-center gap-3 text-xl font-black">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <ClipboardList className="h-5 w-5 text-primary" />
+                            </div>
+                            Danh sách hệ thống
                         </CardTitle>
-                        <div className="relative w-64">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Tìm kiếm..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
+                        <div className="flex items-center gap-4">
+                            <div className="relative group">
+                                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                                <Input
+                                    placeholder="Tìm trường..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-11 pr-4 h-11 w-72 bg-muted/30 border-border/50 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 transition-all font-medium"
+                                />
+                            </div>
+                            <Button variant="outline" className="h-11 rounded-xl gap-2 font-bold border-border text-muted-foreground bg-background hover:bg-muted">
+                                <Filter className="h-4 w-4" /> Tất cả trạng thái
+                            </Button>
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-8">
                     {loading ? (
-                        <div className="flex items-center justify-center h-40">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <div className="flex flex-col items-center justify-center h-80 gap-4">
+                            <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                            <p className="font-bold text-muted-foreground/60">Đang tải dữ liệu...</p>
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="flex items-center justify-center h-40">
-                            <p className="text-muted-foreground">Không tìm thấy trường học nào</p>
+                        <div className="flex flex-col items-center justify-center h-80 gap-2">
+                             <div className="h-20 w-20 rounded-full bg-muted/30 flex items-center justify-center mb-2">
+                                <Search className="h-8 w-8 text-muted-foreground/40" />
+                            </div>
+                            <p className="font-bold text-foreground/80 text-lg">Không tìm thấy trường học nào</p>
+                            <p className="text-muted-foreground/60">Hãy thử tìm kiếm với từ khóa khác</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-12">ID</TableHead>
-                                    <TableHead>Tên trường</TableHead>
-                                    <TableHead>Địa chỉ</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>SĐT</TableHead>
-                                    <TableHead>Trạng thái</TableHead>
-                                    <TableHead className="text-right">Thao tác</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filtered.map((school) => (
-                                    <TableRow key={school.id}>
-                                        <TableCell className="font-medium">{school.id}</TableCell>
-                                        <TableCell className="font-medium">{school.name}</TableCell>
-                                        <TableCell className="text-muted-foreground">{school.address || '—'}</TableCell>
-                                        <TableCell className="text-muted-foreground">{school.email || '—'}</TableCell>
-                                        <TableCell className="text-muted-foreground">{school.phone || '—'}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={school.isActive ? 'default' : 'secondary'}>
-                                                {school.isActive ? 'Hoạt động' : 'Tạm dừng'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8"
-                                                    onClick={() => openEdit(school)}
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                {isAdmin && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-destructive"
-                                                        onClick={() => {
-                                                            setDeletingSchool(school)
-                                                            setDeleteDialogOpen(true)
-                                                        }}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </TableCell>
+                        <div className="rounded-2xl border border-border/50 overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="hover:bg-transparent border-border/50 bg-muted/30">
+                                        <TableHead className="w-20 h-14 font-black text-muted-foreground uppercase text-[10px] tracking-widest pl-8">ID</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Trường học</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Địa chỉ</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Liên hệ</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-center">Trạng thái</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-right pr-8">Thao tác</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {filtered.map((school) => (
+                                        <TableRow key={school.id} className="hover:bg-muted/10 border-border/40 transition-colors h-24 group">
+                                            <TableCell className="font-bold text-muted-foreground/30 text-sm pl-8">#{school.id}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-12 w-12 rounded-xl bg-muted/30 flex items-center justify-center shrink-0 border border-border/50 group-hover:border-primary/20 transition-colors">
+                                                        <span className="text-primary font-black text-lg">{school.name.charAt(0)}</span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-foreground leading-tight">{school.name}</span>
+                                                        <span className="text-[10px] font-black text-muted-foreground/30 mt-1 uppercase tracking-widest">CODE: {school.id.toString().padStart(3, '0')}</span>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="max-w-[200px] truncate font-bold text-foreground/80 text-sm">
+                                                    {school.address || 'Chưa cập nhật'}
+                                                </div>
+                                                <div className="text-[10px] font-black text-muted-foreground/20 mt-1 uppercase tracking-tighter">Hồ Chí Minh, VN</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="font-bold text-foreground/80 text-sm">{school.email || '—'}</div>
+                                                <div className="text-[10px] font-bold text-muted-foreground/40 mt-1">{school.phone || '—'}</div>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <div className={cn(
+                                                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider",
+                                                    school.isActive 
+                                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-500' 
+                                                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-500'
+                                                )}>
+                                                    <div className={cn("h-1.5 w-1.5 rounded-full", school.isActive ? 'bg-emerald-600 dark:bg-emerald-500' : 'bg-amber-600 dark:bg-amber-500')} />
+                                                    {school.isActive ? 'Hoạt động' : 'Tạm dừng'}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all">
+                                                        <Eye className="h-4.5 w-4.5" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all" onClick={() => openEdit(school)}>
+                                                        <Edit className="h-4.5 w-4.5" />
+                                                    </Button>
+                                                    {isAdmin && (
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-9 w-9 rounded-lg hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-all"
+                                                            onClick={() => {
+                                                                setDeletingSchool(school)
+                                                                setDeleteDialogOpen(true)
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4.5 w-4.5" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
+                    
+                    {/* Pagination - Placeholder for UI */}
+                    <div className="flex items-center justify-between mt-8 px-2">
+                        <p className="text-sm font-bold text-muted-foreground/60">
+                            Hiển thị 1-3 của {filtered.length} kết quả
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border text-muted-foreground/40 bg-background" disabled>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button className="h-10 w-10 rounded-xl font-bold bg-primary text-white">1</Button>
+                            <Button variant="ghost" className="h-10 w-10 rounded-xl font-bold text-muted-foreground/60 hover:bg-muted">2</Button>
+                            <Button variant="ghost" className="h-10 w-10 rounded-xl font-bold text-muted-foreground/60 hover:bg-muted">3</Button>
+                            <span className="px-1 text-muted-foreground/40">...</span>
+                            <Button variant="ghost" className="h-10 w-10 rounded-xl font-bold text-muted-foreground/60 hover:bg-muted">42</Button>
+                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border text-muted-foreground/60 bg-background hover:bg-muted">
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 

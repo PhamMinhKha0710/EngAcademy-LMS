@@ -94,111 +94,111 @@ export default function SettingsPage() {
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Cài đặt tài khoản</h1>
-                <p className="text-muted-foreground mt-1">
-                    Quản lý thông tin cá nhân và cài đặt bảo mật của bạn
-                </p>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <h1 className="text-3xl font-black tracking-tight">Cài đặt tài khoản</h1>
+                    <p className="text-muted-foreground mt-2 font-medium">Quản lý thông tin cá nhân và cấu hình bảo mật.</p>
+                </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
                 {/* Profile Information */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <User className="h-5 w-5 text-primary" />
+                <Card className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden h-fit">
+                    <CardHeader className="p-8 pb-4">
+                        <CardTitle className="text-xl font-black flex items-center gap-2">
+                            <User className="h-6 w-6 text-primary" />
                             Thông tin cá nhân
                         </CardTitle>
-                        <CardDescription>Cập nhật họ tên và các thông tin cơ bản</CardDescription>
+                        <CardDescription className="text-muted-foreground font-medium">Cập nhật họ tên và các thông tin cơ bản</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="p-8 pt-0 space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="username">Tên đăng nhập</Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input id="username" value={user?.username || ''} disabled className="pl-9 bg-muted" />
+                            <Label htmlFor="username" className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Tên đăng nhập</Label>
+                            <div className="relative group">
+                                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                                <Input id="username" value={user?.username || ''} disabled className="h-11 pl-10 bg-muted/30 border-border/50 rounded-xl font-bold text-muted-foreground/60 cursor-not-allowed" />
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input id="email" value={user?.email || ''} disabled className="pl-9 bg-muted" />
+                            <Label htmlFor="email" className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Địa chỉ Email</Label>
+                            <div className="relative group">
+                                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                                <Input id="email" value={user?.email || ''} disabled className="h-11 pl-10 bg-muted/30 border-border/50 rounded-xl font-bold text-muted-foreground/60 cursor-not-allowed" />
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="fullName">Họ và tên</Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Label htmlFor="fullName" className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Họ và tên hiển thị</Label>
+                            <div className="relative group">
+                                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                                 <Input
                                     id="fullName"
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
                                     placeholder="Nhập họ tên đầy đủ"
-                                    className="pl-9"
+                                    className="h-11 pl-10 bg-muted/30 border-border/50 rounded-xl focus-visible:ring-primary/20 font-bold"
                                 />
                             </div>
                         </div>
                         <Button
-                            className="w-full gap-2"
+                            className="w-full h-11 rounded-xl font-black bg-primary shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99] gap-2"
                             onClick={handleUpdateProfile}
                             disabled={submitting || fullName === user?.fullName}
                         >
                             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            Lưu thay đổi
+                            LƯU THÔNG TIN
                         </Button>
                     </CardContent>
                 </Card>
 
                 {/* Account Details & Security */}
                 <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                                <Shield className="h-5 w-5 text-primary" />
-                                Quyền hạn & Đơn vị
+                    <Card className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden">
+                        <CardHeader className="p-8 pb-4">
+                            <CardTitle className="text-xl font-black flex items-center gap-2">
+                                <Shield className="h-6 w-6 text-primary" />
+                                Quyền hạn hệ thống
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
-                                <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <CardContent className="p-8 pt-0 space-y-4">
+                            <div className="flex items-start gap-4 p-5 rounded-2xl border border-border/40 bg-muted/20">
+                                <Shield className="h-5 w-5 text-primary mt-1" />
                                 <div>
-                                    <p className="text-sm font-medium">Vai trò hệ thống</p>
-                                    <div className="flex flex-wrap gap-1 mt-1">
+                                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 mb-2">Vai trò hiện tại</p>
+                                    <div className="flex flex-wrap gap-2">
                                         {user?.roles.map(role => (
-                                            <Badge key={role} variant="secondary">{role}</Badge>
+                                            <Badge key={role} className="bg-primary/10 text-primary border-none font-bold uppercase tracking-wider text-[10px] h-6">{role}</Badge>
                                         ))}
                                     </div>
                                 </div>
                             </div>
 
                             {user?.schoolId && (
-                                <div className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
-                                    <Building className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                <div className="flex items-start gap-4 p-5 rounded-2xl border border-border/40 bg-muted/20">
+                                    <Building className="h-5 w-5 text-primary mt-1" />
                                     <div>
-                                        <p className="text-sm font-medium">Trường học liên kết</p>
-                                        <p className="text-sm text-muted-foreground font-semibold text-primary">
+                                        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Cơ sở giáo dục</p>
+                                        <p className="font-black text-foreground">
                                             {user.schoolName || 'Chu Van An High School'}
                                         </p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">ID: {user.schoolId}</p>
+                                        <p className="text-[10px] font-bold text-muted-foreground/40 mt-1 uppercase tracking-tighter">Mã định danh: {user.schoolId}</p>
                                     </div>
                                 </div>
                             )}
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                                <Key className="h-5 w-5 text-primary" />
-                                Đổi mật khẩu
+                    <Card className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden">
+                        <CardHeader className="p-8 pb-4">
+                            <CardTitle className="text-xl font-black flex items-center gap-2">
+                                <Key className="h-6 w-6 text-primary" />
+                                Bảo mật tài khoản
                             </CardTitle>
-                            <CardDescription>Bảo vệ tài khoản của bạn bằng mật khẩu mạnh</CardDescription>
+                            <CardDescription className="text-muted-foreground font-medium">Cập nhật mật khẩu định kỳ để bảo vệ tài khoản</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handlePasswordChange} className="space-y-4">
+                        <CardContent className="p-8 pt-0">
+                            <form onSubmit={handlePasswordChange} className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="oldPassword">Mật khẩu cũ</Label>
+                                    <Label htmlFor="oldPassword" className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Mật khẩu hiện tại</Label>
                                     <Input
                                         id="oldPassword"
                                         type="password"
@@ -206,10 +206,11 @@ export default function SettingsPage() {
                                         onChange={(e) => setOldPassword(e.target.value)}
                                         placeholder="••••••••"
                                         required
+                                        className="h-11 bg-muted/30 border-border/50 rounded-xl focus-visible:ring-primary/20 font-bold"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="newPassword">Mật khẩu mới</Label>
+                                    <Label htmlFor="newPassword" className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Mật khẩu mới</Label>
                                     <Input
                                         id="newPassword"
                                         type="password"
@@ -217,10 +218,11 @@ export default function SettingsPage() {
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         placeholder="••••••••"
                                         required
+                                        className="h-11 bg-muted/30 border-border/50 rounded-xl focus-visible:ring-primary/20 font-bold"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
+                                    <Label htmlFor="confirmPassword" className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Xác nhận mật khẩu mới</Label>
                                     <Input
                                         id="confirmPassword"
                                         type="password"
@@ -228,15 +230,16 @@ export default function SettingsPage() {
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         placeholder="••••••••"
                                         required
+                                        className="h-11 bg-muted/30 border-border/50 rounded-xl focus-visible:ring-primary/20 font-bold"
                                     />
                                 </div>
                                 <Button
                                     type="submit"
-                                    className="w-full gap-2"
+                                    className="w-full h-11 rounded-xl font-black bg-primary shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99] gap-2"
                                     disabled={changingPassword || !oldPassword || !newPassword || !confirmPassword}
                                 >
                                     {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
-                                    Thay đổi mật khẩu
+                                    ĐỔI MẬT KHẨU
                                 </Button>
                             </form>
                         </CardContent>
