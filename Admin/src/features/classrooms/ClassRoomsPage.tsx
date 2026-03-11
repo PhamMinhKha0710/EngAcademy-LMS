@@ -249,39 +249,75 @@ export default function ClassRoomsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Quản lý lớp học</h1>
-                    <p className="text-muted-foreground mt-1">Tổng cộng {rooms.length} lớp học</p>
+                    <p className="text-muted-foreground mt-1">Quản lý các lớp học của trường</p>
                 </div>
-                <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="gap-2">
+                <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="gap-2 rounded-xl shadow-sm">
                     <Plus className="h-4 w-4" /> Thêm lớp
                 </Button>
             </div>
 
-            <Card>
+            {/* Stat cards */}
+            <div className="grid gap-4 md:grid-cols-3">
+                <div className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow">
+                        <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-sm text-muted-foreground">Tổng lớp học</p>
+                        <p className="text-2xl font-bold">{rooms.length}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow">
+                        <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-sm text-muted-foreground">Đang hoạt động</p>
+                        <p className="text-2xl font-bold text-emerald-600">{rooms.filter(r => r.isActive).length}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow">
+                        <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-sm text-muted-foreground">Tổng học sinh</p>
+                        <p className="text-2xl font-bold text-violet-600">{rooms.reduce((sum, r) => sum + (r.studentCount ?? 0), 0)}</p>
+                    </div>
+                </div>
+            </div>
+
+            <Card className="border-0 shadow-lg">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2 text-lg">
                             <GraduationCap className="h-5 w-5 text-primary" />
                             Danh sách lớp học
                         </CardTitle>
                         <div className="relative w-64">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Tìm kiếm..."
+                                placeholder="Tìm theo tên lớp, trường, giáo viên..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
+                                className="pl-9 rounded-xl"
                             />
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                        <div className="flex items-center justify-center h-40">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                            <p className="text-sm">Đang tải dữ liệu...</p>
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="flex items-center justify-center h-40">
-                            <p className="text-muted-foreground">Không tìm thấy lớp học nào</p>
+                        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/50 mb-4">
+                                <GraduationCap className="h-8 w-8 opacity-40" />
+                            </div>
+                            <p className="font-medium">Không tìm thấy lớp học nào</p>
+                            <p className="text-sm mt-1 text-muted-foreground/70">{search ? 'Thử thay đổi từ khóa' : 'Chưa có lớp học nào'}</p>
                         </div>
                     ) : (
                         <Table>

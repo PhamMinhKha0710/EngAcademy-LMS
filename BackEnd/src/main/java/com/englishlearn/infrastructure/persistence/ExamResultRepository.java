@@ -3,6 +3,8 @@ package com.englishlearn.infrastructure.persistence;
 import com.englishlearn.domain.entity.Exam;
 import com.englishlearn.domain.entity.ExamResult;
 import com.englishlearn.domain.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -61,4 +63,10 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
      * Kiểm tra sinh viên đã làm bài thi chưa (theo ID)
      */
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
+
+    /**
+     * Lấy kết quả thi theo trường - dùng cho ROLE_SCHOOL
+     */
+    @Query("SELECT er FROM ExamResult er WHERE er.exam.classRoom.school.id = :schoolId AND er.submittedAt IS NOT NULL")
+    Page<ExamResult> findBySchoolId(@Param("schoolId") Long schoolId, Pageable pageable);
 }
