@@ -22,6 +22,7 @@ interface AuthState {
 
     // Actions
     login: (credentials: LoginRequest) => Promise<void>
+    loginWithGoogle: (credential: string) => Promise<void>
     register: (data: RegisterRequest) => Promise<void>
     logout: () => void
     clearError: () => void
@@ -67,6 +68,38 @@ export const useAuthStore = create<AuthState>()(
                 } catch (error: any) {
                     set({
                         error: error.response?.data?.message || 'Đăng nhập thất bại',
+                        isLoading: false,
+                    })
+                    throw error
+                }
+            },
+
+            loginWithGoogle: async (credential: string) => {
+                set({ isLoading: true, error: null })
+                try {
+                    clearExamSessionCache()
+                    const response: AuthResponse = await authApi.loginWithGoogle(credential)
+
+                    const user: User = {
+                        id: response.id,
+                        username: response.username,
+                        email: response.email,
+                        fullName: response.username,
+                        roles: response.roles,
+                    }
+
+                    set({
+                        user,
+                        accessToken: response.accessToken,
+                        refreshToken: response.refreshToken,
+                        isAuthenticated: true,
+                        isLoading: false,
+                    })
+
+                    await get().fetchCurrentUser()
+                } catch (error: any) {
+                    set({
+                        error: error.response?.data?.message || 'Đăng nhập Google thất bại',
                         isLoading: false,
                     })
                     throw error

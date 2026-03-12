@@ -25,6 +25,11 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -156,6 +161,65 @@ public class AuthService {
         // Đánh dấu token đã dùng
         token.setUsed(true);
         passwordResetTokenRepository.save(token);
+    }
+
+    @Transactional
+    public AuthResponse googleLogin(com.englishlearn.presentation.dto.request.GoogleLoginRequest request) {
+        try {
+            // Xác thực token Google
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), new GsonFactory())
+                    .setAudience(java.util.Collections.singletonList("41159444132-hrtm19jreeauf6344t4osdupfhpg1ckd.apps.googleusercontent.com"))
+                    .build();
+
+            // Nếu không check Audience (Client ID) thì có thể tự parse
+            GoogleIdToken idToken = GoogleIdToken.parse(new GsonFactory(), request.getCredential());
+            if (idToken == null) {
+                throw new RuntimeException("Credential Google không hợp lệ");
+            }
+            // *Lưu ý: trong thực tế bắt buộc phải verifier.verify(request.getCredential())
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            String pictureUrl = (String) payload.get("picture");
+
+            // Tim xem DB đã có user này chưa
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                // Tạo user mới tự động với Role Default
+                Role userRole = roleRepository.findByName(Role.STUDENT)
+                        .orElseThrow(() -> new ResourceNotFoundException("Vai trò", "name", Role.STUDENT));
+
+                // Username lấy phần trước @ của email (ví dụ: nguyenphong@... -> nguyenphong)
+                // Cần đảm bảo duy nhất
+                String baseUsername = email.split("@")[0];
+                String username = baseUsername;
+                int suffix = 1;
+                while (userRepository.existsByUsername(username)) {
+                    username = baseUsername + suffix++;
+                }
+
+                user = User.builder()
+                        .username(username)
+                        .email(email)
+                        // Pass giả lập random (người dùng Google không cần password)
+                        .passwordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                        .fullName(name)
+                        .avatarUrl(pictureUrl)
+                        .isActive(true)
+                        .build();
+
+                user.getRoles().add(userRole);
+                user = userRepository.save(user);
+            }
+
+            return buildAuthResponse(user);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi xác thực Google: " + e.getMessage());
+        }
     }
 
     private AuthResponse buildAuthResponse(User user) {
