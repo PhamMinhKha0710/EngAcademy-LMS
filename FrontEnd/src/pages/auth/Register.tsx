@@ -24,6 +24,10 @@ export default function Register() {
     const navigate = useNavigate()
 
     useEffect(() => {
+        clearError()
+    }, [clearError])
+
+    useEffect(() => {
         if (step === 3) return // Đang hiển thị màn Welcome, không auto navigate
         if (isAuthenticated && user?.roles?.length) {
             navigate(getRoleDashboard(user.roles), { replace: true })

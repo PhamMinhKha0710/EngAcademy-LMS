@@ -15,6 +15,10 @@ export default function Login() {
     const navigate = useNavigate()
 
     useEffect(() => {
+        clearError()
+    }, [clearError])
+
+    useEffect(() => {
         if (isAuthenticated && user?.roles?.length) {
             navigate(getRoleDashboard(user.roles), { replace: true })
         }
