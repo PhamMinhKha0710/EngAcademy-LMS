@@ -32,16 +32,19 @@ import StudentProgressPage from './pages/teacher/StudentProgressPage'
 
 // Shared
 import SettingsPage from './pages/SettingsPage'
+import ToastContainer from './components/ui/ToastContainer'
 
 function App() {
     return (
-        <Routes>
-            <Route path="/" element={<MainLayout />}>
-                {/* Public routes */}
-                <Route index element={<Home />} />
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
+        <>
+            <ToastContainer />
+            <Routes>
+                <Route path="/" element={<MainLayout />}>
+                    {/* Public routes */}
+                    <Route index element={<Home />} />
+                    <Route path="login" element={<Login />} />
+                    <Route path="register" element={<Register />} />
+                    <Route path="forgot-password" element={<ForgotPassword />} />
 
                 {/* Student routes */}
                 <Route element={<ProtectedRoute allowedRoles={['ROLE_STUDENT']} />}>
@@ -81,7 +84,8 @@ function App() {
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
-        </Routes>
+            </Routes>
+        </>
     )
 }
 
