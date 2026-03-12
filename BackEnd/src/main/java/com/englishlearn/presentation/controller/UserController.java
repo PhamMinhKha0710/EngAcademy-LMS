@@ -85,8 +85,10 @@ public class UserController {
         // Filter by school if user has ROLE_SCHOOL
         if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
             if (currentUser.getSchoolId() == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(ApiResponse.error("Tài khoản trường học chưa được liên kết với trường nào", null));
+                // Return empty page instead of 400 error
+                return ResponseEntity.ok(ApiResponse.success(
+                    "Tài khoản trường học chưa được liên kết với trường nào",
+                    org.springframework.data.domain.Page.empty(pageable)));
             }
             Page<UserResponse> users = userService.getAllUsersBySchool(currentUser.getSchoolId(), pageable);
             return ResponseEntity.ok(ApiResponse.success(users));
