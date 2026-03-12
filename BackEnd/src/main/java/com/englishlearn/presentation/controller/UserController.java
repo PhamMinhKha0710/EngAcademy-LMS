@@ -3,12 +3,18 @@ package com.englishlearn.presentation.controller;
 import com.englishlearn.application.dto.request.ChangePasswordRequest;
 import com.englishlearn.application.dto.request.CreateUserRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
+import com.englishlearn.application.dto.response.AuditLogResponse;
 import com.englishlearn.application.dto.response.UserResponse;
+import com.englishlearn.application.service.AuditLogService;
 import com.englishlearn.application.service.UserService;
+import com.englishlearn.domain.entity.User;
+import com.englishlearn.infrastructure.persistence.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -36,6 +42,8 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final AuditLogService auditLogService;
+    private final UserRepository userRepository;
 
     /**
      * GET /api/v1/users/me - Lấy thông tin user đang đăng nhập
@@ -48,6 +56,18 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(user));
     }
 
+    /**
+     * GET /api/v1/users/me/audit-logs - Lấy nhật ký hoạt động của mình
+     */
+    @GetMapping("/me/audit-logs")
+    @Operation(summary = "Lấy nhật ký hoạt động của mình")
+    public ResponseEntity<ApiResponse<List<AuditLogResponse>>> getMyAuditLogs(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        List<AuditLogResponse> logs = auditLogService.getRecentLogsByUser(user);
+        return ResponseEntity.ok(ApiResponse.success(logs));
+    }
 
     /**
      * GET /api/v1/users/{id} - Lấy thông tin user theo ID
@@ -55,10 +75,11 @@ public class UserController {
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Lấy thông tin người dùng theo ID")
-    public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         UserResponse user = userService.getUserById(id);
-        
+
         // Security check for SCHOOL role
         if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
             if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(user.getSchoolId())) {
@@ -66,7 +87,7 @@ public class UserController {
                         .body(ApiResponse.error("Không có quyền truy cập người dùng này", null));
             }
         }
-        
+
         return ResponseEntity.ok(ApiResponse.success(user));
     }
 
@@ -77,23 +98,23 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Lấy danh sách người dùng (phân trang)")
     public ResponseEntity<ApiResponse<Page<UserResponse>>> getAll(
-            Pageable pageable, 
+            Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
-        
+
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        
+
         // Filter by school if user has ROLE_SCHOOL
         if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
             if (currentUser.getSchoolId() == null) {
                 // Return empty page instead of 400 error
                 return ResponseEntity.ok(ApiResponse.success(
-                    "Tài khoản trường học chưa được liên kết với trường nào",
-                    org.springframework.data.domain.Page.empty(pageable)));
+                        "Tài khoản trường học chưa được liên kết với trường nào",
+                        Page.empty(pageable)));
             }
             Page<UserResponse> users = userService.getAllUsersBySchool(currentUser.getSchoolId(), pageable);
             return ResponseEntity.ok(ApiResponse.success(users));
         }
-        
+
         Page<UserResponse> users = userService.getAllUsers(pageable);
         return ResponseEntity.ok(ApiResponse.success(users));
     }
@@ -130,9 +151,15 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String avatarUrl) {
+            @RequestParam(required = false) String avatarUrl,
+            HttpServletRequest request) {
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         UserResponse updatedUser = userService.updateProfile(currentUser.getId(), fullName, avatarUrl);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "UPDATE_PROFILE", "Cập nhật thông tin cá nhân",
+                request.getRemoteAddr(), request.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thành công", updatedUser));
     }
 
@@ -159,10 +186,10 @@ public class UserController {
             @RequestParam(required = false, defaultValue = "") String keyword,
             @AuthenticationPrincipal UserDetails userDetails,
             Pageable pageable) {
-        
+
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         Long schoolId = currentUser.getSchoolId();
-        
+
         return ResponseEntity.ok(ApiResponse.success(userService.searchStudents(keyword, schoolId, pageable)));
     }
 
@@ -173,9 +200,15 @@ public class UserController {
     @Operation(summary = "Đổi mật khẩu")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody @Valid ChangePasswordRequest request) {
+            @RequestBody @Valid ChangePasswordRequest changePasswordRequest,
+            HttpServletRequest request) {
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        userService.changePassword(currentUser.getId(), request);
+        userService.changePassword(currentUser.getId(), changePasswordRequest);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "CHANGE_PASSWORD", "Đổi mật khẩu thành công",
+                request.getRemoteAddr(), request.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công"));
     }
 }

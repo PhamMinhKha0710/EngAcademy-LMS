@@ -14,49 +14,68 @@ import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsername(String username);
+  Optional<User> findByUsername(String username);
 
-    Optional<User> findByEmail(String email);
+  Optional<User> findByEmail(String email);
 
-    boolean existsByUsername(String username);
+  boolean existsByUsername(String username);
 
-    boolean existsByEmail(String email);
+  boolean existsByEmail(String email);
 
-    @Modifying
-    @Query("UPDATE User u SET u.coins = u.coins + :coins WHERE u.id = :userId")
-    void addCoinsToUser(@Param("userId") Long userId, @Param("coins") Integer coins);
+  @Modifying
+  @Query("UPDATE User u SET u.coins = u.coins + :coins WHERE u.id = :userId")
+  void addCoinsToUser(@Param("userId") Long userId, @Param("coins") Integer coins);
 
-    // Leaderboard queries - Only ROLE_STUDENT users
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC")
-    Page<User> findLeaderboard(Pageable pageable);
+  // Leaderboard queries - Only ROLE_STUDENT users
+  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC")
+  Page<User> findLeaderboard(Pageable pageable);
 
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC LIMIT :limit")
-    java.util.List<User> findTopUsersByCoins(@Param("limit") int limit);
+  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC LIMIT :limit")
+  java.util.List<User> findTopUsersByCoins(@Param("limit") int limit);
 
-    // Get all users with ROLE_STUDENT
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC")
-    java.util.List<User> findAllStudents();
+  // Leaderboard queries - Filtered by School
+  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId) ORDER BY u.coins DESC, u.streakDays DESC")
+  Page<User> findLeaderboardBySchool(@Param("schoolId") Long schoolId, Pageable pageable);
 
-    // Count only ROLE_STUDENT users
-    @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT'")
-    long countStudents();
+  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId) ORDER BY u.coins DESC, u.streakDays DESC LIMIT :limit")
+  List<User> findTopUsersByCoinsBySchool(@Param("schoolId") Long schoolId, @Param("limit") int limit);
 
-    Page<User> findAllBySchool(com.englishlearn.domain.entity.School school, Pageable pageable);
+  // Get all users with ROLE_STUDENT
+  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' ORDER BY u.coins DESC, u.streakDays DESC")
+  java.util.List<User> findAllStudents();
 
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND (:schoolId IS NULL OR u.school.id = :schoolId)")
-    Page<User> searchStudents(@Param("keyword") String keyword, @Param("schoolId") Long schoolId, Pageable pageable);
+  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId) ORDER BY u.coins DESC, u.streakDays DESC")
+  List<User> findAllStudentsBySchool(@Param("schoolId") Long schoolId);
 
-    @Query("""
-            SELECT DISTINCT u
-            FROM User u
-            JOIN u.roles r
-            WHERE r.name = 'ROLE_STUDENT'
-              AND (
-                  LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                  OR LOWER(COALESCE(u.fullName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                  OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
-              )
-            ORDER BY u.fullName ASC, u.username ASC
-            """)
-    List<User> searchStudentsByKeyword(@Param("keyword") String keyword);
+  // Count only ROLE_STUDENT users
+  @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT'")
+  long countStudents();
+
+  @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId)")
+  long countStudentsBySchool(@Param("schoolId") Long schoolId);
+
+  Page<User> findAllBySchool(com.englishlearn.domain.entity.School school, Pageable pageable);
+
+  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND (:schoolId IS NULL OR u.school.id = :schoolId)")
+  Page<User> searchStudents(@Param("keyword") String keyword, @Param("schoolId") Long schoolId, Pageable pageable);
+
+  @Query("""
+      SELECT DISTINCT u
+      FROM User u
+      JOIN u.roles r
+      WHERE r.name = 'ROLE_STUDENT'
+        AND (
+            LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            OR LOWER(COALESCE(u.fullName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        )
+      ORDER BY u.fullName ASC, u.username ASC
+      """)
+  List<User> searchStudentsByKeyword(@Param("keyword") String keyword);
+
+  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = :roleName")
+  List<User> findAllByRolesName(@Param("roleName") String roleName);
+
+  @Query("SELECT u FROM User u WHERE u.school.id = :schoolId")
+  List<User> findAllBySchoolId(@Param("schoolId") Long schoolId);
 }

@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Users, Search, Trash2, UserCheck, UserX, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Users, Search, Trash2, UserX, Loader2, TrendingUp, CheckCircle, ChevronLeft, ChevronRight, Mail, Calendar } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 import type { ApiResponse, User } from '@/types/api'
@@ -14,6 +14,7 @@ export default function StudentsPage() {
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [deleting, setDeleting] = useState<number | null>(null)
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
     const fetchStudents = async () => {
         setLoading(true)
@@ -64,140 +65,198 @@ export default function StudentsPage() {
         }
     }
 
-    const filtered = students.filter((s) =>
-        s.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-        s.username.toLowerCase().includes(search.toLowerCase()) ||
-        s.email?.toLowerCase().includes(search.toLowerCase())
-    )
+    const filtered = students.filter((s) => {
+        const matchSearch = s.fullName?.toLowerCase().includes(search.toLowerCase()) ||
+            s.username.toLowerCase().includes(search.toLowerCase()) ||
+            s.email?.toLowerCase().includes(search.toLowerCase())
+        
+        const matchStatus = statusFilter === 'all' || 
+            (statusFilter === 'active' && s.isActive !== false) || 
+            (statusFilter === 'inactive' && s.isActive === false)
+            
+        return matchSearch && matchStatus
+    })
 
     const activeCount = students.filter(s => s.isActive !== false).length
     const inactiveCount = students.length - activeCount
 
+    const stats = [
+        { title: 'Tổng học sinh', value: students.length.toString(), change: '+5.2%', icon: Users, color: 'text-primary', bg: 'bg-primary/10', trend: 'up' },
+        { title: 'Đang hoạt động', value: activeCount.toString(), change: 'Ổn định', icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { title: 'Tạm khóa', value: inactiveCount.toString(), change: 'Cần kiểm tra', icon: UserX, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+    ]
+
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Quản lý học sinh</h1>
-                <p className="text-muted-foreground mt-1">Quản lý danh sách học sinh của trường</p>
-            </div>
-
-            {/* Stat cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <div className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow">
-                        <Users className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground">Tổng học sinh</p>
-                        <p className="text-2xl font-bold">{students.length}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow">
-                        <UserCheck className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground">Đang hoạt động</p>
-                        <p className="text-2xl font-bold text-emerald-600">{activeCount}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow">
-                        <UserX className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground">Ngừng hoạt động</p>
-                        <p className="text-2xl font-bold text-rose-600">{inactiveCount}</p>
-                    </div>
+        <div className="space-y-8 pb-10">
+            {/* Header Section */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Quản lý học sinh</h1>
+                    <p className="text-muted-foreground mt-1.5 font-medium">Theo dõi và quản lý danh sách học sinh trong hệ thống.</p>
                 </div>
             </div>
 
-            {/* Main table */}
-            <Card className="border-0 shadow-lg">
-                <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Users className="h-5 w-5 text-primary" /> Danh sách học sinh
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {stats.map((stat) => (
+                    <Card key={stat.title} className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden">
+                        <CardContent className="p-7 flex justify-between items-start">
+                            <div className="flex flex-col">
+                                <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center mb-5", stat.bg)}>
+                                    <stat.icon className={cn("h-6 w-6", stat.color)} />
+                                </div>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{stat.title}</p>
+                                <p className="text-4xl font-black mt-2 text-foreground">{stat.value}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                {stat.trend === 'up' && (
+                                    <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs bg-emerald-500/10 px-2 rounded-lg py-1 uppercase tracking-wider">
+                                        <TrendingUp className="h-3 w-3" /> {stat.change}
+                                    </div>
+                                )}
+                                {stat.title.includes('hoạt động') && (
+                                    <div className="text-muted-foreground/30 font-black text-[10px] uppercase tracking-widest pt-1">
+                                        {stat.change}
+                                    </div>
+                                )}
+                                {stat.title.includes('Tạm khóa') && (
+                                    <div className="text-rose-500/60 font-black text-[10px] uppercase tracking-widest pt-1">
+                                        {stat.change}
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Main Content Area */}
+            <Card className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden">
+                <CardHeader className="p-8 pb-0">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <CardTitle className="flex items-center gap-3 text-xl font-black">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <Users className="h-5 w-5 text-primary" />
+                            </div>
+                            Danh sách học sinh
                         </CardTitle>
-                        <div className="relative w-72">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Tìm theo tên, username, email..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9 rounded-xl"
-                            />
+                        <div className="flex items-center gap-4">
+                            <div className="relative group">
+                                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                                <Input
+                                    placeholder="Tìm học sinh..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-11 pr-4 h-11 w-72 bg-muted/30 border-border/50 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 transition-all font-medium"
+                                />
+                            </div>
+                            <div className="flex bg-muted/30 p-1 rounded-xl border border-border/50">
+                                <button 
+                                    onClick={() => setStatusFilter('all')}
+                                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'all' ? "bg-primary text-white shadow-md shadow-primary/20" : "text-muted-foreground/40 hover:text-foreground")}
+                                >
+                                    Tất cả
+                                </button>
+                                <button 
+                                    onClick={() => setStatusFilter('active')}
+                                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'active' ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" : "text-muted-foreground/40 hover:text-foreground")}
+                                >
+                                    Hoạt động
+                                </button>
+                                <button 
+                                    onClick={() => setStatusFilter('inactive')}
+                                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'inactive' ? "bg-amber-500 text-white shadow-md shadow-amber-500/20" : "text-muted-foreground/40 hover:text-foreground")}
+                                >
+                                    Đã khóa
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-8">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-                            <p className="text-sm">Đang tải dữ liệu...</p>
+                        <div className="flex flex-col items-center justify-center h-80 gap-4">
+                            <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                            <p className="font-bold text-muted-foreground/60">Đang tải dữ liệu...</p>
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/50 mb-4">
-                                <Users className="h-8 w-8 opacity-40" />
+                        <div className="flex flex-col items-center justify-center h-80 gap-2">
+                             <div className="h-20 w-20 rounded-full bg-muted/30 flex items-center justify-center mb-2">
+                                <Users className="h-8 w-8 text-muted-foreground/40" />
                             </div>
-                            <p className="font-medium">Không tìm thấy học sinh nào</p>
-                            <p className="text-sm mt-1 text-muted-foreground/70">
-                                {search ? 'Thử thay đổi từ khóa tìm kiếm' : 'Chưa có học sinh được liên kết với trường'}
-                            </p>
+                            <p className="font-bold text-foreground/80 text-lg">Không tìm thấy học sinh nào</p>
+                            <p className="text-muted-foreground/60">Hãy thử tìm kiếm với từ khóa khác</p>
                         </div>
                     ) : (
-                        <div className="rounded-xl border overflow-hidden">
+                        <div className="rounded-2xl border border-border/50 overflow-hidden">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                        <TableHead className="w-12 font-semibold">ID</TableHead>
-                                        <TableHead className="font-semibold">Tên đăng nhập</TableHead>
-                                        <TableHead className="font-semibold">Họ tên</TableHead>
-                                        <TableHead className="font-semibold">Email</TableHead>
-                                        <TableHead className="font-semibold">Trạng thái</TableHead>
-                                        <TableHead className="w-20 font-semibold text-center">Thao tác</TableHead>
+                                    <TableRow className="hover:bg-transparent border-border/50 bg-muted/30">
+                                        <TableHead className="w-20 h-14 font-black text-muted-foreground uppercase text-[10px] tracking-widest pl-8">ID</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Học sinh</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Thông tin tài khoản</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-center">Trạng thái</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-right pr-8">Thao tác</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filtered.map((student) => (
-                                        <TableRow key={student.id} className="group hover:bg-muted/30 transition-colors">
-                                            <TableCell className="font-mono text-sm text-muted-foreground">{student.id}</TableCell>
+                                        <TableRow key={student.id} className="hover:bg-muted/10 border-border/40 transition-colors h-24 group">
+                                            <TableCell className="font-bold text-muted-foreground/30 text-sm pl-8">#{student.id}</TableCell>
                                             <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 text-white text-xs font-bold shadow-sm">
-                                                        {(student.fullName || student.username).charAt(0).toUpperCase()}
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-12 w-12 rounded-xl bg-muted/30 flex items-center justify-center shrink-0 border border-border/50 group-hover:border-primary/20 transition-colors relative">
+                                                        <span className="text-primary font-black text-lg">
+                                                            {(student.fullName || student.username).charAt(0).toUpperCase()}
+                                                        </span>
+                                                        {student.isActive !== false && (
+                                                            <div className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full border-2 border-background" />
+                                                        )}
                                                     </div>
-                                                    <span className="font-medium">{student.username}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-foreground leading-tight">{student.fullName || student.username}</span>
+                                                        <span className="text-[10px] font-black text-muted-foreground/30 mt-1 uppercase tracking-widest">@{student.username}</span>
+                                                    </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="font-medium">{student.fullName || '-'}</TableCell>
-                                            <TableCell className="text-muted-foreground text-sm">{student.email || '-'}</TableCell>
                                             <TableCell>
-                                                <Badge
-                                                    variant={student.isActive !== false ? 'default' : 'destructive'}
-                                                    className={student.isActive !== false
-                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-100'
-                                                        : ''
-                                                    }
-                                                >
-                                                    {student.isActive !== false ? 'Hoạt động' : 'Đã khóa'}
-                                                </Badge>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2 text-sm font-bold text-foreground/80">
+                                                        <Mail className="h-3.5 w-3.5 text-muted-foreground/40" />
+                                                        {student.email || '—'}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/30 uppercase tracking-tight">
+                                                        <Calendar className="h-3 w-3" /> Gia nhập: 15/01/2024
+                                                    </div>
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleDelete(student)}
-                                                    disabled={deleting === student.id}
-                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    {deleting === student.id ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    ) : (
-                                                        <Trash2 className="h-4 w-4" />
-                                                    )}
-                                                </Button>
+                                                <div className={cn(
+                                                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider",
+                                                    student.isActive !== false 
+                                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-500' 
+                                                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-500'
+                                                )}>
+                                                    <div className={cn("h-1.5 w-1.5 rounded-full", student.isActive !== false ? 'bg-emerald-600 dark:bg-emerald-500' : 'bg-rose-600 dark:bg-rose-500')} />
+                                                    {student.isActive !== false ? 'Hoạt động' : 'Đã khóa'}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="h-9 w-9 rounded-lg hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-all"
+                                                        onClick={() => handleDelete(student)}
+                                                        disabled={deleting === student.id}
+                                                    >
+                                                        {deleting === student.id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-4.5 w-4.5" />
+                                                        )}
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -205,6 +264,22 @@ export default function StudentsPage() {
                             </Table>
                         </div>
                     )}
+                    
+                    {/* Pagination */}
+                    <div className="flex items-center justify-between mt-8 px-2">
+                        <p className="text-sm font-bold text-muted-foreground/60">
+                            Hiển thị 1-{filtered.length} của {students.length} kết quả
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border text-muted-foreground/40 bg-background" disabled>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button className="h-10 w-10 rounded-xl font-bold bg-primary text-white">1</Button>
+                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border text-muted-foreground/60 bg-background hover:bg-muted" disabled>
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </div>

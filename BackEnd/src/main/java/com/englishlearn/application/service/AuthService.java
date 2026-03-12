@@ -13,6 +13,7 @@ import com.englishlearn.infrastructure.persistence.PasswordResetTokenRepository;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import com.englishlearn.infrastructure.security.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,6 +37,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -66,7 +68,7 @@ public class AuthService {
         return buildAuthResponse(savedUser);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -74,6 +76,11 @@ public class AuthService {
 
         var user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Tài khoản", "username", request.getUsername()));
+
+        // Log the login event
+        String ipAddress = httpServletRequest.getRemoteAddr();
+        String userAgent = httpServletRequest.getHeader("User-Agent");
+        auditLogService.log(user.getId(), "LOGIN", "Đăng nhập thành công", ipAddress, userAgent);
 
         return buildAuthResponse(user);
     }

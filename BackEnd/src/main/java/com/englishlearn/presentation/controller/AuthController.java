@@ -9,6 +9,7 @@ import com.englishlearn.application.dto.response.AuthResponse;
 import com.englishlearn.application.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -52,8 +53,9 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Đăng nhập")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
-            @RequestBody @Valid LoginRequest request) {
-        AuthResponse response = authService.login(request);
+            @RequestBody @Valid LoginRequest request,
+            HttpServletRequest httpServletRequest) {
+        AuthResponse response = authService.login(request, httpServletRequest);
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", response));
     }
 
