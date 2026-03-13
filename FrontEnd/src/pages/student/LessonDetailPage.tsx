@@ -57,6 +57,8 @@ export default function LessonDetailPage() {
     const [showResults, setShowResults] = useState(false)
     const [completing, setCompleting] = useState(false)
     const [completed, setCompleted] = useState(false)
+    const [completionPercentage, setCompletionPercentage] = useState(0)
+    const [progressLoaded, setProgressLoaded] = useState(false)
     const [startedLearning, setStartedLearning] = useState(false)
     const [visitedTabs, setVisitedTabs] = useState<Record<TabKey, boolean>>({
         content: true,
@@ -82,6 +84,21 @@ export default function LessonDetailPage() {
                 else setError('Không thể tải bài học này.')
                 if (vocabData.status === 'fulfilled') setVocabulary(vocabData.value)
                 if (questionData.status === 'fulfilled') setQuestions(questionData.value)
+
+                if (user?.id) {
+                    try {
+                        const prog = await progressApi.getForLesson(user.id, lessonId)
+                        if (prog) {
+                            const isCompleted = !!prog.isCompleted
+                            setCompleted(isCompleted)
+                            // Nếu đã hoàn thành, luôn hiển thị 100%
+                            setCompletionPercentage(isCompleted ? 100 : (prog.completionPercentage || 0))
+                        }
+                    } catch (e) {
+                        // progress not created yet
+                    }
+                }
+                setProgressLoaded(true)
             } catch (err) {
                 console.error('Failed to load lesson:', err)
                 setError('Đã xảy ra lỗi. Vui lòng thử lại.')
@@ -111,6 +128,31 @@ export default function LessonDetailPage() {
         return score
     }, 0)
 
+    useEffect(() => {
+        // Chỉ auto-update sau khi đã fetch progress từ server xong
+        // tránh race condition ghi đè % cũ trước khi load xong
+        if (!progressLoaded || !user?.id || !lessonId || completed) return;
+        
+        const totalTabs = TABS.length;
+        const visitedCount = Object.values(visitedTabs).filter(Boolean).length;
+        let basePercentage = Math.floor((visitedCount / totalTabs) * 80);
+        
+        if (questions.length > 0) {
+           if (showResults) {
+               basePercentage += Math.floor((quizScore / questions.length) * 20);
+           }
+        } else {
+           if (visitedCount === totalTabs) basePercentage = 100;
+        }
+        
+        if (basePercentage >= 100) basePercentage = 99;
+
+        if (basePercentage > completionPercentage) {
+            setCompletionPercentage(basePercentage);
+            progressApi.updateProgress(user.id, lessonId, basePercentage).catch(console.error);
+        }
+    }, [progressLoaded, visitedTabs, showResults, quizScore, questions.length, user?.id, lessonId, completed, completionPercentage]);
+
     const handleSubmitQuiz = () => {
         setShowResults(true)
         if (quizScore === questions.length) {
@@ -133,6 +175,7 @@ export default function LessonDetailPage() {
         try {
             await progressApi.completeLesson(user.id, lessonId)
             setCompleted(true)
+            setCompletionPercentage(100)
             fireConfetti()
             addToast({ type: 'success', message: 'Chúc mừng! Bạn đã hoàn thành Bài học này!' })
         } catch (err) {
@@ -294,6 +337,24 @@ export default function LessonDetailPage() {
                         <p className="text-sm text-slate-500 mb-4">
                             {vocabulary.length} từ vựng • {questions.length} câu hỏi
                         </p>
+                        
+                        {(completionPercentage > 0 || completed) && (
+                            <div className="mb-6 max-w-xs">
+                                <div className="flex justify-between text-xs font-bold mb-1.5">
+                                    <span className="text-slate-500 dark:text-slate-400">Tiến độ</span>
+                                    <span className={completed ? 'text-green-500' : 'text-primary-500'}>
+                                        {completionPercentage}%
+                                    </span>
+                                </div>
+                                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full rounded-full transition-all duration-1000 ${completed ? 'bg-green-500' : 'bg-primary-500'}`}
+                                        style={{ width: `${completionPercentage}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             onClick={startLearning}
                             className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-2xl shadow-lg shadow-orange-200/70 transition-transform active:scale-95"
@@ -633,13 +694,15 @@ export default function LessonDetailPage() {
                     <button
                         onClick={handleCompleteLesson}
                         disabled={completing || !isLearningReadyToComplete || completed}
-                        className={`w-full font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all ${isLearningReadyToComplete && !completed
-                                ? 'bg-orange-100 text-orange-500 hover:bg-orange-200'
-                                : 'bg-orange-100 text-orange-400 opacity-60 cursor-not-allowed'
+                        className={`w-full font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all ${
+                                completed ? 'bg-green-100 text-green-600 border border-green-200 cursor-not-allowed' :
+                                isLearningReadyToComplete
+                                    ? 'bg-orange-100 text-orange-500 hover:bg-orange-200'
+                                    : 'bg-orange-100 text-orange-400 opacity-60 cursor-not-allowed'
                             }`}
                     >
                         {completing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                        {completed ? 'Đã hoàn thành bài học' : 'Hoàn thành bài học'}
+                        {completed ? 'Đã hoàn thành' : 'Hoàn thành bài học'}
                     </button>
                 </div>
             </footer>
