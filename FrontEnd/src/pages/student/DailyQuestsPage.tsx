@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { DailyQuestResponse, QuestTask, questApi } from '../../services/api/questApi'
 import EmptyState from '../../components/ui/EmptyState'
+import ProgressBar from '../../components/ui/ProgressBar'
 import { useAuthStore } from '../../store/authStore'
 import { userApi } from '../../services/api/userApi'
 import DailyStreakCelebrationOverlay from '../../components/ui/DailyStreakCelebrationOverlay'
@@ -318,12 +319,16 @@ export default function DailyQuestsPage() {
                             {summary.completed}/{summary.total}
                         </span>
                     </div>
-                    <div className="h-4 rounded-full overflow-hidden" style={{ background: 'var(--color-bg-tertiary)' }}>
-                        <div
-                            className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-[var(--color-primary)] to-amber-400"
-                            style={{ width: `${summary.percent}%` }}
-                        />
-                    </div>
+                    <ProgressBar 
+                      value={summary.percent} 
+                      height="h-4" 
+                      showPercentage 
+                      gradientStart="from-[var(--color-primary)]" 
+                      gradientEnd="to-amber-400"
+                      variant="gradient"
+                      showLabel 
+                      label={t('quests.goalProgress')}
+                    />
                     <div className="mt-5 flex flex-wrap items-center gap-3">
                         <button
                             onClick={handleCompleteQuest}
@@ -379,12 +384,17 @@ export default function DailyQuestsPage() {
                                         <span>{t('quests.progress')}</span>
                                         <span>{Math.min(current, task.targetCount)}/{task.targetCount}</span>
                                     </div>
-                                    <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--color-bg-tertiary)' }}>
-                                        <div
-                                            className={`h-full rounded-full bg-gradient-to-r ${meta.progressColor}`}
-                                            style={{ width: `${percent}%` }}
-                                        />
-                                    </div>
+                                    <ProgressBar 
+                                      value={percent} 
+                                      height="h-3" 
+                                      showLabel 
+                                      showPercentage 
+                                      gradientStart={meta.progressColor.split(' ')[0]}
+                                      gradientEnd={meta.progressColor.split(' ')[1]}
+                                      variant="gradient"
+                                      completed={done}
+                                      isAnimating={taskBusy}
+                                    />
                                 </div>
 
                                 <div className="mt-5 grid grid-cols-1 gap-2">

@@ -267,7 +267,7 @@
         "hours": "giờ",
         "minutes": "phút",
         "goalProgress": "Tiến độ mục tiêu",
-        "moreQuestsComplete": "nhiệm vụ nữa để hoàn thành mục tiêu hôm nay.",
+        "moreQuestsComplete": "Còn nhiều nhiệm vụ nữa cần hoàn thành để đạt mục tiêu hôm nay.",
         "claimReward": "Nhận thưởng",
         "claimQuest": "Nhận thưởng quest hôm nay",
         "processing": "Đang xử lý...",
@@ -292,7 +292,9 @@
         "dailyQuest": "Nhiệm vụ trong ngày",
         "completeQuestForReward": "Hoàn thành nhiệm vụ để nhận thưởng.",
         "resetTime": "{{hours}} giờ {{mins}} phút",
-        "notCompleted": "Chưa hoàn thành"
+        "notCompleted": "Chưa hoàn thành",
+        "claimedToday": "Đã nhận hôm nay",
+        "questRewardReceived": "Đã nhận phần thưởng nhiệm vụ"
     },
     "leaderboard": {
         "title": "Bảng xếp hạng",
@@ -391,7 +393,7 @@
         "minutesAgo": "{{count}} phút trước",
         "hoursAgo": "{{count}} giờ trước",
         "daysAgo": "{{count}} ngày trước",
-        "mistakeTip": "Từ này bạn đã sai <strong>{{count}}</strong> lần. Hãy ôn theo flashcard trong 1-2 phút để tăng tốc độ phản xạ.",
+        "mistakeTip": "Từ này bạn đã sai {{count}} lần. Hãy ôn theo flashcard trong 1-2 phút để tăng tốc độ phản xạ.",
         "lastUpdated": "Cập nhật lần cuối",
         "deleteItem": "Xóa mục",
         "practiceMore": "Luyện tập thêm để giảm số lần sai!",

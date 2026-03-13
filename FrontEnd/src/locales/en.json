@@ -267,7 +267,7 @@
         "hours": "hours",
         "minutes": "minutes",
         "goalProgress": "Goal Progress",
-        "moreQuestsComplete": "more quests to complete today's goal.",
+        "moreQuestsComplete": "More quests to complete today's goal.",
         "claimReward": "Claim Reward",
         "claimQuest": "Claim Today's Quest",
         "processing": "Processing...",
@@ -292,7 +292,9 @@
         "dailyQuest": "Daily Quest",
         "completeQuestForReward": "Complete quests to earn rewards.",
         "resetTime": "{{hours}} hours {{mins}} minutes",
-        "notCompleted": "Not completed"
+        "notCompleted": "Not completed",
+        "claimedToday": "Claimed today",
+        "questRewardReceived": "Quest reward received"
     },
     "leaderboard": {
         "title": "Leaderboard",
@@ -391,7 +393,7 @@
         "minutesAgo": "{{count}} minutes ago",
         "hoursAgo": "{{count}} hours ago",
         "daysAgo": "{{count}} days ago",
-        "mistakeTip": "You made this mistake <strong>{{count}}</strong> times. Review with flashcards for 1-2 minutes to speed up recall.",
+        "mistakeTip": "You made this mistake {{count}} times. Review with flashcards for 1-2 minutes to speed up recall.",
         "lastUpdated": "Last updated",
         "deleteItem": "Delete item",
         "practiceMore": "Practice more to reduce mistakes!",

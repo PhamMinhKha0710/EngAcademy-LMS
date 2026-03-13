@@ -18,6 +18,7 @@ import { useAuthStore } from '../../store/authStore'
 import { progressApi, ProgressResponse } from '../../services/api/progressApi'
 import { leaderboardApi, LeaderboardEntry } from '../../services/api/leaderboardApi'
 import { DailyQuestResponse, questApi } from '../../services/api/questApi'
+import ProgressBar from '../../components/ui/ProgressBar'
 
 interface ProgressStats {
     completedLessons: number
@@ -177,12 +178,13 @@ export default function StudentDashboard() {
                                 <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-2xl">
                                     {t('dashboard.completeQuest')}
                                 </p>
-                                <div className="mt-5 h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-primary-500 to-amber-400"
-                                        style={{ width: `${primaryQuestProgress}%` }}
-                                    />
-                                </div>
+                                <ProgressBar 
+                                  value={primaryQuestProgress}
+                                  height="h-3"
+                                  gradientStart="from-primary-500"
+                                  gradientEnd="to-amber-400"
+                                  variant="gradient"
+                                />
                                 <div className="mt-4 flex items-center justify-between gap-3">
                                     <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                                         {questCompletedCount} / {questTotalCount} {t('dashboard.dailyQuestsCompleted')}

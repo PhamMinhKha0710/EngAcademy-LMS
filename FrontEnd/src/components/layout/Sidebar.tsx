@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useRole } from '../../hooks/useRole'
 import { useAuthStore } from '../../store/authStore'
 import { questApi } from '../../services/api/questApi'
+import ProgressBar from '../ui/ProgressBar'
 import {
     LayoutDashboard, BookOpen, Languages, FileText, Trophy,
     BookMarked, Award, Settings, GraduationCap, HelpCircle,
@@ -135,12 +136,12 @@ const Sidebar = () => {
                                     <span>{t('sidebar.todaysQuests')}</span>
                                     <span>{questProgress.completed}/{questProgress.total}</span>
                                 </div>
-                                <div className="w-full rounded-full h-2 bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                                    <div
-                                        className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
-                                        style={{ width: `${questPercent}%` }}
-                                    />
-                                </div>
+                                <ProgressBar 
+                                  value={questPercent}
+                                  height="h-2"
+                                  variant="streak"
+                                  className="mt-1"
+                                />
                             </div>
                         </div>
                     </div>
