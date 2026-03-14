@@ -240,9 +240,11 @@
     },
     "vocabulary": {
         "title": "Vocabulary",
-        "subtitle": "Review flashcards and look up vocabulary",
+        "subtitle": "Learn vocabulary by topic and track your progress",
         "flashcards": "Flashcards",
         "wordList": "Word List",
+        "topics": "Topics",
+        "learnedWords": "Learned",
         "vocabularyLibrary": "Vocabulary Library",
         "discoverNew": "Discover new words, listen to pronunciation and add to mistake notebook when needed.",
         "searchPlaceholder": "Search vocabulary...",
@@ -262,7 +264,19 @@
         "noExample": "No example",
         "card": "Card",
         "cards": "Cards",
-        "all": "All"
+        "all": "All",
+        "selectTopic": "Select a topic to start learning",
+        "wordsCount": "{{mastered}}/{{total}} words",
+        "topicCompleted": "Completed!",
+        "startLearning": "Start Learning",
+        "continueLearning": "Continue",
+        "topicDone": "Congratulations! You've completed this topic!",
+        "noMoreWords": "No more words to learn in this topic.",
+        "backToTopics": "Back to Topics",
+        "noLearnedWords": "No learned words yet. Pick a topic and start learning!",
+        "mastered": "Mastered",
+        "learning": "Learning",
+        "noTopics": "No topics available."
     },
     "exams": {
         "title": "Exams",

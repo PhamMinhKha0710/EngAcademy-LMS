@@ -2,149 +2,161 @@ import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
     Layers,
-    List,
-    Search,
     Volume2,
     AlertCircle,
     Sparkles,
     RotateCcw,
     CheckCircle,
-    BookOpen,
     Headphones,
+    ArrowLeft,
+    FolderOpen,
+    Trophy,
+    PlayCircle,
+    Clock,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
 import { useToastStore } from '../../store/toastStore'
-import { vocabularyApi, VocabularyResponse } from '../../services/api/vocabularyApi'
+import { vocabularyApi, VocabularyResponse, TopicProgress } from '../../services/api/vocabularyApi'
 import { mistakeApi } from '../../services/api/mistakeApi'
 import FlashCard from '../../components/ui/FlashCard'
 import PageHero from '../../components/ui/PageHero'
 import Skeleton from '../../components/ui/Skeleton'
+import ProgressBar from '../../components/ui/ProgressBar'
 
-/** Placeholder image for vocabulary when imageUrl is empty - stitch style */
 const PLACEHOLDER_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9gIun82348tU1ik-4NMDKlf3MdXoxP8IsFZo9yHWGcEwFqoK6lkOZFs3ZfjiKB-gL8hWICKYrcBVOhKaFKW2UQIKOnS-6w3xR2W84sJFtwXxxVr13TDBqDGrfCaGvTR_2TpE0bMq-XpYVfl7MJpIZ6g8gUsVk9nacEl__atrxNW8QObKPB3QfSN1FfTMDZb8Po9-nFqvhIF1qPvKGcZ41VpNm7sEnfpr3zYWEuAnC7fIwwiABEPViC__ZJeNfruaQTOBh3xJ2OZ9P'
 
-type ViewMode = 'flashcard' | 'list'
-type ListFilter = 'all' | 'audio' | 'example' | 'image'
+const CONTINUE_LEARNING_IMAGE =
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuALCoX9kpHAXVTawTzYGjbLCOoXiJ5VtIDa_NUAyZsaopP3FSofE1OwwHkKqo_WHwSlMvrKI0Voq4udFZ0yRDE1TUesQbm8mWKH6LXMT4LeoWChjDbCLb6yfxY_s1arB4a3L_jLUY2YxhRpOOkwyqfy3K57e-q7Vc03dz6gVvyHN40dgmEwupUmLnNp26VS2Qn4d8-gVem_PDPnbpQq1y_T7MkHTdZO6RwjtzUb2y4P-M7ahfmftTJEdhjgDsSiGM9_xy_1QnDcxuWS'
+
+type ViewMode = 'topics' | 'flashcard' | 'learned'
 
 export default function VocabularyPage() {
     const { t } = useTranslation()
     const user = useAuthStore((s) => s.user)
     const { addToast } = useToastStore()
-    const [mode, setMode] = useState<ViewMode>('flashcard')
+    const [mode, setMode] = useState<ViewMode>('topics')
 
+    // Topics state
+    const [topics, setTopics] = useState<TopicProgress[]>([])
+    const [topicsLoading, setTopicsLoading] = useState(true)
+
+    // Flashcard state
+    const [selectedTopic, setSelectedTopic] = useState<TopicProgress | null>(null)
     const [flashcards, setFlashcards] = useState<VocabularyResponse[]>([])
     const [flashcardIndex, setFlashcardIndex] = useState(0)
-    const [flashcardLoading, setFlashcardLoading] = useState(true)
+    const [flashcardLoading, setFlashcardLoading] = useState(false)
     const [flashcardError, setFlashcardError] = useState<string | null>(null)
     const [addingMistake, setAddingMistake] = useState(false)
-    const [mistakeAdded, setMistakeAdded] = useState<Set<number>>(new Set())
+    const [topicDone, setTopicDone] = useState(false)
 
-    const [listVocab, setListVocab] = useState<VocabularyResponse[]>([])
-    const [listLoading, setListLoading] = useState(false)
-    const [searchTerm, setSearchTerm] = useState('')
-    const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
-    const [listFilter, setListFilter] = useState<ListFilter>('all')
+    // Learned state
+    const [learnedWords, setLearnedWords] = useState<VocabularyResponse[]>([])
+    const [learnedLoading, setLearnedLoading] = useState(false)
 
-    const fetchFlashcards = useCallback(async () => {
+    const fetchTopics = useCallback(async () => {
+        if (!user?.id) return
+        setTopicsLoading(true)
+        try {
+            const data = await vocabularyApi.getTopics(user.id)
+            setTopics(data)
+        } catch {
+            addToast({ type: 'error', message: t('common.error') })
+        } finally {
+            setTopicsLoading(false)
+        }
+    }, [user?.id, addToast, t])
+
+    const fetchFlashcards = useCallback(async (topicId: number) => {
+        if (!user?.id) return
         setFlashcardLoading(true)
         setFlashcardError(null)
+        setTopicDone(false)
         try {
-            const data = await vocabularyApi.getRandomFlashcards(20)
+            const data = await vocabularyApi.getWordsToLearn(topicId, user.id)
+            if (data.length === 0) {
+                setTopicDone(true)
+            }
             setFlashcards(data)
             setFlashcardIndex(0)
-            setMistakeAdded(new Set())
-        } catch (err) {
-            console.error('Failed to fetch flashcards:', err)
+        } catch {
             setFlashcardError(t('common.error'))
         } finally {
             setFlashcardLoading(false)
         }
-    }, [t])
+    }, [user?.id, t])
 
-    const fetchVocabList = useCallback(async (keyword: string) => {
-        setListLoading(true)
+    const fetchLearnedWords = useCallback(async () => {
+        if (!user?.id) return
+        setLearnedLoading(true)
         try {
-            const data = await vocabularyApi.search(keyword)
-            setListVocab(data)
-        } catch (err) {
-            console.error('Failed to search vocabulary:', err)
-            addToast({ type: 'error', message: 'Không thể tìm kiếm từ vựng lúc này.' })
+            const data = await vocabularyApi.getLearnedWords(user.id)
+            setLearnedWords(data)
+        } catch {
+            addToast({ type: 'error', message: t('common.error') })
         } finally {
-            setListLoading(false)
+            setLearnedLoading(false)
         }
-    }, [addToast])
+    }, [user?.id, addToast, t])
+
+    useEffect(() => { fetchTopics() }, [fetchTopics])
 
     useEffect(() => {
-        fetchFlashcards()
-    }, [fetchFlashcards])
+        if (mode === 'learned') fetchLearnedWords()
+    }, [mode, fetchLearnedWords])
 
-    useEffect(() => {
-        if (mode === 'list') {
-            fetchVocabList(searchTerm)
-        }
-    }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handleSearchChange = (value: string) => {
-        setSearchTerm(value)
-        if (searchTimeout) clearTimeout(searchTimeout)
-        const timeout = setTimeout(() => {
-            fetchVocabList(value)
-        }, 400)
-        setSearchTimeout(timeout)
+    const handleSelectTopic = (topic: TopicProgress) => {
+        setSelectedTopic(topic)
+        setMode('flashcard')
+        fetchFlashcards(topic.id)
     }
 
-    const playAudio = (url: string | undefined) => {
-        if (!url) {
-            addToast({ type: 'warning', message: 'Chưa có file phát âm cho từ này.' })
-            return
-        }
-        const audio = new Audio(url)
-        audio.play().catch(() => { })
-    }
-
-    const handleStudyAgain = async () => {
+    const handleReviewWord = async (correct: boolean) => {
         const currentCard = flashcards[flashcardIndex]
-        if (!currentCard) return
-        if (user?.id && !addingMistake && !mistakeAdded.has(currentCard.id)) {
+        if (!currentCard || !user?.id) return
+
+        if (!correct && !addingMistake) {
             setAddingMistake(true)
             try {
                 await mistakeApi.addMistake({ vocabularyId: currentCard.id })
-                setMistakeAdded((prev) => new Set(prev).add(currentCard.id))
-                addToast({ type: 'success', message: 'Đã thêm từ vựng vào Sổ lỗi!' })
-            } catch (err) {
-                console.error('Failed to add mistake:', err)
-                addToast({ type: 'error', message: 'Đã xảy ra lỗi khi thêm vào Sổ lỗi.' })
-            } finally {
-                setAddingMistake(false)
-            }
-        } else if (mistakeAdded.has(currentCard.id)) {
-            addToast({ type: 'info', message: 'Từ này đã có trong Sổ lỗi của bạn rồi.' })
+            } catch { /* silent */ }
+            setAddingMistake(false)
         }
-        goToNext()
-    }
 
-    const handleIKnowThis = () => {
+        try {
+            const result = await vocabularyApi.reviewWord(currentCard.id, user.id, correct ? 'correct' : 'wrong')
+            if (result.topicCompleted) {
+                addToast({ type: 'success', message: t('vocabulary.topicDone') })
+            }
+        } catch { /* silent */ }
+
         goToNext()
     }
 
     const goToNext = () => {
         if (flashcardIndex < flashcards.length - 1) {
             setFlashcardIndex((i) => i + 1)
-        } else {
-            fetchFlashcards()
+        } else if (selectedTopic) {
+            fetchFlashcards(selectedTopic.id)
         }
+    }
+
+    const handleBackToTopics = () => {
+        setMode('topics')
+        setSelectedTopic(null)
+        setFlashcards([])
+        setTopicDone(false)
+        fetchTopics()
+    }
+
+    const playAudio = (url: string | undefined) => {
+        if (!url) return
+        const audio = new Audio(url)
+        audio.play().catch(() => {})
     }
 
     const currentCard = flashcards[flashcardIndex]
     const progressPercent = flashcards.length > 0 ? ((flashcardIndex + 1) / flashcards.length) * 100 : 0
-
-    const filteredListVocab = listVocab.filter((v) => {
-        if (listFilter === 'audio') return Boolean(v.audioUrl)
-        if (listFilter === 'example') return Boolean(v.exampleSentence)
-        if (listFilter === 'image') return Boolean(v.imageUrl)
-        return true
-    })
 
     return (
         <div className="p-6 lg:p-8 space-y-8">
@@ -158,35 +170,152 @@ export default function VocabularyPage() {
                     className="flex gap-1 p-1.5 rounded-xl w-fit"
                     style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
                 >
-                    <motion.button
-                        onClick={() => setMode('flashcard')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${mode === 'flashcard' ? 'bg-violet-500 text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                    {([
+                        { key: 'topics', icon: FolderOpen, label: t('vocabulary.topics') },
+                        { key: 'flashcard', icon: Layers, label: t('vocabulary.flashcards') },
+                        { key: 'learned', icon: CheckCircle, label: t('vocabulary.learnedWords') },
+                    ] as const).map((tab) => (
+                        <motion.button
+                            key={tab.key}
+                            onClick={() => {
+                                setMode(tab.key)
+                                if (tab.key === 'topics') handleBackToTopics()
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                                mode === tab.key
+                                    ? 'bg-violet-500 text-white shadow-md'
+                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
                             }`}
-                        whileTap={{ scale: 0.98 }}
-                    >
-                        <Layers className="w-4 h-4" />
-                        {t('vocabulary.flashcards')}
-                    </motion.button>
-                    <motion.button
-                        onClick={() => setMode('list')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${mode === 'list' ? 'bg-violet-500 text-white shadow-md' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-                            }`}
-                        whileTap={{ scale: 0.98 }}
-                    >
-                        <List className="w-4 h-4" />
-                        {t('vocabulary.wordList')}
-                    </motion.button>
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <tab.icon className="w-4 h-4" />
+                            {tab.label}
+                        </motion.button>
+                    ))}
                 </div>
             </PageHero>
 
+            {/* ========== TOPICS TAB ========== */}
+            {mode === 'topics' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                    {!topicsLoading &&
+                        topics.length > 0 &&
+                        topics
+                            .filter((t) => t.progress > 0 && t.progress < 100)
+                            .sort((a, b) => b.progress - a.progress)
+                            .slice(0, 2)
+                            .map((topic, index) => (
+                                <motion.div
+                                    key={topic.id}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="card overflow-hidden flex flex-col md:flex-row rounded-2xl"
+                                >
+                                    <div
+                                        className="md:w-[40%] min-h-[220px] bg-cover bg-center"
+                                        style={{ backgroundImage: `url('${CONTINUE_LEARNING_IMAGE}')` }}
+                                    />
+                                    <div className="p-6 md:p-8 flex-1">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <span className="px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-bold">
+                                                {t('lessons.intermediate')}
+                                            </span>
+                                            <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold inline-flex items-center gap-1">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                15 {t('exams.minutes')}
+                                            </span>
+                                        </div>
+                                        <h3 className="text-2xl md:text-3xl font-black leading-tight text-[var(--color-text)]">
+                                            {topic.name}
+                                        </h3>
+                                        <p className="mt-3 text-[var(--color-text-secondary)]">
+                                            {topic.description || t('dashboard.learnWithExamples')}
+                                        </p>
+                                        <button
+                                            onClick={() => handleSelectTopic(topic)}
+                                            className="mt-6 rounded-full px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-bold inline-flex items-center gap-2 hover:opacity-90 transition-opacity"
+                                        >
+                                            <PlayCircle className="w-5 h-5" />
+                                            {t('vocabulary.continueLearning')}
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            ))}
+                    <p className="text-sm text-[var(--color-text-secondary)]">{t('vocabulary.selectTopic')}</p>
+                    {topicsLoading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
+                        </div>
+                    ) : topics.length === 0 ? (
+                        <div className="card p-12 text-center rounded-2xl">
+                            <FolderOpen className="w-12 h-12 text-violet-500/60 mx-auto mb-4" />
+                            <p className="text-[var(--color-text-secondary)]">{t('vocabulary.noTopics')}</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {topics.map((topic, index) => (
+                                <motion.button
+                                    key={topic.id}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.04 }}
+                                    onClick={() => handleSelectTopic(topic)}
+                                    className="group text-left p-6 rounded-2xl border transition-all duration-300 hover:shadow-lg hover:border-violet-300 dark:hover:border-violet-600 bg-white dark:bg-surface-dark border-[var(--color-border)]"
+                                >
+                                    <div className="flex items-start justify-between mb-3">
+                                        <h3 className="text-lg font-bold text-[var(--color-text)] group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                                            {topic.name}
+                                        </h3>
+                                        {topic.completed && (
+                                            <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-full">
+                                                <Trophy className="w-3 h-3" />
+                                                {t('vocabulary.topicCompleted')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {topic.description && (
+                                        <p className="text-xs text-[var(--color-text-secondary)] mb-4 line-clamp-2">{topic.description}</p>
+                                    )}
+                                    <ProgressBar value={topic.progress} height="h-2" variant="gradient" gradientStart="from-violet-500" gradientEnd="to-fuchsia-400" />
+                                    <div className="flex items-center justify-between mt-3">
+                                        <span className="text-xs font-semibold text-[var(--color-text-secondary)]">
+                                            {t('vocabulary.wordsCount', { mastered: topic.masteredWords, total: topic.totalWords })}
+                                        </span>
+                                        <span className="text-xs font-bold text-violet-500">{topic.progress}%</span>
+                                    </div>
+                                </motion.button>
+                            ))}
+                        </div>
+                    )}
+                </motion.div>
+            )}
+
+            {/* ========== FLASHCARD TAB ========== */}
             {mode === 'flashcard' && (
                 <div>
-                    {flashcardLoading ? (
-                        <div className="max-w-[800px] mx-auto space-y-6">
-                            <div className="flex justify-between items-center">
-                                <Skeleton className="h-6 w-48 rounded" />
-                                <Skeleton className="h-7 w-24 rounded-full" />
+                    {selectedTopic && (
+                        <div className="flex items-center gap-3 mb-6">
+                            <button onClick={handleBackToTopics} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <ArrowLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
+                            </button>
+                            <div>
+                                <h2 className="text-xl font-bold text-[var(--color-text)]">{selectedTopic.name}</h2>
+                                <p className="text-xs text-[var(--color-text-secondary)]">
+                                    {t('vocabulary.wordsCount', { mastered: selectedTopic.masteredWords, total: selectedTopic.totalWords })}
+                                </p>
                             </div>
+                        </div>
+                    )}
+
+                    {!selectedTopic ? (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-12 text-center rounded-2xl">
+                            <FolderOpen className="w-12 h-12 text-violet-500/60 mx-auto mb-4" />
+                            <p className="text-[var(--color-text-secondary)]">{t('vocabulary.selectTopic')}</p>
+                            <button onClick={() => setMode('topics')} className="btn-primary mt-4">{t('vocabulary.backToTopics')}</button>
+                        </motion.div>
+                    ) : flashcardLoading ? (
+                        <div className="max-w-[800px] mx-auto space-y-6">
                             <Skeleton className="h-3 w-full rounded-full" />
                             <Skeleton className="h-[450px] w-full rounded-2xl" />
                             <div className="flex gap-4 justify-center">
@@ -195,35 +324,22 @@ export default function VocabularyPage() {
                             </div>
                         </div>
                     ) : flashcardError ? (
-                        <motion.div
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex flex-col items-center justify-center py-16 rounded-2xl bg-[var(--color-bg-secondary)]"
-                        >
+                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-16 rounded-2xl bg-[var(--color-bg-secondary)]">
                             <AlertCircle className="w-14 h-14 text-red-400 mb-4" />
                             <p className="font-medium text-[var(--color-text)] mb-4">{flashcardError}</p>
-                            <button onClick={fetchFlashcards} className="btn-primary">
-                                {t('common.retry')}
-                            </button>
+                            <button onClick={() => fetchFlashcards(selectedTopic.id)} className="btn-primary">{t('common.retry')}</button>
                         </motion.div>
-                    ) : flashcards.length === 0 ? (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="card p-12 text-center rounded-2xl"
-                        >
-                            <Sparkles className="w-12 h-12 text-violet-500/60 mx-auto mb-4" />
-                            <p className="text-[var(--color-text-secondary)]">
-                                {t('vocabulary.noVocabYet')}
-                            </p>
+                    ) : topicDone || flashcards.length === 0 ? (
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card p-12 text-center rounded-2xl max-w-[600px] mx-auto">
+                            <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
+                                <Trophy className="w-10 h-10 text-emerald-500" />
+                            </div>
+                            <h3 className="text-2xl font-black text-[var(--color-text)] mb-2">{t('vocabulary.topicDone')}</h3>
+                            <p className="text-[var(--color-text-secondary)] mb-6">{t('vocabulary.noMoreWords')}</p>
+                            <button onClick={handleBackToTopics} className="btn-primary">{t('vocabulary.backToTopics')}</button>
                         </motion.div>
                     ) : (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                            className="max-w-[800px] mx-auto flex flex-col gap-6"
-                        >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-[800px] mx-auto flex flex-col gap-6">
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-slate-900 dark:text-white">
@@ -247,64 +363,31 @@ export default function VocabularyPage() {
                             <div className="flex-1 min-h-[500px] flex flex-col items-center justify-center perspective-[1000px]">
                                 <AnimatePresence mode="wait">
                                     {currentCard && (
-                                        <motion.div
-                                            key={currentCard.id}
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.95 }}
-                                            transition={{ duration: 0.25 }}
-                                            className="w-full"
-                                        >
+                                        <motion.div key={currentCard.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.25 }} className="w-full">
                                             <FlashCard
                                                 height={450}
                                                 front={
                                                     <div className="h-full flex flex-col">
                                                         <div className="h-[65%] min-h-0 relative bg-slate-100 dark:bg-slate-800">
-                                                            <div
-                                                                className="absolute inset-0 bg-cover bg-center"
-                                                                style={{
-                                                                    backgroundImage: `url('${currentCard.imageUrl || PLACEHOLDER_IMAGE}')`,
-                                                                }}
-                                                            />
+                                                            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${currentCard.imageUrl || PLACEHOLDER_IMAGE}')` }} />
                                                             {currentCard.audioUrl && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        playAudio(currentCard.audioUrl!)
-                                                                    }}
-                                                                    className="absolute top-4 right-4 bg-white/90 dark:bg-black/70 backdrop-blur-sm p-2.5 rounded-lg shadow-sm hover:scale-110 transition-transform"
-                                                                    title={t('vocabulary.listen')}
-                                                                >
+                                                                <button type="button" onClick={(e) => { e.stopPropagation(); playAudio(currentCard.audioUrl!) }}
+                                                                    className="absolute top-4 right-4 bg-white/90 dark:bg-black/70 backdrop-blur-sm p-2.5 rounded-lg shadow-sm hover:scale-110 transition-transform" title={t('vocabulary.listen')}>
                                                                     <Volume2 className="w-5 h-5 text-primary-500" strokeWidth={2} />
                                                                 </button>
                                                             )}
                                                         </div>
                                                         <div className="h-[35%] flex flex-col items-center justify-center gap-2 p-8 bg-white dark:bg-slate-900">
-                                                            <h3 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                                                {currentCard.word}
-                                                            </h3>
-                                                            <p className="text-slate-400 dark:text-slate-500 font-medium text-sm">
-                                                                {t('vocabulary.tapToFlip')}
-                                                            </p>
+                                                            <h3 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">{currentCard.word}</h3>
+                                                            <p className="text-slate-400 dark:text-slate-500 font-medium text-sm">{t('vocabulary.tapToFlip')}</p>
                                                         </div>
                                                     </div>
                                                 }
                                                 back={
                                                     <div className="space-y-2 text-left px-4">
-                                                        <p className="text-xl font-semibold text-[var(--color-text)]">
-                                                            {currentCard.meaning}
-                                                        </p>
-                                                        {currentCard.pronunciation && (
-                                                            <p className="text-sm italic text-[var(--color-text-secondary)]">
-                                                                /{currentCard.pronunciation}/
-                                                            </p>
-                                                        )}
-                                                        {currentCard.exampleSentence && (
-                                                            <p className="text-sm mt-3 text-[var(--color-text-secondary)]">
-                                                                "{currentCard.exampleSentence}"
-                                                            </p>
-                                                        )}
+                                                        <p className="text-xl font-semibold text-[var(--color-text)]">{currentCard.meaning}</p>
+                                                        {currentCard.pronunciation && <p className="text-sm italic text-[var(--color-text-secondary)]">/{currentCard.pronunciation}/</p>}
+                                                        {currentCard.exampleSentence && <p className="text-sm mt-3 text-[var(--color-text-secondary)]">"{currentCard.exampleSentence}"</p>}
                                                     </div>
                                                 }
                                             />
@@ -314,26 +397,17 @@ export default function VocabularyPage() {
                             </div>
 
                             <div className="flex flex-col items-center gap-6 pb-8">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-                                    {t('vocabulary.didYouKnow')}
-                                </p>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{t('vocabulary.didYouKnow')}</p>
                                 <div className="flex flex-col sm:flex-row w-full gap-4 max-w-[600px]">
-                                    <motion.button
-                                        onClick={handleStudyAgain}
-                                        disabled={addingMistake}
+                                    <motion.button onClick={() => handleReviewWord(false)} disabled={addingMistake}
                                         className="group flex-1 h-14 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-xl font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                    >
+                                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                         <RotateCcw className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" strokeWidth={2} />
                                         {t('vocabulary.studyAgain')}
                                     </motion.button>
-                                    <motion.button
-                                        onClick={handleIKnowThis}
+                                    <motion.button onClick={() => handleReviewWord(true)}
                                         className="group flex-1 h-14 bg-primary-500 hover:bg-primary-600 text-white shadow-lg shadow-primary-500/20 rounded-xl font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-95"
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                    >
+                                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                         <CheckCircle className="w-5 h-5 group-hover:scale-110 transition-transform" strokeWidth={2} />
                                         {t('vocabulary.iKnowThis')}
                                     </motion.button>
@@ -344,60 +418,28 @@ export default function VocabularyPage() {
                 </div>
             )}
 
-            {mode === 'list' && (
-                <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6"
-                >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                        <div className="flex flex-col gap-1">
-                            <h2 className="text-2xl md:text-3xl font-bold text-[var(--color-text)]">{t('vocabulary.vocabularyLibrary')}</h2>
-                            <p className="text-sm text-[var(--color-text-secondary)]">
-                                {t('vocabulary.discoverNew')}
-                            </p>
-                        </div>
-                        <div className="relative w-full md:w-96">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
-                            <input
-                                type="text"
-                                placeholder={t('vocabulary.searchPlaceholder')}
-                                value={searchTerm}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                                className="input-field !pl-10"
-                            />
-                        </div>
+            {/* ========== LEARNED WORDS TAB ========== */}
+            {mode === 'learned' && (
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold text-[var(--color-text)]">{t('vocabulary.learnedWords')}</h2>
+                        <span className="px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-bold">
+                            {learnedWords.length} {t('vocabulary.mastered')}
+                        </span>
                     </div>
 
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                        {[
-                            { key: 'all', label: t('vocabulary.all') },
-                            { key: 'audio', label: t('vocabulary.hasAudio') },
-                            { key: 'example', label: t('vocabulary.hasExample') },
-                            { key: 'image', label: t('vocabulary.hasImage') },
-                        ].map((f) => (
-                            <button
-                                key={f.key}
-                                onClick={() => setListFilter(f.key as ListFilter)}
-                                className={`shrink-0 px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${listFilter === f.key
-                                    ? 'bg-primary-500 text-white border-primary-500'
-                                    : 'bg-white dark:bg-slate-900 text-[var(--color-text-secondary)] border-[var(--color-border)]'
-                                    }`}
-                            >
-                                {f.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {listLoading ? (
+                    {learnedLoading ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                            {Array.from({ length: 8 }).map((_, i) => (
-                                <Skeleton key={i} className="h-[320px] rounded-2xl" />
-                            ))}
+                            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}
                         </div>
-                    ) : filteredListVocab.length > 0 ? (
+                    ) : learnedWords.length === 0 ? (
+                        <div className="card p-12 text-center rounded-2xl">
+                            <Sparkles className="w-12 h-12 text-violet-500/60 mx-auto mb-4" />
+                            <p className="text-[var(--color-text-secondary)]">{t('vocabulary.noLearnedWords')}</p>
+                        </div>
+                    ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                            {filteredListVocab.map((vocab, index) => (
+                            {learnedWords.map((vocab, index) => (
                                 <motion.div
                                     key={vocab.id}
                                     initial={{ opacity: 0, y: 8 }}
@@ -405,64 +447,30 @@ export default function VocabularyPage() {
                                     transition={{ delay: index * 0.03 }}
                                     className="group flex flex-col bg-white dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-[var(--color-border)]"
                                 >
-                                    <div className="relative h-40 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                        <img
-                                            src={vocab.imageUrl || PLACEHOLDER_IMAGE}
-                                            alt={vocab.word}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                                        <div className="absolute bottom-3 left-3">
-                                            <h3 className="text-white text-lg font-bold">{vocab.word}</h3>
+                                    <div className="p-5 flex flex-col gap-3 flex-1">
+                                        <div className="flex items-start justify-between">
+                                            <h3 className="text-lg font-bold text-[var(--color-text)]">{vocab.word}</h3>
+                                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                                {t('vocabulary.mastered')}
+                                            </span>
                                         </div>
-                                    </div>
-                                    <div className="p-4 flex flex-col gap-3 flex-1">
-                                        <p className="text-sm font-medium text-[var(--color-text)] line-clamp-2 min-h-[2.5rem]">
-                                            {vocab.meaning || t('vocabulary.noMeaning')}
-                                        </p>
-                                        <p className="text-xs italic text-[var(--color-text-secondary)] min-h-[1rem]">
-                                            {vocab.pronunciation ? `/${vocab.pronunciation}/` : '—'}
-                                        </p>
-                                        <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 min-h-[2rem]">
-                                            {vocab.exampleSentence || t('vocabulary.noExample')}
-                                        </p>
-
-                                        <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
-                                            <button
-                                                onClick={() => vocab.audioUrl && playAudio(vocab.audioUrl)}
-                                                disabled={!vocab.audioUrl}
-                                                className="flex items-center justify-center gap-1 h-10 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 text-primary-500 font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                            >
+                                        {vocab.pronunciation && (
+                                            <p className="text-xs italic text-[var(--color-text-secondary)]">/{vocab.pronunciation}/</p>
+                                        )}
+                                        <p className="text-sm font-medium text-[var(--color-text)] line-clamp-2">{vocab.meaning || t('vocabulary.noMeaning')}</p>
+                                        {vocab.exampleSentence && (
+                                            <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 mt-auto">"{vocab.exampleSentence}"</p>
+                                        )}
+                                        {vocab.audioUrl && (
+                                            <button onClick={() => playAudio(vocab.audioUrl)}
+                                                className="flex items-center justify-center gap-1 h-9 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 text-primary-500 font-semibold text-sm transition-colors mt-2">
                                                 <Headphones className="w-4 h-4" />
                                                 {t('vocabulary.listen')}
                                             </button>
-                                            <button
-                                                onClick={async () => {
-                                                    try {
-                                                        await mistakeApi.addMistake({ vocabularyId: vocab.id })
-                                                        addToast({ type: 'success', message: `Đã thêm "${vocab.word}" vào Sổ lỗi!` })
-                                                    } catch (err) {
-                                                        console.error('Failed to add mistake from library:', err)
-                                                        addToast({ type: 'error', message: `Không thể đưa "${vocab.word}" vào Sổ lỗi lúc này.` })
-                                                    }
-                                                }}
-                                                className="flex items-center justify-center gap-1 h-10 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-semibold text-sm transition-colors"
-                                            >
-                                                <BookOpen className="w-4 h-4" />
-                                                {t('vocabulary.reviewAgain')}
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
                                 </motion.div>
                             ))}
-                        </div>
-                    ) : (
-                        <div className="card p-12 text-center rounded-2xl">
-                            <p className="text-[var(--color-text-secondary)]">
-                                {searchTerm
-                                    ? t('vocabulary.noMatchFor', { search: searchTerm })
-                                    : t('vocabulary.noVocabToDisplay')}
-                            </p>
                         </div>
                     )}
                 </motion.div>
@@ -470,4 +478,3 @@ export default function VocabularyPage() {
         </div>
     )
 }
-

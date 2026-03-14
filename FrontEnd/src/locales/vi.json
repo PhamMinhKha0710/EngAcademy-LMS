@@ -240,9 +240,11 @@
     },
     "vocabulary": {
         "title": "Từ vựng",
-        "subtitle": "Ôn tập thẻ học và tra cứu từ vựng",
+        "subtitle": "Học từ vựng theo chủ đề và theo dõi tiến độ",
         "flashcards": "Thẻ học",
         "wordList": "Danh sách",
+        "topics": "Chủ đề",
+        "learnedWords": "Từ đã học",
         "vocabularyLibrary": "Thư viện từ vựng",
         "discoverNew": "Khám phá từ mới, nghe phát âm và thêm vào sổ lỗi khi cần ôn lại.",
         "searchPlaceholder": "Tìm từ vựng...",
@@ -262,7 +264,19 @@
         "noExample": "Chưa có ví dụ",
         "card": "Thẻ",
         "cards": "Thẻ",
-        "all": "Tất cả"
+        "all": "Tất cả",
+        "selectTopic": "Chọn chủ đề để bắt đầu học",
+        "wordsCount": "{{mastered}}/{{total}} từ",
+        "topicCompleted": "Đã hoàn thành!",
+        "startLearning": "Bắt đầu học",
+        "continueLearning": "Tiếp tục học",
+        "topicDone": "Chúc mừng! Bạn đã hoàn thành chủ đề này!",
+        "noMoreWords": "Không còn từ nào cần học trong chủ đề này.",
+        "backToTopics": "Quay lại chủ đề",
+        "noLearnedWords": "Chưa có từ nào đã học. Hãy chọn chủ đề và bắt đầu học!",
+        "mastered": "Đã thuộc",
+        "learning": "Đang học",
+        "noTopics": "Chưa có chủ đề nào."
     },
     "exams": {
         "title": "Bài thi",
