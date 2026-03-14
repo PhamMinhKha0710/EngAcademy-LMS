@@ -211,6 +211,7 @@ export default function Login() {
 
                                 <button
                                     type="button"
+                                    onClick={() => googleLoginFlow()}
                                     className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-lg font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-3"
                                 >
                                     <svg className="w-6 h-6" viewBox="0 0 24 24">

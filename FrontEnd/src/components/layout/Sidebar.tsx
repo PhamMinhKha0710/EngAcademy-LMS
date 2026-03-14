@@ -50,12 +50,19 @@ const teacherMenuItems: MenuItem[] = [
     { icon: BarChart3, labelKey: 'sidebar.progress', path: '/teacher/progress' },
 ]
 
-const Sidebar = () => {
+interface SidebarProps {
+    onClose?: () => void;
+}
+
+const Sidebar = ({ onClose }: SidebarProps) => {
     const { t } = useTranslation()
     const location = useLocation()
     const { isTeacher, isStudent } = useRole()
     const user = useAuthStore((s) => s.user)
     const [questProgress, setQuestProgress] = useState({ completed: 0, total: 0 })
+
+    const userLevel = user?.exp ? Math.floor(user.exp / 1000) + 1 : 1
+    const questPercent = questProgress.total > 0 ? (questProgress.completed / questProgress.total) * 100 : 0
 
     useEffect(() => {
         if (isStudent) {
@@ -68,19 +75,6 @@ const Sidebar = () => {
                 .catch(() => { })
         }
     }, [isStudent])
-
-  useEffect(() => {
-    if (isStudent) {
-      questApi
-        .getToday()
-        .then((q) => {
-          const total = q?.tasks?.length ?? 0;
-          const completed = q?.tasks?.filter((t) => t.completed).length ?? 0;
-          setQuestProgress({ completed, total });
-        })
-        .catch(() => {});
-    }
-  }, [isStudent]);
 
     return (
         <aside className="fixed left-0 top-16 bottom-0 w-64 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-20">
@@ -127,6 +121,7 @@ const Sidebar = () => {
                         <Link
                             key={item.path}
                             to={item.path}
+                            onClick={onClose}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                                 ${isActive
                                     ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'

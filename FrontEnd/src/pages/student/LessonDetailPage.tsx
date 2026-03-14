@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
     ArrowLeft,
     BookOpen,
@@ -25,13 +26,6 @@ import Badge from '../../components/ui/Badge'
 
 type TabKey = 'content' | 'grammar' | 'vocabulary' | 'practice'
 
-const getTabs = (t: (key: string, opts?: any) => string): { key: TabKey; label: string; icon: React.ReactNode }[] => [
-    { key: 'content', label: t('lessons.tabContent'), icon: <BookOpen className="w-4 h-4" /> },
-    { key: 'grammar', label: t('lessons.tabGrammar'), icon: <FileText className="w-4 h-4" /> },
-    { key: 'vocabulary', label: t('lessons.tabVocabulary'), icon: <Languages className="w-4 h-4" /> },
-    { key: 'practice', label: t('lessons.tabPractice'), icon: <Dumbbell className="w-4 h-4" /> },
-]
-
 function fireConfetti() {
     confetti({
         particleCount: 80,
@@ -42,6 +36,7 @@ function fireConfetti() {
 }
 
 export default function LessonDetailPage() {
+    const { t } = useTranslation()
     const { id } = useParams<{ id: string }>()
     const user = useAuthStore((s) => s.user)
     const { addToast } = useToastStore()
@@ -52,7 +47,13 @@ export default function LessonDetailPage() {
     const [activeTab, setActiveTab] = useState<TabKey>('content')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const tabs = getTabs(t)
+
+    const getTabs = useMemo(() => [
+        { key: 'content' as TabKey, label: t('lessons.tabContent'), icon: <BookOpen className="w-4 h-4" /> },
+        { key: 'grammar' as TabKey, label: t('lessons.tabGrammar'), icon: <FileText className="w-4 h-4" /> },
+        { key: 'vocabulary' as TabKey, label: t('lessons.tabVocabulary'), icon: <Languages className="w-4 h-4" /> },
+        { key: 'practice' as TabKey, label: t('lessons.tabPractice'), icon: <Dumbbell className="w-4 h-4" /> },
+    ], [t])
 
     const [answers, setAnswers] = useState<Record<number, number[]>>({})
     const [showResults, setShowResults] = useState(false)
@@ -134,7 +135,7 @@ export default function LessonDetailPage() {
         // tránh race condition ghi đè % cũ trước khi load xong
         if (!progressLoaded || !user?.id || !lessonId || completed) return;
         
-        const totalTabs = TABS.length;
+        const totalTabs = getTabs.length;
         const visitedCount = Object.values(visitedTabs).filter(Boolean).length;
         let basePercentage = Math.floor((visitedCount / totalTabs) * 80);
         
@@ -367,7 +368,7 @@ export default function LessonDetailPage() {
                 </motion.section>
 
                 <nav className="flex overflow-x-auto gap-2 py-1">
-                    {TABS.map((tab) => (
+                    {getTabs.map((tab) => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
@@ -630,44 +631,6 @@ export default function LessonDetailPage() {
                                         </motion.div>
                                     ))}
 
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4"
-                                    >
-                                        {showResults ? (
-                                            <>
-                                                <div>
-                                                    <p className="text-lg font-bold text-[var(--color-text)]">
-                                                        Kết quả: {quizScore}/{questions.length} câu đúng
-                                                    </p>
-                                                    <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                                                        {quizScore === questions.length
-                                                            ? 'Xuất sắc! Bạn đã trả lời đúng tất cả!'
-                                                            : 'Ôn lại và thử lại nhé!'}
-                                                    </p>
-                                                </div>
-                                                <button onClick={handleResetQuiz} className="btn-secondary">
-                                                    Làm lại
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p className="text-sm text-[var(--color-text-secondary)]">
-                                                    Đã trả lời {Object.keys(answers).length}/{questions.length} câu
-                                                </p>
-                                                <button
-                                                    onClick={handleSubmitQuiz}
-                                                    disabled={Object.keys(answers).length === 0}
-                                                    className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-                                                >
-                                                    Nộp bài
-                                                </button>
-                                            </>
-                                        )}
-                                    </motion.div>
-                                ))}
-
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
@@ -747,4 +710,5 @@ export default function LessonDetailPage() {
             </footer>
         </div>
     )
+
 }

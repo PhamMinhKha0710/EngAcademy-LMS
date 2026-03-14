@@ -125,7 +125,7 @@ public class AuthController {
     @PostMapping("/google")
     @Operation(summary = "Đăng nhập bằng Google")
     public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(
-            @RequestBody @Valid com.englishlearn.presentation.dto.request.GoogleLoginRequest request) {
+            @RequestBody @Valid com.englishlearn.application.dto.request.GoogleLoginRequest request) {
         AuthResponse response = authService.googleLogin(request);
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập Google thành công", response));
     }
