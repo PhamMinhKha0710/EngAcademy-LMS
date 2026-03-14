@@ -34,4 +34,6 @@ public class CreateUserRequest {
 
     @NotEmpty(message = "At least one role is required")
     private List<String> roles;
+
+    private Long schoolId;
 }

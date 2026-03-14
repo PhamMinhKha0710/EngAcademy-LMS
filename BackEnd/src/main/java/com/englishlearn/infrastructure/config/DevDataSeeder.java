@@ -49,9 +49,76 @@ public class DevDataSeeder {
         @Bean
         public CommandLineRunner devSeedData() {
                 return args -> {
+                        try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter("db_debug.txt"))) {
+                                writer.println("=== DIAGNOSTIC REPORT - " + LocalDateTime.now() + " ===");
+                                
+                                // 1. Check Roles
+                                writer.println("\n--- ROLES ---");
+                                List<Role> roles = roleRepository.findAll();
+                                roles.forEach(r -> writer.println("ID: " + r.getId() + ", Name: " + r.getName()));
+                                
+                                // 2. Check Schools
+                                writer.println("\n--- SCHOOLS ---");
+                                List<School> schools = schoolRepository.findAll();
+                                schools.forEach(s -> writer.println("ID: " + s.getId() + ", Name: " + s.getName()));
+                                
+                                if (schools.isEmpty()) {
+                                    writer.println("WARNING: No schools found. Creating default school.");
+                                    School defaultSchool = schoolRepository.save(School.builder()
+                                        .name("Trường THCS Nguyễn Du")
+                                        .isActive(true)
+                                        .build());
+                                    schools.add(defaultSchool);
+                                }
+                                School targetSchool = schools.get(0);
+
+                                // 3. Check and Fix Users
+                                writer.println("\n--- USERS & FIXES ---");
+                                List<User> users = userRepository.findAll();
+                                Role teacherRole = roleRepository.findByName(Role.TEACHER).orElse(null);
+                                Role studentRole = roleRepository.findByName(Role.STUDENT).orElse(null);
+                                Role schoolRole = roleRepository.findByName(Role.SCHOOL).orElse(null);
+
+                                for (User u : users) {
+                                    boolean changed = false;
+                                    writer.print("User: " + u.getUsername() + " (ID: " + u.getId() + ")");
+                                    
+                                    // Fix School association
+                                    if (u.getSchool() == null && !u.getUsername().equals("admin")) {
+                                        u.setSchool(targetSchool);
+                                        changed = true;
+                                        writer.print(" | FIXED: Added School " + targetSchool.getId());
+                                    }
+
+                                    // Fix Roles based on username/email hints if empty
+                                    if (u.getRoles().isEmpty()) {
+                                        if (u.getUsername().contains("teacher") || u.getEmail().contains("teacher")) {
+                                            if (teacherRole != null) u.getRoles().add(teacherRole);
+                                        } else if (u.getUsername().contains("student") || u.getEmail().contains("student")) {
+                                            if (studentRole != null) u.getRoles().add(studentRole);
+                                        } else if (u.getUsername().contains("school") || u.getEmail().contains("school")) {
+                                            if (schoolRole != null) u.getRoles().add(schoolRole);
+                                        }
+                                        if (!u.getRoles().isEmpty()) {
+                                            changed = true;
+                                            writer.print(" | FIXED: Added Roles " + u.getRoles().stream().map(Role::getName).toList());
+                                        }
+                                    }
+
+                                    if (changed) {
+                                        userRepository.save(u);
+                                    }
+                                    writer.println(" | Final Roles: " + u.getRoles().stream().map(Role::getName).toList() + 
+                                                   " | School: " + (u.getSchool() != null ? u.getSchool().getId() : "NULL"));
+                                }
+                                
+                                writer.println("\n=== END OF REPORT ===");
+                        } catch (java.io.IOException e) {
+                                log.error("Failed to write diagnostic report", e);
+                        }
+
                         if (userRepository.findByUsername(SEED_ADMIN_USERNAME).isPresent()) {
-                                log.info("Dev data already present (user '{}' exists). Skip full seed, run grammar backfill.",
-                                                SEED_ADMIN_USERNAME);
+                                log.info("Dev data present. Integrity check completed. Grammar backfill starting.");
                                 backfillGrammarForExistingLessons();
                                 return;
                         }
@@ -64,21 +131,7 @@ public class DevDataSeeder {
                         Role roleTeacher = roleRepository.findByName(Role.TEACHER).orElseThrow();
                         Role roleStudent = roleRepository.findByName(Role.STUDENT).orElseThrow();
 
-                        // ── 2. Users ──
-                        User admin = userRepository.save(createUser("admin", "admin@school.edu.vn", SEED_ADMIN_PASSWORD,
-                                        "Quản trị viên", Set.of(roleAdmin), null));
-                        User schoolUser = userRepository.save(createUser("school1", "school@school.edu.vn",
-                                        SEED_SCHOOL_PASSWORD, "Trường THCS Nguyễn Du", Set.of(roleSchool), null));
-                        User teacher = userRepository.save(createUser("teacher1", "teacher@school.edu.vn",
-                                        SEED_TEACHER_PASSWORD, "Nguyễn Thị Hương", Set.of(roleTeacher), null));
-                        User student1 = userRepository.save(createUser("student1", "student1@school.edu.vn",
-                                        SEED_STUDENT_PASSWORD, "Trần Minh Khoa", Set.of(roleStudent), null));
-                        User student2 = userRepository.save(createUser("student2", "student2@school.edu.vn",
-                                        SEED_STUDENT_PASSWORD, "Lê Thị Mai", Set.of(roleStudent), null));
-                        User student3 = userRepository.save(createUser("student3", "student3@school.edu.vn",
-                                        SEED_STUDENT_PASSWORD, "Phạm Văn Đức", Set.of(roleStudent), null));
-
-                        // ── 3. School ──
+                        // ── 2. School ──
                         School school = schoolRepository.save(School.builder()
                                         .name("Trường THCS Nguyễn Du")
                                         .address("123 Nguyễn Du, Quận 1, TP.HCM")
@@ -88,8 +141,19 @@ public class DevDataSeeder {
                                         .trialEndDate(LocalDate.now().plusMonths(6))
                                         .build());
 
-                        schoolUser.setSchool(school);
-                        userRepository.save(schoolUser);
+                        // ── 3. Users ──
+                        User admin = userRepository.save(createUser("admin", "admin@school.edu.vn", SEED_ADMIN_PASSWORD,
+                                        "Quản trị viên", Set.of(roleAdmin), null));
+                        User schoolUser = userRepository.save(createUser("school1", "school@school.edu.vn",
+                                        SEED_SCHOOL_PASSWORD, "Trường THCS Nguyễn Du", Set.of(roleSchool), school));
+                        User teacher = userRepository.save(createUser("teacher1", "teacher@school.edu.vn",
+                                        SEED_TEACHER_PASSWORD, "Nguyễn Thị Hương", Set.of(roleTeacher), school));
+                        User student1 = userRepository.save(createUser("student1", "student1@school.edu.vn",
+                                        SEED_STUDENT_PASSWORD, "Trần Minh Khoa", Set.of(roleStudent), school));
+                        User student2 = userRepository.save(createUser("student2", "student2@school.edu.vn",
+                                        SEED_STUDENT_PASSWORD, "Lê Thị Mai", Set.of(roleStudent), school));
+                        User student3 = userRepository.save(createUser("student3", "student3@school.edu.vn",
+                                        SEED_STUDENT_PASSWORD, "Phạm Văn Đức", Set.of(roleStudent), school));
 
                         // ── 4. ClassRooms ──
                         ClassRoom class6A = classRoomRepository.save(ClassRoom.builder()

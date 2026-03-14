@@ -39,16 +39,14 @@ export default function ForgotPassword() {
                 const active = i === currentIdx
                 return (
                     <div key={s.key} className="flex items-center gap-1">
-                        <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all ${
-                            done   ? 'bg-emerald-500 text-white' :
-                            active ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' :
-                                     'bg-slate-200 dark:bg-slate-700 text-slate-400'
-                        }`}>
+                        <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all ${done ? 'bg-emerald-500 text-white' :
+                                active ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' :
+                                    'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                            }`}>
                             {done ? '✓' : i + 1}
                         </div>
-                        <span className={`text-xs font-medium hidden sm:block ${
-                            active ? 'text-blue-500' : done ? 'text-emerald-500' : 'text-slate-400'
-                        }`}>{s.label}</span>
+                        <span className={`text-xs font-medium hidden sm:block ${active ? 'text-blue-500' : done ? 'text-emerald-500' : 'text-slate-400'
+                            }`}>{s.label}</span>
                         {i < 3 && <div className={`w-5 h-0.5 mx-0.5 transition-all ${done ? 'bg-emerald-400' : 'bg-slate-200 dark:bg-slate-700'}`} />}
                     </div>
                 )
@@ -71,27 +69,61 @@ export default function ForgotPassword() {
     }
 
     // ─── Step 2: Nhập mật khẩu mới + Gửi OTP ─────────────────────────────────
+    // const handleSendOtp = async (e: React.FormEvent) => {
+    //     e.preventDefault()
+    //     if (newPassword.length < 6) {
+    //         setError('Mật khẩu mới phải có ít nhất 6 ký tự')
+    //         return
+    //     }
+    //     if (newPassword !== confirmPassword) {
+    //         setError('Mật khẩu xác nhận không khớp')
+    //         return
+    //     }
+    //     setError(null)
+    //     setIsLoading(true)
+    //     try {
+    //         await authApi.forgotPassword(email)
+    //         setStep('otp')
+    //     } catch (err: any) {
+    //         setError(err?.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
+    //     } finally {
+    //         setIsLoading(false)
+    //     }
+    // }
+
     const handleSendOtp = async (e: React.FormEvent) => {
-        e.preventDefault()
+        e.preventDefault();
+
         if (newPassword.length < 6) {
             setError(t('auth.forgotPassword.error.passwordLength'))
             return
         }
+
         if (newPassword !== confirmPassword) {
             setError(t('auth.forgotPassword.error.confirmMismatch'))
             return
         }
-        setError(null)
-        setIsLoading(true)
+
+        // kiểm tra có số và ký tự đặc biệt
+        const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])/;
+
+        if (!passwordRegex.test(newPassword)) {
+            setError("Mật khẩu phải chứa ít nhất 1 số và 1 ký tự đặc biệt");
+            return;
+        }
+
+        setError(null);
+        setIsLoading(true);
+
         try {
-            await authApi.forgotPassword(email)
-            setStep('otp')
+            await authApi.forgotPassword(email);
+            setStep("otp");
         } catch (err: any) {
             setError(err?.response?.data?.message || t('auth.forgotPassword.error.generic'))
         } finally {
-            setIsLoading(false)
+            setIsLoading(false);
         }
-    }
+    };
 
     // ─── OTP Input Handlers ────────────────────────────────────────────────────
     const handleOtpChange = (index: number, value: string) => {
@@ -166,7 +198,7 @@ export default function ForgotPassword() {
                                         {t('auth.forgotPassword.emailLabel')}
                                     </label>  
                                     <div className="relative">
-                                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        {/* <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /> */}
                                         <input
                                             type="email"
                                             value={email}

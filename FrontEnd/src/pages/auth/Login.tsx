@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
+import { useToastStore } from '../../store/toastStore'
 import { getRoleDashboard } from '../../lib/roles'
-import { User, Lock, ArrowRight } from 'lucide-react'
+import { UserIcon as User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { useGoogleLogin } from '@react-oauth/google'
 
 const LOGIN_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBwz77tXPhtaVu71kbj1TYD3l4p2jrk53hH9M-HUwzmI7Fd3fWTYTOoNvYzVAjftKhQi5Jxkumt-seiEd19PZ1EC5OwFpB2Mx8kj-G71H1R4G_vTXX_Hdo9NUrxac0RBZ5S-5AqOr4pHkyyVlFfh0g2hLjLffj0oYKdDAkvlVBrNv1rkeVAPGMfBzHo5in_EZJXI3Ozc10qM9DqUa6fjv54CLAIwXJWRxRYMZ_EYlywsq2vHs2I7zOnlD5maL2lAaiEJSJQPu3K1d9u'
 
@@ -11,10 +13,39 @@ export default function Login() {
     const { t } = useTranslation()
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
     const [roleError, setRoleError] = useState('')
     const { login, isLoading, error, isAuthenticated, user, clearError } = useAuthStore()
+    const { addToast } = useToastStore()
     const navigate = useNavigate()
+
+    const googleLoginFlow = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            setRoleError('')
+            clearError()
+            try {
+                // When using useGoogleLogin, we receive an access_token by default, 
+                // not an ID token (credential). We send it to backend to fetch user info.
+                await useAuthStore.getState().loginWithGoogle(tokenResponse.access_token)
+                
+                const authState = useAuthStore.getState()
+                const roles = authState.user?.roles || []
+                if (roles.length === 0) {
+                    setRoleError('Tài khoản không có quyền truy cập')
+                    return
+                }
+                navigate(getRoleDashboard(roles), { replace: true })
+            } catch {
+                 // error
+            }
+        },
+        onError: () => setRoleError('Đăng nhập Google thất bại.'),
+    })
+
+    useEffect(() => {
+        clearError()
+    }, [clearError])
 
     useEffect(() => {
         if (isAuthenticated && user?.roles?.length) {
@@ -34,9 +65,10 @@ export default function Login() {
                 setRoleError(t('auth.accountNoAccess'))
                 return
             }
+            addToast({ type: 'success', message: 'Đăng nhập thành công! Chào mừng bạn.' })
             navigate(getRoleDashboard(roles), { replace: true })
         } catch {
-            // error handled by store
+            addToast({ type: 'error', message: 'Sai thông tin đăng nhập! Vui lòng kiểm tra lại.' })
         }
     }
 
@@ -113,13 +145,24 @@ export default function Login() {
                                             <Lock className="absolute left-4 w-5 h-5 text-primary-500" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                                             <input
                                                 id="password"
-                                                type="password"
+                                                type={showPassword ? "text" : "password"}
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 className="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent focus:border-primary-500 focus:ring-0 text-slate-900 dark:text-white placeholder-slate-500 font-medium text-lg transition-all"
                                                 placeholder={t('auth.passwordPlaceholder')} 
                                                 required
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-4 p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none"
+                                            >
+                                                {showPassword ? (
+                                                    <EyeOff className="w-5 h-5" strokeWidth={2} />
+                                                ) : (
+                                                    <Eye className="w-5 h-5" strokeWidth={2} />
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
 

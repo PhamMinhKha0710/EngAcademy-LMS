@@ -34,4 +34,6 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
 
     @Query("SELECT COUNT(c) FROM ClassRoom c WHERE c.school.id = :schoolId AND c.isActive = true")
     Long countClassesBySchoolId(@Param("schoolId") Long schoolId);
+
+    long countByIsActiveTrue();
 }

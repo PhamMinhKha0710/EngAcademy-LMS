@@ -6,12 +6,22 @@ import { useAuthStore } from '../../store/authStore'
 import { questApi } from '../../services/api/questApi'
 import ProgressBar from '../ui/ProgressBar'
 import {
-    LayoutDashboard, BookOpen, Languages, FileText, Trophy,
-    BookMarked, Award, Settings, GraduationCap, HelpCircle,
-    BarChart3, Flame, School
-} from 'lucide-react'
-import { ClipboardList } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+  LayoutDashboard,
+  BookOpen,
+  Languages,
+  FileText,
+  Trophy,
+  BookMarked,
+  Award,
+  Settings,
+  GraduationCap,
+  HelpCircle,
+  BarChart3,
+  Flame,
+  School,
+} from "lucide-react";
+import { ClipboardList } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface MenuItem {
     icon: LucideIcon
@@ -59,8 +69,18 @@ const Sidebar = () => {
         }
     }, [isStudent])
 
-    const questPercent = questProgress.total > 0 ? (questProgress.completed / questProgress.total) * 100 : 0
-    const userLevel = user?.coins != null ? Math.floor(user.coins / 500) + 1 : 1
+  useEffect(() => {
+    if (isStudent) {
+      questApi
+        .getToday()
+        .then((q) => {
+          const total = q?.tasks?.length ?? 0;
+          const completed = q?.tasks?.filter((t) => t.completed).length ?? 0;
+          setQuestProgress({ completed, total });
+        })
+        .catch(() => {});
+    }
+  }, [isStudent]);
 
     return (
         <aside className="fixed left-0 top-16 bottom-0 w-64 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-20">
@@ -147,13 +167,16 @@ const Sidebar = () => {
                     </div>
                 )}
 
-                {/* Settings - all users */}
-                <Link
-                    to="/settings"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 mt-4
-                        ${location.pathname === '/settings' || location.pathname === '/profile'
-                            ? 'bg-primary-500 text-white'
-                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+        {/* Settings - all users */}
+        <Link
+          to="/settings"
+          onClick={onClose}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 mt-4
+                        ${
+                          location.pathname === "/settings" ||
+                          location.pathname === "/profile"
+                            ? "bg-primary-500 text-white"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                         }`}
                 >
                     <Settings className="w-5 h-5 shrink-0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
@@ -164,4 +187,4 @@ const Sidebar = () => {
     )
 }
 
-export default Sidebar
+export default Sidebar;

@@ -13,6 +13,7 @@ import com.englishlearn.infrastructure.persistence.PasswordResetTokenRepository;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import com.englishlearn.infrastructure.security.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +26,11 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -36,6 +42,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -66,7 +73,7 @@ public class AuthService {
         return buildAuthResponse(savedUser);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -74,6 +81,11 @@ public class AuthService {
 
         var user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Tài khoản", "username", request.getUsername()));
+
+        // Log the login event
+        String ipAddress = httpServletRequest.getRemoteAddr();
+        String userAgent = httpServletRequest.getHeader("User-Agent");
+        auditLogService.log(user.getId(), "LOGIN", "Đăng nhập thành công", ipAddress, userAgent);
 
         return buildAuthResponse(user);
     }
@@ -156,6 +168,67 @@ public class AuthService {
         // Đánh dấu token đã dùng
         token.setUsed(true);
         passwordResetTokenRepository.save(token);
+    }
+
+    @Transactional
+    public AuthResponse googleLogin(com.englishlearn.presentation.dto.request.GoogleLoginRequest request) {
+        try {
+            // Using Access Token to fetch user profile via Google OAuth2 api
+            String userInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
+            com.google.api.client.http.HttpRequestFactory requestFactory = new NetHttpTransport().createRequestFactory();
+            com.google.api.client.http.HttpRequest httpRequest = requestFactory.buildGetRequest(new com.google.api.client.http.GenericUrl(userInfoUrl));
+            httpRequest.getHeaders().setAuthorization("Bearer " + request.getAccessToken());
+
+            com.google.api.client.http.HttpResponse httpResponse = httpRequest.execute();
+            String jsonResponse = httpResponse.parseAsString();
+            
+            // Parse JSON manually
+            com.google.gson.JsonObject payload = com.google.gson.JsonParser.parseString(jsonResponse).getAsJsonObject();
+
+            if (!payload.has("email")) {
+                throw new RuntimeException("Không tìm thấy Email từ Google Account");
+            }
+            
+            String email = payload.get("email").getAsString();
+            String name = payload.has("name") ? payload.get("name").getAsString() : "Người dùng Google";
+            String pictureUrl = payload.has("picture") ? payload.get("picture").getAsString() : null;
+
+            // Tim xem DB đã có user này chưa
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                // Tạo user mới tự động với Role Default
+                Role userRole = roleRepository.findByName(Role.STUDENT)
+                        .orElseThrow(() -> new ResourceNotFoundException("Vai trò", "name", Role.STUDENT));
+
+                // Username lấy phần trước @ của email (ví dụ: nguyenphong@... -> nguyenphong)
+                // Cần đảm bảo duy nhất
+                String baseUsername = email.split("@")[0];
+                String username = baseUsername;
+                int suffix = 1;
+                while (userRepository.existsByUsername(username)) {
+                    username = baseUsername + suffix++;
+                }
+
+                user = User.builder()
+                        .username(username)
+                        .email(email)
+                        // Pass giả lập random (người dùng Google không cần password)
+                        .passwordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                        .fullName(name)
+                        .avatarUrl(pictureUrl)
+                        .isActive(true)
+                        .build();
+
+                user.getRoles().add(userRole);
+                user = userRepository.save(user);
+            }
+
+            return buildAuthResponse(user);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi xác thực Google: " + e.getMessage());
+        }
     }
 
     private AuthResponse buildAuthResponse(User user) {

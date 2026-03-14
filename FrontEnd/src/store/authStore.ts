@@ -1,16 +1,25 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { authApi, LoginRequest, RegisterRequest, User, AuthResponse } from '../services/api/authApi'
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import {
+  authApi,
+  LoginRequest,
+  RegisterRequest,
+  User,
+  AuthResponse,
+} from "../services/api/authApi";
 
 const clearExamSessionCache = () => {
-    if (typeof sessionStorage === 'undefined') return
-    const keys = Object.keys(sessionStorage)
-    for (const key of keys) {
-        if (key.startsWith('exam_result_') || key.startsWith('exam_submit_success_')) {
-            sessionStorage.removeItem(key)
-        }
+  if (typeof sessionStorage === "undefined") return;
+  const keys = Object.keys(sessionStorage);
+  for (const key of keys) {
+    if (
+      key.startsWith("exam_result_") ||
+      key.startsWith("exam_submit_success_")
+    ) {
+      sessionStorage.removeItem(key);
     }
-}
+  }
+};
 
 interface AuthState {
     user: User | null
@@ -22,6 +31,7 @@ interface AuthState {
 
     // Actions
     login: (credentials: LoginRequest) => Promise<void>
+    loginWithGoogle: (accessToken: string) => Promise<void>
     register: (data: RegisterRequest) => Promise<void>
     logout: () => void
     clearError: () => void
@@ -30,12 +40,43 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-    persist(
-        (set, get) => ({
-            user: null,
-            accessToken: null,
-            refreshToken: null,
-            isAuthenticated: false,
+  persist(
+    (set, get) => ({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+
+      login: async (credentials: LoginRequest) => {
+        set({ isLoading: true, error: null });
+        try {
+          clearExamSessionCache();
+          const response: AuthResponse = await authApi.login(credentials);
+
+          // Map AuthResponse to User
+          const user: User = {
+            id: response.id,
+            username: response.username,
+            email: response.email,
+            fullName: response.username, // Will be fetched from /users/me
+            roles: response.roles,
+          };
+
+          set({
+            user,
+            accessToken: response.accessToken,
+            refreshToken: response.refreshToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+
+          // Fetch full user profile
+          await get().fetchCurrentUser();
+        } catch (error: any) {
+          set({
+            error: error.response?.data?.message || "Đăng nhập thất bại",
             isLoading: false,
             error: null,
 
@@ -43,14 +84,13 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true, error: null })
                 try {
                     clearExamSessionCache()
-                    const response: AuthResponse = await authApi.login(credentials)
-
-                    // Map AuthResponse to User
+                    const response = await authApi.login(credentials)
+                    
                     const user: User = {
                         id: response.id,
                         username: response.username,
                         email: response.email,
-                        fullName: response.username, // Will be fetched from /users/me
+                        fullName: response.username,
                         roles: response.roles,
                     }
 
@@ -67,6 +107,38 @@ export const useAuthStore = create<AuthState>()(
                 } catch (error: any) {
                     set({
                         error: error.response?.data?.message || 'Đăng nhập thất bại',
+                        isLoading: false,
+                    })
+                    throw error
+                }
+            },
+
+            loginWithGoogle: async (accessToken: string) => {
+                set({ isLoading: true, error: null })
+                try {
+                    clearExamSessionCache()
+                    const response = await authApi.loginWithGoogle(accessToken)
+
+                    const user: User = {
+                        id: response.id,
+                        username: response.username,
+                        email: response.email,
+                        fullName: response.username,
+                        roles: response.roles,
+                    }
+
+                    set({
+                        user,
+                        accessToken: response.accessToken, // use token returned from oauth api
+                        refreshToken: response.refreshToken,
+                        isAuthenticated: true,
+                        isLoading: false,
+                    })
+
+                    await get().fetchCurrentUser()
+                } catch (error: any) {
+                    set({
+                        error: error.response?.data?.message || 'Đăng nhập Google thất bại',
                         isLoading: false,
                     })
                     throw error
@@ -94,6 +166,7 @@ export const useAuthStore = create<AuthState>()(
                         isAuthenticated: true,
                         isLoading: false,
                     })
+                    await get().fetchCurrentUser()
                 } catch (error: any) {
                     set({
                         error: error.response?.data?.message || 'Đăng ký thất bại',
@@ -136,8 +209,34 @@ export const useAuthStore = create<AuthState>()(
                 isAuthenticated: state.isAuthenticated,
             }),
         }
-    )
-)
+      },
+
+      logout: () => {
+        clearExamSessionCache();
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          error: null,
+        });
+      },
+
+      clearError: () => set({ error: null }),
+
+      setUser: (user: User | null) => set({ user }),
+    }),
+    {
+      name: "auth-storage",
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    },
+  ),
+);
 
 // Re-export User type for convenience
-export type { User } from '../services/api/authApi'
+export type { User } from "../services/api/authApi";

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,15 @@ import {
     Eye,
     Send,
     Lock,
+    Clock,
+    Calendar,
+    CheckCircle2,
+    TrendingUp,
+    Target,
+    Layers,
+    Loader2
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 import { useAppSelector } from '@/app/hooks'
@@ -30,13 +38,10 @@ import type {
     Page,
 } from '@/types/api'
 
-const STATUS_CONFIG: Record<
-    string,
-    { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
-> = {
-    DRAFT: { label: 'Nháp', variant: 'secondary' },
-    PUBLISHED: { label: 'Đang mở', variant: 'default' },
-    CLOSED: { label: 'Đã đóng', variant: 'outline' },
+const STATUS_CONFIG: Record<string, { label: string; icon: any; className: string }> = {
+    DRAFT: { label: 'Bản nháp', icon: FileText, className: 'bg-muted/20 text-muted-foreground border-border/30' },
+    PUBLISHED: { label: 'Đang mở', icon: CheckCircle2, className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
+    CLOSED: { label: 'Đã đóng', icon: Lock, className: 'bg-destructive/10 text-destructive border-destructive/20' },
 }
 
 const emptyForm: ExamRequest = {
@@ -61,46 +66,46 @@ export default function ExamsPage() {
     const [loading, setLoading] = useState(false)
     const [search, setSearch] = useState('')
 
-    // Class selector for filtering exams
     const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
-
-    // Dialog state
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editing, setEditing] = useState<Exam | null>(null)
     const [form, setForm] = useState<ExamRequest>({ ...emptyForm })
     const [submitting, setSubmitting] = useState(false)
-
-    // Delete dialog
     const [deleteOpen, setDeleteOpen] = useState(false)
     const [deleting, setDeleting] = useState<Exam | null>(null)
-
-    // Question search in the multi-select
     const [questionSearch, setQuestionSearch] = useState('')
+    const [statsData, setStatsData] = useState<any>(null)
+
+    const fetchDashboardStats = async () => {
+        try {
+            const response = await api.get<ApiResponse<any>>('/dashboard/stats')
+            if (response.data.success) {
+                setStatsData(response.data.data)
+            }
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error)
+        }
+    }
 
     const fetchClasses = async () => {
         try {
             const response = await api.get<ApiResponse<ClassRoom[]>>('/classes')
             const data = response.data.data
             setClasses(Array.isArray(data) ? data : [])
-        } catch {
-            setClasses([])
-        }
+            if (Array.isArray(data) && data.length > 0 && !selectedClassId) {
+                setSelectedClassId(data[0].id)
+            }
+        } catch { setClasses([]) }
     }
 
     const fetchQuestions = async () => {
         try {
             const response = await api.get<ApiResponse<Question[] | Page<Question>>>('/questions')
             const data = response.data.data
-            if (Array.isArray(data)) {
-                setQuestions(data)
-            } else if (data && 'content' in data) {
-                setQuestions(data.content)
-            } else {
-                setQuestions([])
-            }
-        } catch {
-            setQuestions([])
-        }
+            if (Array.isArray(data)) setQuestions(data)
+            else if (data && 'content' in data) setQuestions(data.content)
+            else setQuestions([])
+        } catch { setQuestions([]) }
     }
 
     const fetchExams = useCallback(async (classId: number) => {
@@ -111,22 +116,18 @@ export default function ExamsPage() {
         } catch {
             toast.error('Không thể tải danh sách bài thi')
             setExams([])
-        } finally {
-            setLoading(false)
-        }
+        } finally { setLoading(false) }
     }, [])
 
     useEffect(() => {
         fetchClasses()
         fetchQuestions()
+        fetchDashboardStats()
     }, [])
 
     useEffect(() => {
-        if (selectedClassId) {
-            fetchExams(selectedClassId)
-        } else {
-            setExams([])
-        }
+        if (selectedClassId) fetchExams(selectedClassId)
+        else setExams([])
     }, [selectedClassId, fetchExams])
 
     const resetForm = () => {
@@ -138,40 +139,38 @@ export default function ExamsPage() {
 
     const openCreate = () => {
         resetForm()
-        setForm({
-            ...emptyForm,
-            classId: selectedClassId ?? 0,
-        })
+        setForm({ ...emptyForm, classId: selectedClassId ?? 0 })
         setDialogOpen(true)
     }
 
-    const openEdit = (exam: Exam) => {
-        setEditing(exam)
-        setForm({
-            title: exam.title,
-            classId: exam.classId ?? 0,
-            startTime: exam.startTime ? exam.startTime.slice(0, 16) : '',
-            endTime: exam.endTime ? exam.endTime.slice(0, 16) : '',
-            durationMinutes: exam.durationMinutes ?? 60,
-            shuffleQuestions: exam.shuffleQuestions ?? false,
-            shuffleAnswers: exam.shuffleAnswers ?? false,
-            antiCheatEnabled: exam.antiCheatEnabled ?? false,
-            questionIds: [],
-        })
-        setDialogOpen(true)
+    const openEdit = async (exam: Exam) => {
+        setLoading(true)
+        try {
+            const response = await api.get<ApiResponse<Exam>>(`/exams/${exam.id}`)
+            const fullExam = response.data.data
+            setEditing(fullExam)
+            setForm({
+                title: fullExam.title,
+                classId: fullExam.classId ?? 0,
+                startTime: fullExam.startTime ? fullExam.startTime.slice(0, 16) : '',
+                endTime: fullExam.endTime ? fullExam.endTime.slice(0, 16) : '',
+                durationMinutes: fullExam.durationMinutes ?? 60,
+                shuffleQuestions: fullExam.shuffleQuestions ?? false,
+                shuffleAnswers: fullExam.shuffleAnswers ?? false,
+                antiCheatEnabled: fullExam.antiCheatEnabled ?? false,
+                questionIds: fullExam.questions ? fullExam.questions.map((q: Question) => q.id) : [],
+            })
+            setDialogOpen(true)
+        } catch {
+            toast.error('Không thể lấy thông tin chi tiết bài thi')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleSubmit = async () => {
-        if (!form.title.trim()) {
-            toast.error('Vui lòng nhập tiêu đề bài thi')
-            return
-        }
-        if (!form.classId) {
-            toast.error('Vui lòng chọn lớp')
-            return
-        }
-        if (!form.startTime || !form.endTime) {
-            toast.error('Vui lòng chọn thời gian bắt đầu và kết thúc')
+        if (!form.title.trim() || !form.classId || !form.startTime || !form.endTime) {
+            toast.error('Vui lòng điền đầy đủ thông tin bắt buộc')
             return
         }
 
@@ -187,17 +186,13 @@ export default function ExamsPage() {
                 await api.put(`/exams/${editing.id}`, body)
                 toast.success('Cập nhật bài thi thành công')
             } else {
-                const teacherId = user?.id ?? 0
-                await api.post(`/exams?teacherId=${teacherId}`, body)
+                await api.post(`/exams?teacherId=${user?.id ?? 0}`, body)
                 toast.success('Tạo bài thi thành công')
             }
             resetForm()
             if (selectedClassId) fetchExams(selectedClassId)
-        } catch {
-            toast.error(editing ? 'Cập nhật bài thi thất bại' : 'Tạo bài thi thất bại')
-        } finally {
-            setSubmitting(false)
-        }
+        } catch { toast.error(editing ? 'Cập nhật thất bại' : 'Tạo mới thất bại') }
+        finally { setSubmitting(false) }
     }
 
     const handleDelete = async () => {
@@ -206,9 +201,7 @@ export default function ExamsPage() {
             await api.delete(`/exams/${deleting.id}`)
             toast.success('Xóa bài thi thành công')
             if (selectedClassId) fetchExams(selectedClassId)
-        } catch {
-            toast.error('Xóa bài thi thất bại')
-        }
+        } catch { toast.error('Xóa bài thi thất bại') }
         setDeleteOpen(false)
         setDeleting(null)
     }
@@ -216,212 +209,176 @@ export default function ExamsPage() {
     const handlePublish = async (exam: Exam) => {
         try {
             await api.post(`/exams/${exam.id}/publish`)
-            toast.success(`Đã xuất bản bài thi "${exam.title}"`)
+            toast.success('Đã xuất bản bài thi')
             if (selectedClassId) fetchExams(selectedClassId)
-        } catch {
-            toast.error('Xuất bản bài thi thất bại')
-        }
+        } catch { toast.error('Lỗi khi xuất bản') }
     }
 
     const handleClose = async (exam: Exam) => {
         try {
             await api.post(`/exams/${exam.id}/close`)
-            toast.success(`Đã đóng bài thi "${exam.title}"`)
+            toast.success('Đã đóng phòng thi')
             if (selectedClassId) fetchExams(selectedClassId)
-        } catch {
-            toast.error('Đóng bài thi thất bại')
-        }
+        } catch { toast.error('Lỗi khi đóng') }
     }
 
     const toggleQuestion = (qId: number) => {
         const ids = form.questionIds ?? []
-        if (ids.includes(qId)) {
-            setForm({ ...form, questionIds: ids.filter((id) => id !== qId) })
-        } else {
-            setForm({ ...form, questionIds: [...ids, qId] })
-        }
+        setForm({ ...form, questionIds: ids.includes(qId) ? ids.filter(id => id !== qId) : [...ids, qId] })
     }
 
-    const getStatusBadge = (status: string) => {
-        const config = STATUS_CONFIG[status] || { label: status, variant: 'outline' as const }
-        return <Badge variant={config.variant}>{config.label}</Badge>
-    }
+    const filtered = exams.filter(e => e.title.toLowerCase().includes(search.toLowerCase()))
+    const filteredQuestions = questions.filter(q => q.questionText.toLowerCase().includes(questionSearch.toLowerCase()))
 
-    const formatDateTime = (dt?: string) => {
-        if (!dt) return '-'
-        try {
-            return new Date(dt).toLocaleString('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            })
-        } catch {
-            return dt
-        }
-    }
-
-    const filtered = exams.filter((e) =>
-        e.title.toLowerCase().includes(search.toLowerCase())
-    )
-
-    const filteredQuestions = questions.filter((q) =>
-        q.questionText.toLowerCase().includes(questionSearch.toLowerCase())
-    )
+    const stats = [
+        { title: 'Tổng số bài thi', value: statsData?.totalExams?.toString() || '0', icon: FileText, color: 'text-primary', bg: 'bg-primary/10' },
+        { title: 'Lượt tham gia', value: statsData?.totalAttempts?.toLocaleString() || '0', icon: Target, color: 'text-emerald-500', bg: 'bg-emerald-500/10', trend: 'up' },
+        { title: 'Điểm trung bình', value: (statsData?.averageScore || 0).toFixed(1), icon: TrendingUp, color: 'text-violet-500', bg: 'bg-violet-500/10' },
+    ]
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 pb-10">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Quản lý bài thi</h1>
-                    <p className="text-muted-foreground mt-1">
-                        {selectedClassId
-                            ? `${exams.length} bài thi trong lớp`
-                            : 'Chọn lớp để xem danh sách bài thi'}
-                    </p>
+                    <h1 className="text-3xl font-black tracking-tight uppercase">Quản lý bài thi</h1>
+                    <p className="text-muted-foreground mt-2 font-medium">Tạo đề thi, thiết lập phòng thi và theo dõi kết quả của học sinh.</p>
                 </div>
-                <Button onClick={openCreate} className="gap-2" disabled={!selectedClassId}>
-                    <Plus className="h-4 w-4" /> Tạo bài thi
+                <Button onClick={openCreate} disabled={!selectedClassId} className="h-14 px-8 rounded-2xl gap-3 font-black text-lg bg-primary shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    <Plus className="h-6 w-6" /> TẠO BÀI THI MỚI
                 </Button>
             </div>
 
-            {/* Class Selector */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                        <Label className="shrink-0 font-medium">Chọn lớp:</Label>
-                        <select
-                            className="flex h-10 w-full max-w-xs rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            value={selectedClassId ?? ''}
-                            onChange={(e) =>
-                                setSelectedClassId(e.target.value ? Number(e.target.value) : null)
-                            }
-                        >
-                            <option value="">-- Chọn lớp --</option>
-                            {classes.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.name} {c.schoolName ? `(${c.schoolName})` : ''}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </CardContent>
-            </Card>
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {stats.map((stat) => (
+                    <Card key={stat.title} className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden text-sm uppercase">
+                        <CardContent className="p-7 flex justify-between items-start">
+                            <div>
+                                <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center mb-5", stat.bg)}>
+                                    <stat.icon className={cn("h-6 w-6", stat.color)} />
+                                </div>
+                                <p className="text-[10px] font-black text-muted-foreground tracking-widest leading-loose">{stat.title}</p>
+                                <p className="text-4xl font-black mt-2 text-foreground tracking-tighter">{stat.value}</p>
+                            </div>
+                            {stat.trend === 'up' && (
+                                <div className="flex items-center gap-1 text-emerald-500 font-black text-[10px] bg-emerald-500/10 px-2 py-1 rounded-lg">
+                                    <TrendingUp className="h-3 w-3" /> +12%
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
 
-            {/* Exams Table */}
-            {selectedClassId && (
-                <Card>
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="flex items-center gap-2">
-                                <FileText className="h-5 w-5 text-primary" /> Danh sách bài thi
-                            </CardTitle>
-                            <div className="relative w-64">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    placeholder="Tìm kiếm..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-9"
-                                />
-                            </div>
+            {/* Selection & Table */}
+            <Card className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden">
+                <CardHeader className="p-8 pb-4">
+                    <div className="flex items-center justify-between flex-wrap gap-6">
+                        <div className="flex items-center gap-4 bg-muted/20 p-2 rounded-2xl border border-border/40">
+                            <Layers className="h-5 w-5 text-muted-foreground/40 ml-2" />
+                            <select
+                                className="bg-transparent border-none text-sm font-black focus:ring-0 cursor-pointer min-w-[200px]"
+                                value={selectedClassId ?? ''}
+                                onChange={(e) => setSelectedClassId(e.target.value ? Number(e.target.value) : null)}
+                            >
+                                <option value="">-- Chọn lớp học --</option>
+                                {classes.map(c => <option key={c.id} value={c.id}>{c.name} {c.schoolName ? `(${c.schoolName})` : ''}</option>)}
+                            </select>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? (
-                            <div className="flex items-center justify-center h-40">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                            </div>
-                        ) : filtered.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                                <FileText className="h-10 w-10 mb-2" />
-                                <p>Không tìm thấy bài thi nào</p>
-                            </div>
-                        ) : (
+                        <div className="relative group shrink-0">
+                            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <Input placeholder="Tìm đề thi..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11 h-12 w-80 bg-muted/20 border-border/50 rounded-xl font-bold" />
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-8 pt-4">
+                    {!selectedClassId ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/20">
+                            <Layers className="h-24 w-24 mb-6" />
+                            <p className="text-xl font-black italic">Vui lòng chọn lớp học để bắt đầu quản lý</p>
+                        </div>
+                    ) : loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30">Truy xuất dữ liệu đề thi...</p>
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/20">
+                            <FileText className="h-24 w-24 mb-6" />
+                            <p className="text-xl font-black italic">Không tìm thấy bài thi nào</p>
+                        </div>
+                    ) : (
+                        <div className="rounded-2xl border border-border/40 overflow-hidden shadow-sm">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-12">ID</TableHead>
-                                        <TableHead>Tiêu đề</TableHead>
-                                        <TableHead>Lớp</TableHead>
-                                        <TableHead>Trạng thái</TableHead>
-                                        <TableHead>Thời gian</TableHead>
-                                        <TableHead>Số câu hỏi</TableHead>
-                                        <TableHead className="text-right">Thao tác</TableHead>
+                                    <TableRow className="bg-muted/30 border-border/50 hover:bg-muted/30">
+                                        <TableHead className="h-14 pl-8 font-black uppercase text-[10px] tracking-widest">Đề thi</TableHead>
+                                        <TableHead className="font-black uppercase text-[10px] tracking-widest">Trạng thái</TableHead>
+                                        <TableHead className="font-black uppercase text-[10px] tracking-widest">Lịch thi</TableHead>
+                                        <TableHead className="font-black uppercase text-[10px] tracking-widest text-center">Câu hỏi</TableHead>
+                                        <TableHead className="text-right pr-8 font-black uppercase text-[10px] tracking-widest">Thao tác</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filtered.map((exam) => (
-                                        <TableRow key={exam.id}>
-                                            <TableCell className="font-medium">{exam.id}</TableCell>
-                                            <TableCell className="font-medium max-w-[200px] truncate">
-                                                {exam.title}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {exam.className || '-'}
-                                            </TableCell>
-                                            <TableCell>{getStatusBadge(exam.status)}</TableCell>
-                                            <TableCell className="text-sm">
-                                                <div>{formatDateTime(exam.startTime)}</div>
-                                                <div className="text-muted-foreground">
-                                                    {exam.durationMinutes ? `${exam.durationMinutes} phút` : ''}
+                                        <TableRow key={exam.id} className="h-24 border-border/40 hover:bg-muted/5 transition-colors group">
+                                            <TableCell className="pl-8">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-11 w-11 rounded-xl bg-primary/5 flex items-center justify-center border border-primary/10 group-hover:bg-primary/10 transition-colors">
+                                                        <FileText className="h-5 w-5 text-primary/60" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-black text-foreground group-hover:text-primary transition-colors">{exam.title}</span>
+                                                        <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-widest mt-1">ID: #{exam.id} &middot; {exam.className}</span>
+                                                    </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{exam.questionCount ?? '-'}</TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8"
-                                                        title="Xem kết quả"
-                                                        onClick={() => navigate(`/exams/${exam.id}/results`)}
-                                                    >
-                                                        <Eye className="h-4 w-4" />
+                                            <TableCell>
+                                                {exam.status && (
+                                                    <div className={cn(
+                                                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest",
+                                                        STATUS_CONFIG[exam.status]?.className
+                                                    )}>
+                                                        {(() => {
+                                                            const Icon = STATUS_CONFIG[exam.status]?.icon || FileText
+                                                            return <Icon className="h-3 w-3" />
+                                                        })()}
+                                                        {STATUS_CONFIG[exam.status]?.label}
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="flex items-center gap-2 text-xs font-bold text-foreground/70">
+                                                        <Calendar className="h-3 w-3 text-muted-foreground/40" /> {exam.startTime ? new Date(exam.startTime).toLocaleDateString('vi-VN') : '—'}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/30 uppercase">
+                                                        <Clock className="h-2.5 w-2.5" /> {exam.startTime ? new Date(exam.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '—'} - {exam.durationMinutes} PHÚT
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-center font-black text-lg text-foreground/80">{exam.questionCount}</TableCell>
+                                            <TableCell className="text-right pr-8">
+                                                <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all" onClick={() => navigate(`/exams/${exam.id}/results`)} title="Kết quả">
+                                                        <Eye className="h-5 w-5" />
                                                     </Button>
                                                     {exam.status === 'DRAFT' && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-green-600"
-                                                            title="Xuất bản"
-                                                            onClick={() => handlePublish(exam)}
-                                                        >
-                                                            <Send className="h-4 w-4" />
+                                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-600 transition-all" onClick={() => handlePublish(exam)} title="Xuất bản">
+                                                            <Send className="h-5 w-5" />
                                                         </Button>
                                                     )}
                                                     {exam.status === 'PUBLISHED' && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-orange-600"
-                                                            title="Đóng bài thi"
-                                                            onClick={() => handleClose(exam)}
-                                                        >
-                                                            <Lock className="h-4 w-4" />
+                                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-amber-500/10 text-amber-600 transition-all" onClick={() => handleClose(exam)} title="Đóng">
+                                                            <Lock className="h-5 w-5" />
                                                         </Button>
                                                     )}
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8"
-                                                        title="Chỉnh sửa"
-                                                        onClick={() => openEdit(exam)}
-                                                    >
-                                                        <Edit className="h-4 w-4" />
+                                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary/5 text-muted-foreground/40 hover:text-foreground transition-all" onClick={() => openEdit(exam)}>
+                                                        <Edit className="h-5 w-5" />
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-destructive"
-                                                        title="Xóa"
-                                                        onClick={() => {
-                                                            setDeleting(exam)
-                                                            setDeleteOpen(true)
-                                                        }}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
+                                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive transition-all" onClick={() => { setDeleting(exam); setDeleteOpen(true) }}>
+                                                        <Trash2 className="h-5 w-5" />
                                                     </Button>
                                                 </div>
                                             </TableCell>
@@ -429,197 +386,112 @@ export default function ExamsPage() {
                                     ))}
                                 </TableBody>
                             </Table>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
-            {/* Create / Edit Dialog */}
+            {/* Dialogs scaled & rounded */}
             <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm() }}>
-                <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle>{editing ? 'Chỉnh sửa bài thi' : 'Tạo bài thi mới'}</DialogTitle>
-                        <DialogDescription>
-                            {editing ? 'Cập nhật thông tin bài thi' : 'Điền đầy đủ thông tin bài thi'}
-                        </DialogDescription>
+                <DialogContent className="max-w-3xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+                    <DialogHeader className="p-8 bg-muted/20 border-b border-border/40">
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight">{editing ? 'Chỉnh sửa bài thi' : 'Thiết lập bài thi mới'}</DialogTitle>
+                        <DialogDescription className="font-medium">Cấu hình thời gian, phòng thi và danh sách câu hỏi.</DialogDescription>
                     </DialogHeader>
-                    <ScrollArea className="flex-1 pr-4 -mr-4">
-                        <div className="space-y-4 py-4 pr-4">
-                            {/* Title */}
-                            <div className="space-y-2">
-                                <Label>Tiêu đề *</Label>
-                                <Input
-                                    value={form.title}
-                                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                                    placeholder="Nhập tiêu đề bài thi"
-                                />
-                            </div>
-
-                            {/* Class */}
-                            <div className="space-y-2">
-                                <Label>Lớp *</Label>
-                                <select
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                    value={form.classId || ''}
-                                    onChange={(e) =>
-                                        setForm({ ...form, classId: Number(e.target.value) })
-                                    }
-                                >
-                                    <option value="">-- Chọn lớp --</option>
-                                    {classes.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name} {c.schoolName ? `(${c.schoolName})` : ''}
-                                        </option>
+                    <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Tiêu đề bài thi</Label>
+                                    <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="h-12 bg-muted/20 rounded-2xl border-border/50 font-bold" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Lớp học mục tiêu</Label>
+                                    <select 
+                                        className="w-full h-12 bg-muted/20 rounded-2xl border border-border/50 px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20"
+                                        value={form.classId} onChange={(e) => setForm({ ...form, classId: Number(e.target.value) })}
+                                    >
+                                        <option value={0}>-- Chọn lớp học --</option>
+                                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Ngày bắt đầu</Label>
+                                        <Input type="datetime-local" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className="h-12 bg-muted/20 rounded-2xl border-border/50 font-bold" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Ngày kết thúc</Label>
+                                        <Input type="datetime-local" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} className="h-12 bg-muted/20 rounded-2xl border-border/50 font-bold" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Thời lượng (Phút)</Label>
+                                    <Input type="number" value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })} className="h-12 bg-muted/20 rounded-2xl border-border/50 font-bold" />
+                                </div>
+                                <div className="flex flex-wrap gap-4 pt-4 border-t border-border/30">
+                                    {['shuffleQuestions', 'shuffleAnswers', 'antiCheatEnabled'].map(opt => (
+                                        <label key={opt} className="flex items-center gap-3 cursor-pointer group">
+                                            <input type="checkbox" checked={(form as any)[opt]} onChange={(e) => setForm({ ...form, [opt]: e.target.checked })} className="h-5 w-5 rounded-lg accent-primary border-border bg-muted/20" />
+                                            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">
+                                                {opt === 'shuffleQuestions' ? 'Trộn câu' : opt === 'shuffleAnswers' ? 'Trộn đáp án' : 'Chống gian lận'}
+                                            </span>
+                                        </label>
                                     ))}
-                                </select>
-                            </div>
-
-                            {/* Date/Time */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Bắt đầu *</Label>
-                                    <Input
-                                        type="datetime-local"
-                                        value={form.startTime}
-                                        onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Kết thúc *</Label>
-                                    <Input
-                                        type="datetime-local"
-                                        value={form.endTime}
-                                        onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                                    />
                                 </div>
                             </div>
 
-                            {/* Duration */}
-                            <div className="space-y-2">
-                                <Label>Thời gian làm bài (phút)</Label>
-                                <Input
-                                    type="number"
-                                    min={1}
-                                    value={form.durationMinutes}
-                                    onChange={(e) =>
-                                        setForm({ ...form, durationMinutes: Number(e.target.value) || 60 })
-                                    }
-                                />
-                            </div>
-
-                            {/* Checkboxes */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.shuffleQuestions ?? false}
-                                        onChange={(e) =>
-                                            setForm({ ...form, shuffleQuestions: e.target.checked })
-                                        }
-                                        className="h-4 w-4 rounded border-gray-300 accent-primary"
-                                    />
-                                    <span className="text-sm">Trộn câu hỏi</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.shuffleAnswers ?? false}
-                                        onChange={(e) =>
-                                            setForm({ ...form, shuffleAnswers: e.target.checked })
-                                        }
-                                        className="h-4 w-4 rounded border-gray-300 accent-primary"
-                                    />
-                                    <span className="text-sm">Trộn đáp án</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.antiCheatEnabled ?? false}
-                                        onChange={(e) =>
-                                            setForm({ ...form, antiCheatEnabled: e.target.checked })
-                                        }
-                                        className="h-4 w-4 rounded border-gray-300 accent-primary"
-                                    />
-                                    <span className="text-sm">Chống gian lận</span>
-                                </label>
-                            </div>
-
-                            {/* Question Multi-Select */}
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <Label>
-                                        Câu hỏi ({(form.questionIds ?? []).length} đã chọn)
-                                    </Label>
+                            <div className="space-y-4">
+                                <Label className="text-[10px] font-black uppercase text-primary tracking-widest bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">BỘ CÂU HỎI ({(form.questionIds ?? []).length} đã chọn)</Label>
+                                <div className="relative group">
+                                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                                    <Input placeholder="Tìm câu hỏi..." value={questionSearch} onChange={(e) => setQuestionSearch(e.target.value)} className="pl-11 h-12 bg-muted/20 rounded-2xl border-border/50 font-bold" />
                                 </div>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Tìm câu hỏi..."
-                                        value={questionSearch}
-                                        onChange={(e) => setQuestionSearch(e.target.value)}
-                                        className="pl-9"
-                                    />
-                                </div>
-                                <ScrollArea className="h-48 rounded-md border">
-                                    <div className="p-2 space-y-1">
-                                        {filteredQuestions.length === 0 ? (
-                                            <p className="text-sm text-muted-foreground text-center py-4">
-                                                Không tìm thấy câu hỏi
-                                            </p>
-                                        ) : (
-                                            filteredQuestions.map((q) => (
-                                                <label
-                                                    key={q.id}
-                                                    className="flex items-start gap-2 rounded-md p-2 hover:bg-accent cursor-pointer"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={(form.questionIds ?? []).includes(q.id)}
-                                                        onChange={() => toggleQuestion(q.id)}
-                                                        className="h-4 w-4 mt-0.5 rounded border-gray-300 accent-primary shrink-0"
-                                                    />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm truncate">{q.questionText}</p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            #{q.id} &middot; {q.questionType} &middot; {q.points ?? 0} điểm
-                                                        </p>
+                                <ScrollArea className="h-[350px] rounded-2xl border border-border/50 bg-muted/5 p-4">
+                                    <div className="space-y-2">
+                                        {filteredQuestions.map(q => (
+                                            <label key={q.id} className={cn(
+                                                "flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer group",
+                                                (form.questionIds ?? []).includes(q.id) ? "bg-primary/5 border-primary/20" : "bg-transparent border-transparent hover:bg-muted/10"
+                                            )}>
+                                                <input type="checkbox" checked={(form.questionIds ?? []).includes(q.id)} onChange={() => toggleQuestion(q.id)} className="mt-1 h-5 w-5 rounded-lg accent-primary border-border bg-muted/20" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-foreground leading-snug line-clamp-2">{q.questionText}</p>
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <Badge variant="outline" className="text-[8px] font-black uppercase border-border/50">{q.questionType}</Badge>
+                                                        <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-widest">ID: #{q.id}</span>
                                                     </div>
-                                                </label>
-                                            ))
-                                        )}
+                                                </div>
+                                            </label>
+                                        ))}
                                     </div>
                                 </ScrollArea>
                             </div>
                         </div>
-                    </ScrollArea>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={resetForm} disabled={submitting}>
-                            Hủy
-                        </Button>
-                        <Button onClick={handleSubmit} disabled={submitting}>
-                            {submitting ? 'Đang xử lý...' : editing ? 'Cập nhật' : 'Tạo mới'}
+                    </div>
+                    <DialogFooter className="p-8 bg-muted/10 border-t border-border/40 gap-3">
+                        <Button variant="ghost" onClick={resetForm} disabled={submitting} className="h-12 px-8 rounded-2xl font-black transition-all">HỦY BỎ</Button>
+                        <Button onClick={handleSubmit} disabled={submitting} className="h-12 px-10 rounded-2xl font-black bg-primary shadow-xl shadow-primary/20">
+                            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : editing ? 'LƯU THAY ĐỔI' : 'XÁC NHẬN TẠO'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation */}
+            {/* Delete Alert with premium look */}
             <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xác nhận xóa</DialogTitle>
-                        <DialogDescription>
-                            Bạn có chắc muốn xóa bài thi &quot;{deleting?.title}&quot;? Hành động này không thể hoàn tác.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-                            Hủy
-                        </Button>
-                        <Button variant="destructive" onClick={handleDelete}>
-                            Xóa
-                        </Button>
-                    </DialogFooter>
+                <DialogContent className="max-w-md rounded-3xl p-8 gap-6">
+                    <div className="h-16 w-16 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive mx-auto mb-2">
+                        <Trash2 className="h-8 w-8" />
+                    </div>
+                    <div className="text-center space-y-2">
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight">Xác nhận xóa</DialogTitle>
+                        <DialogDescription className="font-medium text-muted-foreground px-4">Đề thi &quot;{deleting?.title}&quot; sẽ bị gỡ bỏ vĩnh viễn khỏi hệ thống.</DialogDescription>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Button variant="outline" onClick={() => setDeleteOpen(false)} className="h-12 rounded-2xl font-black bg-muted/20 border-border/50">HỦY</Button>
+                        <Button variant="destructive" onClick={handleDelete} className="h-12 rounded-2xl font-black shadow-lg shadow-destructive/20">XÓA BỎ</Button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

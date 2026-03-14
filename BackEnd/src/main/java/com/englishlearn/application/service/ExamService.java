@@ -43,6 +43,19 @@ public class ExamService {
     private final AntiCheatEventRepository antiCheatEventRepository;
     private final MistakeNotebookService mistakeNotebookService;
     private final VocabularyRepository vocabularyRepository;
+    private final SchoolRepository schoolRepository;
+
+    @Transactional(readOnly = true)
+    public Page<ExamResponse> getAllExams(Pageable pageable) {
+        return examRepository.findAll(pageable)
+                .map(this::mapToResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ExamResponse> getExamsBySchool(Long schoolId, Pageable pageable) {
+        return examRepository.findBySchoolId(schoolId, pageable)
+                .map(this::mapToResponse);
+    }
 
     @Transactional(readOnly = true)
     public Page<ExamResponse> getExamsByTeacher(Long teacherId, Pageable pageable) {

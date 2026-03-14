@@ -30,7 +30,8 @@ import java.util.List;
  * POST /api/v1/badges/{userId}/award/{badgeName} - Cấp huy hiệu cho user
  * DELETE /api/v1/badges/{badgeId} - Xóa huy hiệu
  * GET /api/v1/badges/users/{userId}/count - Đếm số huy hiệu
- * POST /api/v1/badges/{userId}/check-achievements - Kiểm tra và cấp huy hiệu achievements
+ * POST /api/v1/badges/{userId}/check-achievements - Kiểm tra và cấp huy hiệu
+ * achievements
  */
 @RestController
 @RequestMapping("/api/v1/badges")
@@ -94,8 +95,8 @@ public class BadgeController {
      * POST /api/v1/badges/{userId}/award/{badgeName} - Cấp huy hiệu cho user
      */
     @PostMapping("/{userId}/award/{badgeName}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    @Operation(summary = "Cấp huy hiệu cho user (Admin/Teacher)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Cấp huy hiệu cho user (Admin/School/Teacher)")
     public ResponseEntity<ApiResponse<BadgeResponse>> awardBadge(
             @PathVariable Long userId,
             @PathVariable String badgeName,
@@ -131,11 +132,12 @@ public class BadgeController {
     }
 
     /**
-     * POST /api/v1/badges/{userId}/check-achievements - Kiểm tra và cấp huy hiệu achievements
+     * POST /api/v1/badges/{userId}/check-achievements - Kiểm tra và cấp huy hiệu
+     * achievements
      */
     @PostMapping("/{userId}/check-achievements")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SYSTEM')")
-    @Operation(summary = "Kiểm tra và cấp huy hiệu achievements (Admin/System)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'SYSTEM')")
+    @Operation(summary = "Kiểm tra và cấp huy hiệu achievements (Admin/School/System)")
     public ResponseEntity<ApiResponse<List<BadgeResponse>>> checkAndAwardAchievements(
             @PathVariable Long userId) {
         List<BadgeResponse> response = badgeService.checkAndAwardAchievements(userId);
