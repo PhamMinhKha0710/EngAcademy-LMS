@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
+import { useToastStore } from '../../store/toastStore'
 import { vocabularyApi, VocabularyResponse } from '../../services/api/vocabularyApi'
 import { mistakeApi } from '../../services/api/mistakeApi'
 import FlashCard from '../../components/ui/FlashCard'
@@ -27,6 +28,7 @@ type ListFilter = 'all' | 'audio' | 'example' | 'image'
 
 export default function VocabularyPage() {
     const user = useAuthStore((s) => s.user)
+    const { addToast } = useToastStore()
     const [mode, setMode] = useState<ViewMode>('flashcard')
 
     const [flashcards, setFlashcards] = useState<VocabularyResponse[]>([])
@@ -53,10 +55,11 @@ export default function VocabularyPage() {
         } catch (err) {
             console.error('Failed to fetch flashcards:', err)
             setFlashcardError('Không thể tải flashcard. Vui lòng thử lại.')
+            addToast({ type: 'error', message: 'Không thể tải thẻ nhớ. Vui lòng thử lại.' })
         } finally {
             setFlashcardLoading(false)
         }
-    }, [])
+    }, [addToast])
 
     const fetchVocabList = useCallback(async (keyword: string) => {
         setListLoading(true)
@@ -65,10 +68,11 @@ export default function VocabularyPage() {
             setListVocab(data)
         } catch (err) {
             console.error('Failed to search vocabulary:', err)
+            addToast({ type: 'error', message: 'Không thể tìm kiếm từ vựng lúc này.' })
         } finally {
             setListLoading(false)
         }
-    }, [])
+    }, [addToast])
 
     useEffect(() => {
         fetchFlashcards()
@@ -89,9 +93,15 @@ export default function VocabularyPage() {
         setSearchTimeout(timeout)
     }
 
-    const playAudio = (url: string) => {
+    const playAudio = (url: string | undefined) => {
+        if (!url) {
+            addToast({ type: 'warning', message: 'Chưa có file phát âm cho từ này.' })
+            return
+        }
         const audio = new Audio(url)
-        audio.play().catch(() => {})
+        audio.play().catch(() => {
+            addToast({ type: 'error', message: 'Không thể phát âm thanh.' })
+        })
     }
 
     const handleStudyAgain = async () => {
@@ -102,11 +112,15 @@ export default function VocabularyPage() {
             try {
                 await mistakeApi.addMistake({ vocabularyId: currentCard.id })
                 setMistakeAdded((prev) => new Set(prev).add(currentCard.id))
+                addToast({ type: 'success', message: 'Đã thêm từ vựng vào Sổ lỗi!' })
             } catch (err) {
                 console.error('Failed to add mistake:', err)
+                addToast({ type: 'error', message: 'Đã xảy ra lỗi khi thêm vào Sổ lỗi.' })
             } finally {
                 setAddingMistake(false)
             }
+        } else if (mistakeAdded.has(currentCard.id)) {
+            addToast({ type: 'info', message: 'Từ này đã có trong Sổ lỗi của bạn rồi.' })
         }
         goToNext()
     }
@@ -119,7 +133,7 @@ export default function VocabularyPage() {
         if (flashcardIndex < flashcards.length - 1) {
             setFlashcardIndex((i) => i + 1)
         } else {
-            // Hết thẻ - có thể shuffle để học lại
+            addToast({ type: 'success', message: 'Hoàn thành bộ Flashcard! Hệ thống đang trộn bài mới...' })
             fetchFlashcards()
         }
     }
@@ -434,8 +448,10 @@ export default function VocabularyPage() {
                                                 onClick={async () => {
                                                     try {
                                                         await mistakeApi.addMistake({ vocabularyId: vocab.id })
+                                                        addToast({ type: 'success', message: `Đã thêm "${vocab.word}" vào Sổ lỗi!` })
                                                     } catch (err) {
                                                         console.error('Failed to add mistake from library:', err)
+                                                        addToast({ type: 'error', message: `Không thể đưa "${vocab.word}" vào Sổ lỗi lúc này.` })
                                                     }
                                                 }}
                                                 className="flex items-center justify-center gap-1 h-10 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-semibold text-sm transition-colors"

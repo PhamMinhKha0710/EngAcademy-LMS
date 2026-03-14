@@ -29,11 +29,24 @@ export default function UsersPage() {
     const [page, setPage] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
+    const [userStats, setUserStats] = useState({
+        totalUsers: 0,
+        activeUsers: 0,
+        teacherCount: 0,
+        studentCount: 0,
+        totalCoins: 0
+    })
 
-    // Coins dialog
-    const [coinsDialogOpen, setCoinsDialogOpen] = useState(false)
+    // Edit user dialog
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<User | null>(null)
-    const [coinsAmount, setCoinsAmount] = useState('')
+    const [editForm, setEditForm] = useState({
+        fullName: '',
+        email: '',
+        roles: [] as string[],
+        isActive: true,
+        coins: 0
+    })
 
     // Detail dialog
     const [detailOpen, setDetailOpen] = useState(false)
@@ -68,19 +81,57 @@ export default function UsersPage() {
         }
     }
 
-    useEffect(() => { fetchUsers() }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handleAddCoins = async () => {
-        if (!selectedUser || !coinsAmount) return
+    const fetchStats = async () => {
         try {
-            await api.post(`/users/${selectedUser.id}/coins?amount=${coinsAmount}`)
-            toast.success(`Đã thêm ${coinsAmount} xu cho ${selectedUser.fullName}`)
-            fetchUsers()
-        } catch {
-            toast.error('Thêm xu thất bại')
+            const response = await api.get<ApiResponse<any>>('/users/stats')
+            if (response.data.success) {
+                setUserStats(response.data.data)
+            }
+        } catch (error) {
+            console.error('Error fetching user stats:', error)
         }
-        setCoinsDialogOpen(false)
-        setCoinsAmount('')
+    }
+
+    useEffect(() => {
+        fetchUsers()
+        fetchStats()
+    }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleUpdateUser = async () => {
+        if (!selectedUser) return
+        try {
+            // Assuming standard update endpoint
+            await api.put(`/users/${selectedUser.id}`, editForm)
+            toast.success(`Đã cập nhật thông tin cho ${selectedUser.username}`)
+            fetchUsers()
+            setEditDialogOpen(false)
+        } catch (error: unknown) {
+            const msg = error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : null
+            toast.error(msg || 'Cập nhật thất bại')
+        }
+    }
+
+    const openEdit = (user: User) => {
+        setSelectedUser(user)
+        setEditForm({
+            fullName: user.fullName || '',
+            email: user.email || '',
+            roles: [...user.roles],
+            isActive: user.isActive !== false,
+            coins: user.coins || 0
+        })
+        setEditDialogOpen(true)
+    }
+
+    const toggleEditRole = (role: string) => {
+        setEditForm(prev => ({
+            ...prev,
+            roles: prev.roles.includes(role)
+                ? prev.roles.filter(r => r !== role)
+                : [...prev.roles, role]
+        }))
     }
 
     const handleCreateUser = async () => {
@@ -156,10 +207,10 @@ export default function UsersPage() {
     })
 
     const stats = [
-        { title: 'Tổng người dùng', value: '1,284', icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
-        { title: 'Đang hoạt động', value: '1,150', icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-        { title: 'Streak cao nhất', value: '45 ngày', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-        { title: 'Tổng xu hệ thống', value: '82.5K', icon: Coins, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        { title: 'Tổng người dùng', value: userStats.totalUsers.toLocaleString(), icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
+        { title: 'Đang hoạt động', value: userStats.activeUsers.toLocaleString(), icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { title: 'Giáo viên', value: userStats.teacherCount.toLocaleString(), icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+        { title: 'Tổng xu hệ thống', value: userStats.totalCoins.toLocaleString(), icon: Coins, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     ]
 
     return (
@@ -290,9 +341,9 @@ export default function UsersPage() {
                                                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all" onClick={() => { setDetailUser(user); setDetailOpen(true) }}>
                                                         <Eye className="h-4.5 w-4.5" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-blue-500/10 text-muted-foreground hover:text-blue-500 transition-all" onClick={() => { setSelectedUser(user); setCoinsDialogOpen(true) }}>
-                                                        <Edit className="h-4.5 w-4.5" />
-                                                    </Button>
+                                                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-blue-500/10 text-muted-foreground hover:text-blue-500 transition-all" onClick={() => openEdit(user)}>
+                                                         <Edit className="h-4.5 w-4.5" />
+                                                     </Button>
                                                     {canDeleteUser && (
                                                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all" onClick={() => handleDeleteUser(user.id, user.username)}>
                                                             <Trash2 className="h-4.5 w-4.5" />
@@ -426,20 +477,61 @@ export default function UsersPage() {
             </DialogContent>
         </Dialog>
 
-        {/* Add Coins Dialog */}
-        <Dialog open={coinsDialogOpen} onOpenChange={setCoinsDialogOpen}>
-            <DialogContent className="sm:max-w-[400px] rounded-2xl">
+        {/* Edit User Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="sm:max-w-[500px] rounded-2xl">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-bold">Thêm xu cho người dùng</DialogTitle>
-                    <DialogDescription>Cộng xu trực tiếp cho {selectedUser?.fullName}</DialogDescription>
+                    <DialogTitle className="text-xl font-bold">Chỉnh sửa thông tin</DialogTitle>
+                    <DialogDescription>Cập nhật thông tin cho người dùng {selectedUser?.username}</DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                    <Label htmlFor="amount" className="font-bold mb-2 block text-sm">Số lượng xu cần thêm</Label>
-                    <Input id="amount" type="number" value={coinsAmount} onChange={(e) => setCoinsAmount(e.target.value)} placeholder="Nhập số xu..." className="rounded-xl h-11" />
+                <div className="grid gap-5 py-4">
+                    <div className="grid gap-2">
+                        <Label className="font-bold">Họ và tên</Label>
+                        <Input value={editForm.fullName} onChange={(e) => setEditForm({...editForm, fullName: e.target.value})} className="rounded-xl h-11" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label className="font-bold">Email</Label>
+                        <Input value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} className="rounded-xl h-11" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label className="font-bold">Số lượng xu</Label>
+                            <Input type="number" value={editForm.coins} onChange={(e) => setEditForm({...editForm, coins: parseInt(e.target.value) || 0})} className="rounded-xl h-11" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="font-bold">Trạng thái tài khoản</Label>
+                            <div className="flex items-center h-11 px-3 bg-muted/30 rounded-xl border border-border/50">
+                                <label className="flex items-center gap-2 cursor-pointer w-full">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={editForm.isActive} 
+                                        onChange={(e) => setEditForm({...editForm, isActive: e.target.checked})}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <span className="text-sm font-bold">{editForm.isActive ? 'Đang hoạt động' : 'Đang bị khóa'}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label className="font-bold">Vai trò hệ thống</Label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                            {ROLE_OPTIONS.filter(o => o.value).map(opt => (
+                                <Button 
+                                    key={opt.value} 
+                                    variant={editForm.roles.includes(opt.value) ? 'default' : 'outline'} 
+                                    className="rounded-xl h-9 px-3 text-[11px] font-bold" 
+                                    onClick={() => toggleEditRole(opt.value)}
+                                >
+                                    {opt.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-                <DialogFooter className="gap-2 sm:gap-0">
-                    <Button variant="ghost" onClick={() => setCoinsDialogOpen(false)} className="rounded-xl h-11 font-bold">Hủy</Button>
-                    <Button onClick={handleAddCoins} className="rounded-xl h-11 px-8 font-bold bg-amber-500 hover:bg-amber-600 shadow-md shadow-amber-100">Xác nhận</Button>
+                <DialogFooter className="gap-2 sm:gap-0 mt-2">
+                    <Button variant="ghost" onClick={() => setEditDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold">Hủy</Button>
+                    <Button onClick={handleUpdateUser} className="rounded-xl h-11 px-8 font-bold bg-primary shadow-lg shadow-primary/20">Lưu thay đổi</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

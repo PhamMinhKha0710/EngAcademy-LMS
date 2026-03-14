@@ -11,6 +11,7 @@ import type { ApiResponse, LeaderboardEntry, Page } from '@/types/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { useAppSelector } from '@/app/hooks'
 
 function getErrorMessage(error: unknown, fallback: string): string {
     return error instanceof AxiosError && error.response?.data?.message
@@ -21,6 +22,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 type TabType = 'global' | 'coins' | 'streak'
 
 export default function LeaderboardPage() {
+    const { user: currentUser } = useAppSelector((state) => state.auth)
     const [activeTab, setActiveTab] = useState<TabType>('global')
     const [entries, setEntries] = useState<LeaderboardEntry[]>([])
     const [loading, setLoading] = useState(true)
@@ -96,6 +98,8 @@ export default function LeaderboardPage() {
                       top3.length === 2 ? [top3[1], top3[0]] : top3
 
     const rest = filteredEntries.slice(3)
+
+    const currentUserEntry = entries.find(e => e.userId === currentUser?.id)
 
     return (
         <div className="space-y-8 pb-10">
@@ -258,8 +262,11 @@ export default function LeaderboardPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {rest.map((entry) => (
-                                            <TableRow key={entry.userId} className="hover:bg-muted/30 border-border/40 transition-colors h-20">
+                                        {rest.length > 0 ? rest.map((entry) => (
+                                            <TableRow key={entry.userId} className={cn(
+                                                "hover:bg-muted/30 border-border/40 transition-colors h-20",
+                                                entry.userId === currentUser?.id && "bg-primary/5 hover:bg-primary/10 border-l-4 border-l-primary"
+                                            )}>
                                                 <TableCell className="pl-8 text-center">
                                                     <span className="font-black text-muted-foreground/50 text-lg">#{entry.rank}</span>
                                                 </TableCell>
@@ -303,10 +310,48 @@ export default function LeaderboardPage() {
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
-                                        ))}
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center py-20 text-muted-foreground font-bold">
+                                                    Không tìm thấy người dùng nào trong danh sách
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
                                     </TableBody>
                                 </Table>
                             </div>
+
+                            {/* Current User Fixed Row (if in list but not in search display) or always show summary */}
+                            {currentUserEntry && (
+                                <div className="mt-8 p-6 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-3xl border border-primary/20 flex items-center justify-between animate-in fade-in slide-in-from-bottom-4">
+                                    <div className="flex items-center gap-5">
+                                        <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center text-white text-xl font-black shadow-lg shadow-primary/30 ring-4 ring-primary/10">
+                                            #{currentUserEntry.rank}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-black text-foreground">Xếp hạng của bạn</h4>
+                                            <p className="text-sm font-semibold text-muted-foreground">Bạn đang giữ vị trí #{currentUserEntry.rank} trên toàn hệ thống.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-8 pr-4">
+                                        <div className="text-center">
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Xu của bạn</p>
+                                            <div className="flex items-center gap-1.5 justify-center">
+                                                <Coins className="h-4 w-4 text-amber-500" />
+                                                <span className="text-lg font-black text-foreground">{currentUserEntry.totalCoins?.toLocaleString() ?? 0}</span>
+                                            </div>
+                                        </div>
+                                        <div className="h-10 w-[1px] bg-border/50" />
+                                        <div className="text-center">
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Thứ hạng tuần</p>
+                                            <div className="flex items-center gap-1.5 justify-center">
+                                                <Trophy className="h-4 w-4 text-primary" />
+                                                <span className="text-lg font-black text-foreground">Top {(currentUserEntry.rank || 100) <= 10 ? 'Elite' : 'Gold'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </>

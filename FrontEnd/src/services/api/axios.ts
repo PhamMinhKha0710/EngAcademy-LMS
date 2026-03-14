@@ -41,7 +41,7 @@ api.interceptors.response.use(
         const { addToast } = useToastStore.getState()
 
         // Handle 401 Unauthorized - Token expired or invalid
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
             addToast({
                 type: 'error',
                 message: 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.',

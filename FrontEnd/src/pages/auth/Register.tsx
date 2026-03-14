@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useToastStore } from '../../store/toastStore'
 import { userApi } from '../../services/api/userApi'
 import { getRoleDashboard } from '../../lib/roles'
 import { User, Mail, Lock, ArrowRight, ArrowLeft, Check } from 'lucide-react'
@@ -21,7 +22,12 @@ export default function Register() {
     const [validationError, setValidationError] = useState('')
 
     const { register, isLoading, error, isAuthenticated, user, clearError } = useAuthStore()
+    const { addToast } = useToastStore()
     const navigate = useNavigate()
+
+    useEffect(() => {
+        clearError()
+    }, [clearError])
 
     useEffect(() => {
         if (step === 3) return // Đang hiển thị màn Welcome, không auto navigate
@@ -35,10 +41,12 @@ export default function Register() {
         clearError()
         if (password.length < 6) {
             setValidationError('Mật khẩu phải có ít nhất 6 ký tự')
+            addToast({ type: 'warning', message: 'Mật khẩu phải có ít nhất 6 ký tự.' })
             return false
         }
         if (password !== confirmPassword) {
             setValidationError('Mật khẩu xác nhận không khớp')
+            addToast({ type: 'error', message: 'Mật khẩu xác nhận không khớp với mật khẩu mới.' })
             return false
         }
         return true
@@ -55,9 +63,10 @@ export default function Register() {
             } catch {
                 // Avatar update optional
             }
+            addToast({ type: 'success', message: 'Tạo tài khoản thành công! Chào đón bạn mới!' })
             setStep(3)
         } catch {
-            // error handled by store
+            addToast({ type: 'error', message: 'Lỗi đăng ký. Vui lòng kiểm tra lại thông tin.' })
         }
     }
 

@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Award, Search, Trash2, ShieldCheck, Loader2, Info, Plus, UserCircle, Star, Sparkles, Clock } from 'lucide-react'
+import { Award, Search, Trash2, ShieldCheck, Loader2, Info, Plus, Star, Sparkles, Clock } from 'lucide-react'
+import { UserSelect } from '@/components/common/UserSelect'
 import { AxiosError } from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse, BadgeResponse } from '@/types/api'
@@ -181,16 +182,15 @@ export default function BadgesPage() {
                                     <p className="text-muted-foreground text-sm font-medium">Nhập thông tin người dùng để xem các cột mốc họ đã đạt được.</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="relative group">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                        <Input 
-                                            placeholder="Username người dùng..." 
-                                            value={viewUserId}
-                                            onChange={(e) => setViewUserId(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && fetchBadges()}
-                                            className="h-10 pl-10 w-52 rounded-xl bg-muted/30 border-border/50 focus-visible:ring-primary/20 font-bold text-xs"
-                                        />
-                                    </div>
+                                    <UserSelect 
+                                        value={viewUserId}
+                                        onSelect={(val) => {
+                                            setViewUserId(val)
+                                            setTimeout(() => fetchBadges(), 0)
+                                        }}
+                                        placeholder="Chọn người dùng..."
+                                        className="w-52 h-10 text-xs"
+                                    />
                                     <Button size="sm" onClick={fetchBadges} disabled={loadingBadges} className="rounded-xl h-10 px-4 font-bold bg-foreground text-background hover:opacity-90">
                                         {loadingBadges ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
                                         TRA CỨU
@@ -277,15 +277,11 @@ export default function BadgesPage() {
                         <CardContent className="p-8 pt-2 space-y-4">
                             <div className="space-y-1.5">
                                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider ml-1">Người nhận (Username)</Label>
-                                <div className="relative">
-                                    <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input 
-                                        placeholder="student_01" 
-                                        value={awardUserId}
-                                        onChange={(e) => setAwardUserId(e.target.value)}
-                                        className="h-11 pl-9 rounded-xl border-border/50 bg-muted/30 font-bold"
-                                    />
-                                </div>
+                                <UserSelect 
+                                    value={awardUserId}
+                                    onSelect={setAwardUserId}
+                                    placeholder="Tìm người nhận..."
+                                />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider ml-1">Tên huy hiệu</Label>
@@ -337,11 +333,10 @@ export default function BadgesPage() {
                             <p className="text-xs font-medium text-muted-foreground leading-relaxed mb-4">
                                 Chạy trình kiểm tra để tự động cấp huy hiệu dựa trên các tiêu chí (streak, điểm số, bài học).
                             </p>
-                            <Input 
-                                placeholder="Username người dùng..." 
+                            <UserSelect 
                                 value={checkUserId}
-                                onChange={(e) => setCheckUserId(e.target.value)}
-                                className="h-11 rounded-xl border-border/50 bg-muted/30 font-bold"
+                                onSelect={setCheckUserId}
+                                placeholder="Chọn người dùng..."
                             />
                             <Button 
                                 variant="outline" 

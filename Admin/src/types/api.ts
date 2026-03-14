@@ -132,8 +132,9 @@ export interface Exam {
     questionCount?: number
     totalPoints?: number
     submittedCount?: number
-    averageScore?: number
-    createdAt?: string
+    averageScore?: number;
+    questions?: Question[];
+    createdAt?: string;
 }
 
 export interface ExamRequest {
@@ -282,6 +283,7 @@ export interface Notification {
     id: number
     title: string
     message: string
+    imageUrl?: string
     isRead: boolean
     createdAt?: string
 }

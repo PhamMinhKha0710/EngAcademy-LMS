@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { School, Plus, Search, Edit, Trash2, Loader2, Eye, TrendingUp, Filter, CheckCircle, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react'
+import { School, Plus, Search, Edit, Trash2, Loader2, Eye, TrendingUp, CheckCircle, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import { toast } from 'sonner'
@@ -31,7 +31,22 @@ export default function SchoolsPage() {
     const [form, setForm] = useState<SchoolRequest>({ ...emptyForm })
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deletingSchool, setDeletingSchool] = useState<SchoolType | null>(null)
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+    const [detailOpen, setDetailOpen] = useState(false)
+    const [viewingSchool, setViewingSchool] = useState<SchoolType | null>(null)
     const [submitting, setSubmitting] = useState(false)
+    const [statsData, setStatsData] = useState<any>(null)
+
+    const fetchDashboardStats = async () => {
+        try {
+            const response = await api.get<ApiResponse<any>>('/dashboard/stats')
+            if (response.data.success) {
+                setStatsData(response.data.data)
+            }
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error)
+        }
+    }
 
     const fetchSchools = async () => {
         setLoading(true)
@@ -48,6 +63,7 @@ export default function SchoolsPage() {
 
     useEffect(() => {
         fetchSchools()
+        fetchDashboardStats()
     }, [])
 
     const handleSubmit = async () => {
@@ -108,15 +124,21 @@ export default function SchoolsPage() {
         setDialogOpen(true)
     }
 
-    const filtered = schools.filter((s) =>
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        (s.email && s.email.toLowerCase().includes(search.toLowerCase()))
-    )
+    const filtered = schools.filter((s) => {
+        const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
+            (s.email && s.email.toLowerCase().includes(search.toLowerCase()))
+        
+        const matchStatus = statusFilter === 'all' || 
+            (statusFilter === 'active' && s.isActive) || 
+            (statusFilter === 'inactive' && !s.isActive)
+            
+        return matchSearch && matchStatus
+    })
 
     const stats = [
-        { title: 'Tổng số trường', value: '128', change: '+12%', icon: School, color: 'text-primary', bg: 'bg-primary/10', trend: 'up' },
-        { title: 'Trường đang hoạt động', value: '124', change: 'Đang hoạt động', icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-        { title: 'Yêu cầu mới', value: '12', change: '4 Chờ xử lý', icon: ClipboardList, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        { title: 'Tổng số trường', value: statsData?.totalSchools?.toString() || '0', change: '+12%', icon: School, color: 'text-primary', bg: 'bg-primary/10', trend: 'up' },
+        { title: 'Trường đang hoạt động', value: statsData?.activeSchools?.toString() || '0', change: 'Đang hoạt động', icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { title: 'Tổng số học sinh', value: statsData?.studentCount?.toLocaleString() || '0', change: 'Toàn hệ thống', icon: ClipboardList, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     ]
 
     return (
@@ -188,9 +210,26 @@ export default function SchoolsPage() {
                                     className="pl-11 pr-4 h-11 w-72 bg-muted/30 border-border/50 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 transition-all font-medium"
                                 />
                             </div>
-                            <Button variant="outline" className="h-11 rounded-xl gap-2 font-bold border-border text-muted-foreground bg-background hover:bg-muted">
-                                <Filter className="h-4 w-4" /> Tất cả trạng thái
-                            </Button>
+                            <div className="flex bg-muted/30 p-1 rounded-xl border border-border/50">
+                                <button 
+                                    onClick={() => setStatusFilter('all')}
+                                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'all' ? "bg-primary text-white shadow-md shadow-primary/20" : "text-muted-foreground/40 hover:text-foreground")}
+                                >
+                                    Tất cả
+                                </button>
+                                <button 
+                                    onClick={() => setStatusFilter('active')}
+                                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'active' ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" : "text-muted-foreground/40 hover:text-foreground")}
+                                >
+                                    Hoạt động
+                                </button>
+                                <button 
+                                    onClick={() => setStatusFilter('inactive')}
+                                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", statusFilter === 'inactive' ? "bg-amber-500 text-white shadow-md shadow-amber-500/20" : "text-muted-foreground/40 hover:text-foreground")}
+                                >
+                                    Tạm dừng
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -259,9 +298,9 @@ export default function SchoolsPage() {
                                             </TableCell>
                                             <TableCell className="text-right pr-6">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all">
-                                                        <Eye className="h-4.5 w-4.5" />
-                                                    </Button>
+                                                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all" onClick={() => { setViewingSchool(school); setDetailOpen(true) }}>
+                                                         <Eye className="h-4.5 w-4.5" />
+                                                     </Button>
                                                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all" onClick={() => openEdit(school)}>
                                                         <Edit className="h-4.5 w-4.5" />
                                                     </Button>
@@ -402,6 +441,66 @@ export default function SchoolsPage() {
                             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Xóa
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* School Detail Dialog */}
+            <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+                <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black">Chi tiết trường học</DialogTitle>
+                        <DialogDescription>Thông tin đầy đủ của cơ sở giáo dục</DialogDescription>
+                    </DialogHeader>
+                    {viewingSchool && (
+                        <div className="space-y-6 py-4">
+                            <div className="flex items-center gap-5 p-5 bg-muted/30 rounded-2xl border border-border/50">
+                                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-3xl font-black">
+                                    {viewingSchool.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-foreground">{viewingSchool.name}</h3>
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">ID: #{viewingSchool.id}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Địa chỉ</Label>
+                                    <p className="text-sm font-bold text-foreground leading-snug">{viewingSchool.address || '—'}</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Trạng thái</Label>
+                                    <div>
+                                        <span className={cn(
+                                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                            viewingSchool.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                                        )}>
+                                            {viewingSchool.isActive ? "Đang hoạt động" : "Tạm dừng"}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Email liên hệ</Label>
+                                    <p className="text-sm font-bold text-foreground">{viewingSchool.email || '—'}</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Số điện thoại</Label>
+                                    <p className="text-sm font-bold text-foreground">{viewingSchool.phone || '—'}</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Hết hạn dùng thử</Label>
+                                    <p className="text-sm font-bold text-foreground">{viewingSchool.trialEndDate || 'Vĩnh viễn'}</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Ngày tạo</Label>
+                                    <p className="text-sm font-bold text-foreground">01/01/2024</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button onClick={() => setDetailOpen(false)} variant="outline" className="w-full h-12 rounded-xl font-black transition-all hover:bg-muted">ĐÓNG</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -38,6 +38,25 @@ public class ExamController {
     private final ExamService examService;
     private final UserService userService;
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
+    @Operation(summary = "Lấy danh sách bài thi (Admin lấy hết, School lấy theo trường)")
+    public ResponseEntity<ApiResponse<Page<ExamResponse>>> getAll(
+            Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null) {
+                return ResponseEntity.ok(ApiResponse.success(Page.empty(pageable)));
+            }
+            return ResponseEntity.ok(ApiResponse.success(examService.getExamsBySchool(currentUser.getSchoolId(), pageable)));
+        }
+        
+        return ResponseEntity.ok(ApiResponse.success(examService.getAllExams(pageable)));
+    }
+
     @GetMapping("/teacher/{teacherId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
     @Operation(summary = "Get exams by teacher")

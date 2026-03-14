@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useToastStore } from '../../store/toastStore'
 import { getRoleDashboard } from '../../lib/roles'
 import { UserIcon as User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { useGoogleLogin } from '@react-oauth/google'
@@ -14,6 +15,7 @@ export default function Login() {
     const [rememberMe, setRememberMe] = useState(false)
     const [roleError, setRoleError] = useState('')
     const { login, isLoading, error, isAuthenticated, user, clearError } = useAuthStore()
+    const { addToast } = useToastStore()
     const navigate = useNavigate()
 
     const googleLoginFlow = useGoogleLogin({
@@ -40,6 +42,10 @@ export default function Login() {
     })
 
     useEffect(() => {
+        clearError()
+    }, [clearError])
+
+    useEffect(() => {
         if (isAuthenticated && user?.roles?.length) {
             navigate(getRoleDashboard(user.roles), { replace: true })
         }
@@ -55,11 +61,13 @@ export default function Login() {
             const roles = authState.user?.roles || []
             if (roles.length === 0) {
                 setRoleError('Tài khoản không có quyền truy cập')
+                addToast({ type: 'error', message: 'Tài khoản của bạn chưa được cấp quyền truy cập.' })
                 return
             }
+            addToast({ type: 'success', message: 'Đăng nhập thành công! Chào mừng bạn.' })
             navigate(getRoleDashboard(roles), { replace: true })
         } catch {
-            // error handled by store
+            addToast({ type: 'error', message: 'Sai thông tin đăng nhập! Vui lòng kiểm tra lại.' })
         }
     }
 
@@ -112,7 +120,7 @@ export default function Login() {
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     <div className="space-y-2">
                                         <label className="text-slate-900 dark:text-slate-200 text-lg font-bold" htmlFor="username">
-                                            Tên đăng nhập hoặc Email
+                                            Tên đăng nhập
                                         </label>
                                         <div className="relative flex items-center">
                                             <User className="absolute left-4 w-5 h-5 text-primary-500" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
