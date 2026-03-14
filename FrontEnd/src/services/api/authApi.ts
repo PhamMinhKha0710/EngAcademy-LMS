@@ -12,6 +12,7 @@ export interface User {
     streakDays?: number
     isActive?: boolean
     roles: string[]
+    exp?: number
 }
 
 export interface LoginRequest {

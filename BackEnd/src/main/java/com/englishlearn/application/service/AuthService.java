@@ -171,7 +171,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse googleLogin(com.englishlearn.presentation.dto.request.GoogleLoginRequest request) {
+    public AuthResponse googleLogin(com.englishlearn.application.dto.request.GoogleLoginRequest request) {
         try {
             // Using Access Token to fetch user profile via Google OAuth2 api
             String userInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";

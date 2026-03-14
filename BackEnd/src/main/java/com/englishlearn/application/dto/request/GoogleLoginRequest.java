@@ -1,4 +1,4 @@
-package com.englishlearn.presentation.dto.request;
+package com.englishlearn.application.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

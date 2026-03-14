@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { GraduationCap } from 'lucide-react'
+import { GraduationCap, Menu } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useRole } from '../../hooks/useRole'
 import NotificationComponent from '../notifications/Notification'
@@ -8,7 +8,12 @@ import ThemeToggle from '../ui/ThemeToggle'
 import LanguageSwitcher from '../ui/LanguageSwitcher'
 import Badge from '../ui/Badge'
 
-const Header = () => {
+interface HeaderProps {
+    showMenuButton?: boolean;
+    onMenuClick?: () => void;
+}
+
+const Header = ({ showMenuButton, onMenuClick }: HeaderProps) => {
     const { t } = useTranslation()
     const { user, isAuthenticated, logout } = useAuthStore()
     const { roleLabel } = useRole()
