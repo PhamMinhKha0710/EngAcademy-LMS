@@ -118,4 +118,15 @@ public class AuthController {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại."));
     }
+
+    /**
+     * POST /api/v1/auth/google - Đăng nhập bằng Google
+     */
+    @PostMapping("/google")
+    @Operation(summary = "Đăng nhập bằng Google")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(
+            @RequestBody @Valid com.englishlearn.presentation.dto.request.GoogleLoginRequest request) {
+        AuthResponse response = authService.googleLogin(request);
+        return ResponseEntity.ok(ApiResponse.success("Đăng nhập Google thành công", response));
+    }
 }

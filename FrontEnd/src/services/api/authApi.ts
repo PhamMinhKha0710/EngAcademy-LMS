@@ -57,6 +57,14 @@ export const authApi = {
     },
 
     /**
+     * POST /api/v1/auth/google
+     */
+    loginWithGoogle: async (accessToken: string): Promise<AuthResponse> => {
+        const response = await api.post<ApiResponse<AuthResponse>>('/auth/google', { accessToken })
+        return response.data.data
+    },
+
+    /**
      * POST /api/v1/auth/register
      */
     register: async (data: RegisterRequest): Promise<AuthResponse> => {

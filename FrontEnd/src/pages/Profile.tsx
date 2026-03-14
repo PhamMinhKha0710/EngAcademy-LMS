@@ -40,11 +40,29 @@ export default function Profile() {
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault()
-        // Thông báo tính năng chỉ là giao diện (theo yêu cầu người dùng)
-        setMessage({ type: 'error', text: 'Chức năng này hiện chưa có Backend hỗ trợ. Frontend chỉ giữ lại giao diện để tham khảo.' })
-        setCurrentPassword('')
-        setNewPassword('')
-        setConfirmPassword('')
+        
+        if (newPassword !== confirmPassword) {
+            setMessage({ type: 'error', text: 'Mật khẩu xác nhận không khớp.' })
+            return
+        }
+        if (newPassword.length < 6) {
+            setMessage({ type: 'error', text: 'Mật khẩu mới phải có ít nhất 6 ký tự.' })
+            return
+        }
+
+        setIsUpdating(true)
+        setMessage({ type: '', text: '' })
+        try {
+            await userApi.changePassword(currentPassword, newPassword, confirmPassword)
+            setMessage({ type: 'success', text: 'Đổi mật khẩu thành công!' })
+            setCurrentPassword('')
+            setNewPassword('')
+            setConfirmPassword('')
+        } catch (err: any) {
+            setMessage({ type: 'error', text: err.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu.' })
+        } finally {
+            setIsUpdating(false)
+        }
     }
 
     if (!user) return null
@@ -170,7 +188,7 @@ export default function Profile() {
                         <div className="flex items-center gap-2 mb-6">
                             <Key className="w-5 h-5 text-blue-500" />
                             <h3 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>Đổi mật khẩu</h3>
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-orange-500/10 text-orange-500 border border-orange-500/20">CHỈ GIAO DIỆN</span>
+
                         </div>
                         <form onSubmit={handleChangePassword} className="space-y-6">
                             <div>
