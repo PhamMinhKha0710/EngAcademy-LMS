@@ -1,11 +1,13 @@
 import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Mail, ArrowLeft, KeyRound, ShieldCheck, Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
-import { authApi } from '../../services/api/authApi'
+import { authApi } from '../../services/api/authApi'  
 
 type Step = 'email' | 'newpw' | 'otp' | 'success'
 
 export default function ForgotPassword() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [step, setStep] = useState<Step>('email')
 
@@ -23,10 +25,10 @@ export default function ForgotPassword() {
 
     // ─── Step Indicator ────────────────────────────────────────────────────────
     const steps = [
-        { key: 'email', label: 'Email' },
-        { key: 'newpw', label: 'Mật khẩu' },
-        { key: 'otp', label: 'Mã OTP' },
-        { key: 'success', label: 'Xong' },
+        { key: 'email', label: t('auth.forgotPassword.steps.email') },
+        { key: 'newpw', label: t('auth.forgotPassword.steps.newPassword') },
+        { key: 'otp',   label: t('auth.forgotPassword.steps.otp') },
+        { key: 'success', label: t('auth.forgotPassword.steps.done') },
     ]
     const currentIdx = steps.findIndex(s => s.key === step)
 
@@ -93,13 +95,13 @@ export default function ForgotPassword() {
         e.preventDefault();
 
         if (newPassword.length < 6) {
-            setError("Mật khẩu mới phải có ít nhất 6 ký tự");
-            return;
+            setError(t('auth.forgotPassword.error.passwordLength'))
+            return
         }
 
         if (newPassword !== confirmPassword) {
-            setError("Mật khẩu xác nhận không khớp");
-            return;
+            setError(t('auth.forgotPassword.error.confirmMismatch'))
+            return
         }
 
         // kiểm tra có số và ký tự đặc biệt
@@ -117,9 +119,7 @@ export default function ForgotPassword() {
             await authApi.forgotPassword(email);
             setStep("otp");
         } catch (err: any) {
-            setError(
-                err?.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại.",
-            );
+            setError(err?.response?.data?.message || t('auth.forgotPassword.error.generic'))
         } finally {
             setIsLoading(false);
         }
@@ -152,7 +152,7 @@ export default function ForgotPassword() {
         e.preventDefault()
         const otpValue = otp.join('')
         if (otpValue.length !== 6) {
-            setError('Vui lòng nhập đầy đủ 6 chữ số OTP')
+            setError(t('auth.forgotPassword.error.otpIncomplete'))
             return
         }
         setError(null)
@@ -161,7 +161,7 @@ export default function ForgotPassword() {
             await authApi.resetPassword(otpValue, newPassword, confirmPassword)
             setStep('success')
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'OTP không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.')
+            setError(err?.response?.data?.message || t('auth.forgotPassword.error.otpInvalid'))
         } finally {
             setIsLoading(false)
         }
@@ -183,11 +183,11 @@ export default function ForgotPassword() {
                                 </div>
                             </div>
                             <h2 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--color-text)' }}>
-                                Quên mật khẩu?
-                            </h2>
+                                {t('auth.forgotPassword.title')}
+                            </h2>  
                             <p className="text-center mb-6 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                Nhập địa chỉ email gắn với tài khoản của bạn.
-                            </p>
+                                {t('auth.forgotPassword.instructions')}
+                            </p>  
 
                             <StepIndicator />
                             <ErrorBox />
@@ -195,28 +195,28 @@ export default function ForgotPassword() {
                             <form onSubmit={handleEmailNext} className="space-y-5">
                                 <div>
                                     <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                                        Địa chỉ Email
-                                    </label>
+                                        {t('auth.forgotPassword.emailLabel')}
+                                    </label>  
                                     <div className="relative">
                                         {/* <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /> */}
                                         <input
                                             type="email"
                                             value={email}
                                             onChange={e => setEmail(e.target.value)}
-                                            className="input-field pl-10"
-                                            placeholder="name@domain.com"
+                                            className="input-field !pl-10"
+                                            placeholder={t('auth.forgotPassword.emailPlaceholder')}  
                                             required autoFocus
                                         />
                                     </div>
                                 </div>
                                 <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2">
-                                    Tiếp theo →
+                                    {t('auth.forgotPassword.next')}  
                                 </button>
                             </form>
 
                             <div className="mt-6 text-center">
                                 <Link to="/login" className="inline-flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <ArrowLeft className="w-4 h-4" /> Quay lại đăng nhập
+                                    <ArrowLeft className="w-4 h-4" /> {t('auth.forgotPassword.backToLogin')}  
                                 </Link>
                             </div>
                         </>
@@ -233,11 +233,11 @@ export default function ForgotPassword() {
                                 </div>
                             </div>
                             <h2 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--color-text)' }}>
-                                Đặt mật khẩu mới
-                            </h2>
+                                {t('auth.forgotPassword.newPasswordTitle')}
+                            </h2>  
                             <p className="text-center mb-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                Nhập mật khẩu mới cho tài khoản
-                            </p>
+                                {t('auth.forgotPassword.newPasswordInstructions')}
+                            </p>  
                             <p className="text-center mb-6 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
                                 {email}
                             </p>
@@ -248,15 +248,15 @@ export default function ForgotPassword() {
                             <form onSubmit={handleSendOtp} className="space-y-5">
                                 <div>
                                     <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                                        Mật khẩu mới
-                                    </label>
+                                        {t('auth.forgotPassword.passwordLabel')}
+                                    </label>  
                                     <div className="relative">
                                         <input
                                             type={showNew ? 'text' : 'password'}
                                             value={newPassword}
                                             onChange={e => setNewPassword(e.target.value)}
                                             className="input-field pr-10"
-                                            placeholder="Ít nhất 6 ký tự"
+                                            placeholder={t('auth.forgotPassword.passwordPlaceholder')}  
                                             required autoFocus
                                         />
                                         <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -267,17 +267,18 @@ export default function ForgotPassword() {
 
                                 <div>
                                     <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
-                                        Xác nhận mật khẩu mới
-                                    </label>
+                                        {t('auth.forgotPassword.confirmPasswordLabel')}
+                                    </label>  
                                     <div className="relative">
                                         <input
                                             type={showConfirm ? 'text' : 'password'}
                                             value={confirmPassword}
                                             onChange={e => setConfirmPassword(e.target.value)}
-                                            className={`input-field pr-10 ${confirmPassword && confirmPassword !== newPassword ? 'border-red-400 focus:border-red-400' :
-                                                    confirmPassword && confirmPassword === newPassword ? 'border-emerald-400 focus:border-emerald-400' : ''
-                                                }`}
-                                            placeholder="Nhập lại mật khẩu mới"
+                                            className={`input-field pr-10 ${
+                                                confirmPassword && confirmPassword !== newPassword ? 'border-red-400 focus:border-red-400' :
+                                                confirmPassword && confirmPassword === newPassword ? 'border-emerald-400 focus:border-emerald-400' : ''
+                                            }`}
+                                            placeholder={t('auth.forgotPassword.confirmPasswordPlaceholder')}  
                                             required
                                         />
                                         <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -285,7 +286,7 @@ export default function ForgotPassword() {
                                         </button>
                                     </div>
                                     {confirmPassword && confirmPassword !== newPassword && (
-                                        <p className="text-xs text-red-500 mt-1">Mật khẩu không khớp</p>
+                                        <p className="text-xs text-red-500 mt-1">{t('auth.forgotPassword.passwordMismatch')}  </p>
                                     )}
                                 </div>
 
@@ -295,14 +296,14 @@ export default function ForgotPassword() {
                                     className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
                                 >
                                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                                    {isLoading ? 'Đang gửi OTP...' : 'Đổi mật khẩu → Gửi mã OTP'}
+                                    {isLoading ? t('auth.forgotPassword.sendingOtp') : t('auth.forgotPassword.changePasswordSendOtp')}  
                                 </button>
                             </form>
 
                             <div className="mt-5 text-center">
                                 <button onClick={() => { setStep('email'); setError(null) }} className="text-sm font-medium inline-flex items-center gap-1.5 hover:gap-2.5 transition-all" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <ArrowLeft className="w-3.5 h-3.5" /> Quay lại
-                                </button>
+                                    <ArrowLeft className="w-3.5 h-3.5" /> {t('auth.forgotPassword.stepBack')}
+                                </button>  
                             </div>
                         </>
                     )}
@@ -318,11 +319,11 @@ export default function ForgotPassword() {
                                 </div>
                             </div>
                             <h2 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--color-text)' }}>
-                                Nhập mã OTP
-                            </h2>
+                                {t('auth.forgotPassword.enterOtpTitle')}
+                            </h2>  
                             <p className="text-center mb-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                Mã xác nhận đã gửi đến
-                            </p>
+                                {t('auth.forgotPassword.otpSentTo')}
+                            </p>  
                             <p className="text-center mb-6 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
                                 {email}
                             </p>
@@ -334,8 +335,8 @@ export default function ForgotPassword() {
                                 {/* OTP 6 ô */}
                                 <div>
                                     <label className="block text-sm font-medium text-center mb-3" style={{ color: 'var(--color-text-secondary)' }}>
-                                        Mã OTP (6 chữ số)
-                                    </label>
+                                        {t('auth.forgotPassword.otpLabel')}
+                                    </label>  
                                     <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
                                         {otp.map((digit, i) => (
                                             <input
@@ -359,8 +360,8 @@ export default function ForgotPassword() {
                                         ))}
                                     </div>
                                     <p className="text-xs text-center mt-2 text-orange-500 font-medium">
-                                        ⏰ Mã có hiệu lực trong <strong>10 phút</strong>
-                                    </p>
+                                        {t('auth.forgotPassword.otpValidDuration', { minutes: 10 })}
+                                    </p>  
                                 </div>
 
                                 <button
@@ -369,23 +370,23 @@ export default function ForgotPassword() {
                                     className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
                                 >
                                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                                    {isLoading ? 'Đang xác nhận...' : 'Xác nhận OTP'}
+                                    {isLoading ? t('auth.forgotPassword.verifying') : t('auth.forgotPassword.verifyOtp')}  
                                 </button>
                             </form>
 
                             <div className="mt-5 text-center space-y-2">
                                 <button onClick={() => { setStep('newpw'); setOtp(['', '', '', '', '', '']); setError(null) }} className="text-sm font-medium inline-flex items-center gap-1.5 hover:gap-2.5 transition-all" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <ArrowLeft className="w-3.5 h-3.5" /> Quay lại
+                                    <ArrowLeft className="w-3.5 h-3.5" /> {t('auth.forgotPassword.stepBack')}
                                 </button>
                                 <p className="block text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                                    Không nhận được mã?{' '}
+                                    {t('auth.forgotPassword.didntReceive')}{' '}
                                     <button
                                         type="button"
                                         onClick={() => { setOtp(['', '', '', '', '', '']); setError(null); authApi.forgotPassword(email) }}
                                         className="text-blue-500 font-semibold hover:underline"
                                     >
-                                        Gửi lại
-                                    </button>
+                                        {t('auth.forgotPassword.resend')}
+                                    </button>  
                                 </p>
                             </div>
                         </>
@@ -402,14 +403,14 @@ export default function ForgotPassword() {
                                 </div>
                             </div>
                             <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--color-text)' }}>
-                                Đặt lại thành công! 🎉
-                            </h2>
+                                {t('auth.forgotPassword.successTitle')} 🎉
+                            </h2>  
                             <p className="mb-8 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                Mật khẩu của bạn đã được cập nhật. Hãy đăng nhập với mật khẩu mới.
-                            </p>
+                                {t('auth.forgotPassword.successDesc')}
+                            </p>  
                             <StepIndicator />
                             <button onClick={() => navigate('/login')} className="btn-primary w-full shadow-lg shadow-emerald-500/20">
-                                Đăng nhập ngay
+                                {t('auth.forgotPassword.loginNow')}
                             </button>
                         </div>
                     )}

@@ -1,17 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { GraduationCap, Menu } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { GraduationCap } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useRole } from '../../hooks/useRole'
 import NotificationComponent from '../notifications/Notification'
 import ThemeToggle from '../ui/ThemeToggle'
+import LanguageSwitcher from '../ui/LanguageSwitcher'
 import Badge from '../ui/Badge'
 
-interface HeaderProps {
-    onMenuClick?: () => void
-    showMenuButton?: boolean
-}
-
-const Header = ({ onMenuClick, showMenuButton }: HeaderProps) => {
+const Header = () => {
+    const { t } = useTranslation()
     const { user, isAuthenticated, logout } = useAuthStore()
     const { roleLabel } = useRole()
     const navigate = useNavigate()
@@ -47,18 +45,19 @@ const Header = ({ onMenuClick, showMenuButton }: HeaderProps) => {
                             to="/"
                             className="text-slate-700 hover:text-primary-500 dark:text-slate-300 dark:hover:text-primary-500 text-sm font-medium leading-normal transition-colors"
                         >
-                            Trang chủ
+                            {t('nav.home')}
                         </Link>
                         <a
                             href="#features"
                             className="text-slate-700 hover:text-primary-500 dark:text-slate-300 dark:hover:text-primary-500 text-sm font-medium leading-normal transition-colors"
                         >
-                            Tính năng
+                            {t('nav.features')}
                         </a>
                     </nav>
                 )}
 
                 <div className="flex items-center gap-3">
+                    <LanguageSwitcher />
                     <ThemeToggle />
                     {isAuthenticated ? (
                         <div className="flex items-center gap-3">
@@ -75,7 +74,7 @@ const Header = ({ onMenuClick, showMenuButton }: HeaderProps) => {
                                 onClick={handleLogout}
                                 className="flex min-w-[84px] cursor-pointer items-center justify-center rounded-full h-10 px-5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
                             >
-                                Đăng xuất
+                                {t('nav.logout')}
                             </button>
                         </div>
                     ) : (
@@ -84,13 +83,13 @@ const Header = ({ onMenuClick, showMenuButton }: HeaderProps) => {
                                 to="/login"
                                 className="flex min-w-[84px] cursor-pointer items-center justify-center rounded-full h-10 px-5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
                             >
-                                Đăng nhập
+                                {t('nav.login')}
                             </Link>
                             <Link
                                 to="/register"
                                 className="flex min-w-[84px] cursor-pointer items-center justify-center rounded-full h-10 px-5 bg-primary-500 hover:bg-orange-500 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors shadow-lg shadow-orange-500/30"
                             >
-                                Đăng ký
+                                {t('nav.register')}
                             </Link>
                         </div>
                     )}

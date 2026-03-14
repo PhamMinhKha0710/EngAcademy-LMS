@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import './styles/index.css'
+import './i18n'
 import { initTheme } from './store/themeStore'
 
 initTheme()

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
     ArrowLeft,
@@ -15,6 +16,7 @@ import { examApi, ExamResponse } from '../../services/api/examApi'
 import { useAuthStore } from '../../store/authStore'
 
 export default function ExamIntroductionPage() {
+    const { t } = useTranslation()
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const { user } = useAuthStore()
@@ -42,14 +44,20 @@ export default function ExamIntroductionPage() {
                     setSubmissionState('submitted_published')
                 } catch (resultErr: any) {
                     const message = resultErr?.response?.data?.message || ''
-                    if (typeof message === 'string' && message.includes('Giáo viên chưa công bố kết quả bài thi')) {
-                        setSubmissionState('submitted_waiting')
+                    if (typeof message === 'string') {
+                        const vn = 'Giáo viên chưa công bố kết quả bài thi'
+                        const en = t('examResult.examNotPublished')
+                        if (message.includes(vn) || message.includes(en)) {
+                            setSubmissionState('submitted_waiting')
+                        } else {
+                            setSubmissionState('not_submitted')
+                        }
                     } else {
                         setSubmissionState('not_submitted')
                     }
                 }
             } catch (err: any) {
-                setError(err?.response?.data?.message || 'Không thể tải thông tin bài thi')
+                setError(err?.response?.data?.message || t('exams.cantLoadExam'))
             } finally {
                 setLoading(false)
             }
@@ -83,7 +91,7 @@ export default function ExamIntroductionPage() {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-                <p style={{ color: 'var(--color-text-secondary)' }}>Đang tải thông tin bài thi...</p>
+                <p style={{ color: 'var(--color-text-secondary)' }}>{t('exams.loadingExamInfo')}</p>
             </div>
         )
     }
@@ -96,15 +104,15 @@ export default function ExamIntroductionPage() {
                         <ShieldAlert className="w-6 h-6 text-red-400" />
                     </div>
                     <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text)' }}>
-                        Không thể mở màn giới thiệu bài thi
+                        {t('exams.cantOpenIntro')}
                     </h2>
-                    <p style={{ color: 'var(--color-text-secondary)' }}>{error || 'Đã có lỗi xảy ra'}</p>
+                    <p style={{ color: 'var(--color-text-secondary)' }}>{error || t('common.error')}</p>
                     <button
                         onClick={() => navigate('/exams')}
                         className="btn-secondary inline-flex items-center gap-2"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Quay về danh sách
+                        {t('exams.backToList')}
                     </button>
                 </div>
             </div>
@@ -129,7 +137,7 @@ export default function ExamIntroductionPage() {
                             {exam.title}
                         </h1>
                         <p className="max-w-2xl text-sm sm:text-base" style={{ color: 'var(--color-text-secondary)' }}>
-                            Hãy đọc kỹ hướng dẫn trước khi bắt đầu làm bài để có kết quả tốt nhất.
+                            {t('exams.readCarefully')}
                         </p>
                     </div>
                 </div>
@@ -144,56 +152,56 @@ export default function ExamIntroductionPage() {
                     >
                         <div className="space-y-2">
                             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
-                                Thời lượng
+                                {t('exams.duration')}
                             </p>
                             <div className="flex items-center gap-3">
                                 <Clock3 className="w-5 h-5 text-blue-500" />
                                 <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
-                                    {exam.durationMinutes ?? 0} phút
+                                    {exam.durationMinutes ?? 0} {t('exams.minutes')}
                                 </p>
                             </div>
                         </div>
                         <div className="h-px" style={{ backgroundColor: 'var(--color-border)' }} />
                         <div className="space-y-2">
                             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
-                                Số câu hỏi
+                                {t('exams.numberQuestions')}
                             </p>
                             <div className="flex items-center gap-3">
                                 <HelpCircle className="w-5 h-5 text-blue-500" />
                                 <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
-                                    {exam.questionCount ?? 0} câu
+                                    {exam.questionCount ?? 0} {t('exams.questions')}
                                 </p>
                             </div>
                         </div>
                         <div className="h-px" style={{ backgroundColor: 'var(--color-border)' }} />
                         <div className="space-y-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                            <p>Bắt đầu: {formatDateTime(exam.startTime)}</p>
-                            <p>Kết thúc: {formatDateTime(exam.endTime)}</p>
+                            <p>{t('exams.startTime')}: {formatDateTime(exam.startTime)}</p>
+                            <p>{t('exams.endTime')}: {formatDateTime(exam.endTime)}</p>
                         </div>
                     </div>
 
                     <div className="md:col-span-2 p-6 sm:p-8">
                         <h3 className="text-xl font-bold mb-5 flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
                             <Info className="w-5 h-5 text-blue-500" />
-                            Hướng dẫn làm bài
+                            {t('exams.examInstructions')}
                         </h3>
                         <div className="space-y-4">
                             <div className="flex items-start gap-3 p-3 rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
                                 <CircleCheck className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
                                 <p style={{ color: 'var(--color-text-secondary)' }}>
-                                    Đồng hồ sẽ bắt đầu chạy ngay khi vào đề. Bạn không thể tạm dừng bài thi.
+                                    {t('exams.clockStartsImmediately')}
                                 </p>
                             </div>
                             <div className="flex items-start gap-3 p-3 rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
                                 <Wifi className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
                                 <p style={{ color: 'var(--color-text-secondary)' }}>
-                                    Đảm bảo kết nối Internet ổn định để tránh gián đoạn trong lúc làm bài.
+                                    {t('exams.stableInternet')}
                                 </p>
                             </div>
                             <div className="flex items-start gap-3 p-3 rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
                                 <ShieldAlert className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
                                 <p style={{ color: 'var(--color-text-secondary)' }}>
-                                    Không tải lại trang hoặc thoát tab nhiều lần để tránh bị đánh dấu vi phạm.
+                                    {t('exams.dontReloadPage')}
                                 </p>
                             </div>
                         </div>
@@ -204,7 +212,7 @@ export default function ExamIntroductionPage() {
                                 className="btn-secondary inline-flex items-center gap-2 justify-center"
                             >
                                 <ArrowLeft className="w-4 h-4" />
-                                Quay về danh sách
+                                {t('exams.backToList')}
                             </button>
 
                             {submissionState === 'submitted_published' ? (
@@ -212,7 +220,7 @@ export default function ExamIntroductionPage() {
                                     onClick={() => navigate(`/exams/${exam.id}/result`)}
                                     className="btn-primary inline-flex items-center gap-2 justify-center"
                                 >
-                                    Xem điểm
+                                    {t('exams.viewScore')}
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             ) : submissionState === 'submitted_waiting' ? (
@@ -220,7 +228,7 @@ export default function ExamIntroductionPage() {
                                     disabled
                                     className="btn-secondary inline-flex items-center gap-2 justify-center opacity-70 cursor-not-allowed"
                                 >
-                                    Đã nộp - Chờ công bố điểm
+                                    {t('exams.submittedWaiting')}
                                 </button>
                             ) : (
                                 <button
@@ -228,7 +236,7 @@ export default function ExamIntroductionPage() {
                                     disabled={!canStart}
                                     className="btn-primary inline-flex items-center gap-2 justify-center disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    Bắt đầu làm bài
+                                    {t('exams.startExam')}
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             )}

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
     Search,
     ChevronLeft,
@@ -16,14 +17,14 @@ import EmptyState from '../../components/ui/EmptyState'
 import PageHero from '../../components/ui/PageHero'
 import Skeleton from '../../components/ui/Skeleton'
 
-const DIFFICULTY_CONFIG: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default'; accent: string }> = {
-    1: { label: 'Dễ', variant: 'success', accent: 'from-success-500/20 to-success-500/5' },
-    2: { label: 'Trung bình', variant: 'info', accent: 'from-primary-500/20 to-primary-500/5' },
-    3: { label: 'Khó', variant: 'warning', accent: 'from-amber-500/20 to-amber-500/5' },
-    4: { label: 'Rất khó', variant: 'danger', accent: 'from-red-500/20 to-red-500/5' },
-}
-
 const PAGE_SIZE = 12
+
+const DIFFICULTY_CONFIG: Record<number, { labelKey: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default'; accent: string }> = {
+    1: { labelKey: 'lessons.easy', variant: 'success', accent: 'from-success-500/20 to-success-500/5' },
+    2: { labelKey: 'lessons.medium', variant: 'info', accent: 'from-primary-500/20 to-primary-500/5' },
+    3: { labelKey: 'lessons.hard', variant: 'warning', accent: 'from-amber-500/20 to-amber-500/5' },
+    4: { labelKey: 'lessons.veryHard', variant: 'danger', accent: 'from-red-500/20 to-red-500/5' },
+}
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } }
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }
@@ -46,6 +47,7 @@ function LessonCardSkeleton() {
 }
 
 export default function LessonsPage() {
+    const { t } = useTranslation()
     const [lessons, setLessons] = useState<Lesson[]>([])
     const [page, setPage] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
@@ -65,13 +67,13 @@ export default function LessonsPage() {
                 setTotalElements(data.totalElements)
             } catch (err) {
                 console.error('Failed to fetch lessons:', err)
-                setError('Không thể tải danh sách bài học. Vui lòng thử lại.')
+                setError(t('common.error'))
             } finally {
                 setLoading(false)
             }
         }
         fetchLessons()
-    }, [page])
+    }, [page, t])
 
     const filteredLessons = useMemo(() => {
         if (!searchTerm.trim()) return lessons
@@ -95,7 +97,7 @@ export default function LessonsPage() {
                     <AlertCircle className="w-14 h-14 text-red-400 mb-4" />
                     <p className="font-medium text-lg" style={{ color: 'var(--color-text)' }}>{error}</p>
                     <button onClick={() => setPage(0)} className="btn-primary mt-6">
-                        Thử lại
+                        {t('common.retry')}
                     </button>
                 </div>
             </div>
@@ -105,19 +107,19 @@ export default function LessonsPage() {
     return (
         <div className="p-6 lg:p-8 space-y-8">
             <PageHero
-                title="Bài học"
-                subtitle={`${totalElements} bài học • Chọn bài và bắt đầu học ngay`}
+                title={t('lessons.title')}
+                subtitle={t('lessons.subtitle', { count: totalElements })}
                 icon={<BookOpen className="w-7 h-7" />}
                 iconBg="primary"
             >
                 <div className="relative w-full sm:w-80">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
                     <input
                         type="text"
-                        placeholder="Tìm bài học..."
+                        placeholder={t('lessons.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="input-field pl-10"
+                        className="input-field !pl-10"
                     />
                 </div>
             </PageHero>
@@ -155,7 +157,7 @@ export default function LessonsPage() {
                                                 <div className="w-12 h-12 rounded-xl bg-primary-500/15 flex items-center justify-center group-hover:bg-primary-500/25 transition-colors">
                                                     <BookOpen className="w-6 h-6 text-primary-500" />
                                                 </div>
-                                                <Badge variant={diff.variant}>{diff.label}</Badge>
+                                                <Badge variant={diff.variant}>{t(diff.labelKey)}</Badge>
                                             </div>
                                             <h3 className="font-semibold text-base leading-snug mb-1.5 line-clamp-2 group-hover:text-primary-500 transition-colors text-[var(--color-text)]">
                                                 {lesson.title}
@@ -169,13 +171,13 @@ export default function LessonsPage() {
                                                 {lesson.vocabularyCount != null && (
                                                     <span className="flex items-center gap-1">
                                                         <BookMarked className="w-3.5 h-3.5" />
-                                                        {lesson.vocabularyCount} từ
+                                                        {lesson.vocabularyCount} {t('lessons.words')}
                                                     </span>
                                                 )}
                                                 {lesson.questionCount != null && (
                                                     <span className="flex items-center gap-1">
                                                         <FileQuestion className="w-3.5 h-3.5" />
-                                                        {lesson.questionCount} câu
+                                                        {lesson.questionCount} {t('lessons.questions')}
                                                     </span>
                                                 )}
                                             </div>
@@ -189,16 +191,16 @@ export default function LessonsPage() {
             ) : (
                 <EmptyState
                     icon={<BookOpen className="w-10 h-10" />}
-                    title="Không tìm thấy bài học"
+                    title={searchTerm ? t('lessons.noLessonFound') : t('lessons.noLessonsYet')}
                     description={
                         searchTerm
-                            ? `Không có bài học nào phù hợp với "${searchTerm}". Thử từ khóa khác nhé!`
-                            : 'Chưa có bài học nào. Hãy quay lại sau!'
+                            ? t('lessons.noMatchSearch', { search: searchTerm })
+                            : t('lessons.noLessonsYet')
                     }
                     action={
                         searchTerm ? (
                             <button onClick={() => setSearchTerm('')} className="btn-secondary">
-                                Xóa tìm kiếm
+                                {t('lessons.clearSearch')}
                             </button>
                         ) : undefined
                     }
@@ -216,16 +218,15 @@ export default function LessonsPage() {
                         disabled={page === 0}
                         className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--color-bg-tertiary)] text-[var(--color-text)] hover:bg-primary-500/15 hover:text-primary-500"
                     >
-                        <ChevronLeft className="w-4 h-4" /> Trước
+                        <ChevronLeft className="w-4 h-4" /> {t('common.previous')}
                     </button>
                     <div className="flex items-center gap-1">
                         {Array.from({ length: totalPages }, (_, i) => (
                             <button
                                 key={i}
                                 onClick={() => setPage(i)}
-                                className={`min-w-[2.5rem] h-10 px-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                                    i === page ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:bg-primary-500/15 hover:text-primary-500'
-                                }`}
+                                className={`min-w-[2.5rem] h-10 px-2 rounded-xl text-sm font-medium transition-all duration-200 ${i === page ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:bg-primary-500/15 hover:text-primary-500'
+                                    }`}
                             >
                                 {i + 1}
                             </button>
@@ -236,10 +237,11 @@ export default function LessonsPage() {
                         disabled={page >= totalPages - 1}
                         className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--color-bg-tertiary)] text-[var(--color-text)] hover:bg-primary-500/15 hover:text-primary-500"
                     >
-                        Sau <ChevronRight className="w-4 h-4" />
+                        {t('common.next')} <ChevronRight className="w-4 h-4" />
                     </button>
                 </motion.div>
             )}
         </div>
     )
 }
+

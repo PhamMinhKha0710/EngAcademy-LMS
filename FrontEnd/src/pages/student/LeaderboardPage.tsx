@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Trophy, Medal, Flame, Coins, Loader2, Crown, User } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { leaderboardApi, LeaderboardEntry } from '../../services/api/leaderboardApi'
@@ -6,16 +7,17 @@ import EmptyState from '../../components/ui/EmptyState'
 
 type TabKey = 'global' | 'coins' | 'streak'
 
-const tabs: { key: TabKey; label: string; icon: typeof Trophy }[] = [
-    { key: 'global', label: 'Tổng hợp', icon: Trophy },
-    { key: 'coins', label: 'Xu', icon: Coins },
-    { key: 'streak', label: 'Streak', icon: Flame },
-]
 
 export default function LeaderboardPage() {
+    const { t } = useTranslation()
     const { user, fetchCurrentUser } = useAuthStore()
 
     const [activeTab, setActiveTab] = useState<TabKey>('global')
+    const tabs: { key: TabKey; label: string; icon: typeof Trophy }[] = [
+        { key: 'global', label: t('leaderboard.tabGlobal'), icon: Trophy },
+        { key: 'coins', label: t('leaderboard.tabCoins'), icon: Coins },
+        { key: 'streak', label: t('leaderboard.tabStreak'), icon: Flame },
+    ]
     const [entries, setEntries] = useState<LeaderboardEntry[]>([])
     const [myRank, setMyRank] = useState<LeaderboardEntry | null>(null)
     const [loading, setLoading] = useState(true)
@@ -63,22 +65,22 @@ export default function LeaderboardPage() {
                 setEntries(data || [])
             } catch (err) {
                 console.error('Failed to fetch leaderboard:', err)
-                setError('Không thể tải bảng xếp hạng')
+                setError(t('leaderboard.loadingError'))
             } finally {
                 setLoading(false)
             }
         }
         fetchData()
-    }, [activeTab])
+    }, [activeTab, t])
 
     const getMetricValue = (entry: LeaderboardEntry) => {
         switch (activeTab) {
             case 'coins':
-                return `${entry.totalCoins?.toLocaleString() ?? 0} xu`
+                return t('leaderboard.coinsMetric', { count: entry.totalCoins ?? 0 })
             case 'streak':
-                return `${entry.streakDays ?? 0} ngày`
+                return t('leaderboard.daysMetric', { count: entry.streakDays ?? 0 })
             default:
-                return `${entry.totalCoins?.toLocaleString() ?? 0} xu`
+                return t('leaderboard.coinsMetric', { count: entry.totalCoins ?? 0 })
         }
     }
 
@@ -103,10 +105,10 @@ export default function LeaderboardPage() {
                     className="text-2xl md:text-3xl font-bold mb-2"
                     style={{ color: 'var(--color-text)' }}
                 >
-                    Bảng xếp hạng
+                    {t('leaderboard.title')}
                 </h1>
                 <p style={{ color: 'var(--color-text-secondary)' }}>
-                    Thi đua cùng bạn bè và chinh phục vị trí cao nhất
+                    {t('leaderboard.subtitle')}
                 </p>
             </div>
 
@@ -124,7 +126,7 @@ export default function LeaderboardPage() {
                             {myRank.fullName || myRank.username}
                         </p>
                         <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                            Xếp hạng của bạn
+                            {t('leaderboard.yourRanking')}
                         </p>
                     </div>
                     <div className="text-right">
@@ -179,8 +181,8 @@ export default function LeaderboardPage() {
             {!loading && entries.length === 0 && (
                 <EmptyState
                     icon={<Trophy className="w-8 h-8" />}
-                    title="Chưa có dữ liệu"
-                    description="Bảng xếp hạng sẽ hiển thị khi có người tham gia."
+                    title={t('leaderboard.noDataTitle')}
+                    description={t('leaderboard.noDataDesc')}
                 />
             )}
 
@@ -333,7 +335,7 @@ export default function LeaderboardPage() {
                                             >
                                                 {entry.fullName || entry.username}
                                                 {isMe && (
-                                                    <span className="ml-2 text-xs text-blue-400">(Bạn)</span>
+                                                    <span className="ml-2 text-xs text-blue-400">{t('leaderboard.you')}</span>
                                                 )}
                                             </p>
                                         </div>

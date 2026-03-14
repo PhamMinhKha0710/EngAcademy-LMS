@@ -160,7 +160,7 @@ export default function Home() {
             <section id="features" className="px-4 sm:px-6 md:px-10 lg:px-16 xl:px-40 py-16 md:py-24 bg-white dark:bg-slate-900">
                 <div className="max-w-7xl mx-auto w-full">
                     <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
-                        <div className="max-w-xl">
+                        <div className="max-w-2xl">
                             <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-4">
                                 Vì sao trẻ thích học cùng chúng tôi
                             </h2>

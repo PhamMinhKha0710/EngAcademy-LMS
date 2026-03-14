@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { useToastStore } from '../../store/toastStore'
 import { userApi } from '../../services/api/userApi'
@@ -12,6 +13,7 @@ const MASCOT_URL = 'https://lh3.googleusercontent.com/aida-public/AB6AXuD0aO4gpu
 type Step = 1 | 2 | 3
 
 export default function Register() {
+    const { t } = useTranslation()
     const [step, setStep] = useState<Step>(1)
     const [fullName, setFullName] = useState('')
     const [username, setUsername] = useState('')
@@ -40,13 +42,11 @@ export default function Register() {
         setValidationError('')
         clearError()
         if (password.length < 6) {
-            setValidationError('Mật khẩu phải có ít nhất 6 ký tự')
-            addToast({ type: 'warning', message: 'Mật khẩu phải có ít nhất 6 ký tự.' })
+            setValidationError(t('auth.register.step1.error.passwordLength'))
             return false
         }
         if (password !== confirmPassword) {
-            setValidationError('Mật khẩu xác nhận không khớp')
-            addToast({ type: 'error', message: 'Mật khẩu xác nhận không khớp với mật khẩu mới.' })
+            setValidationError(t('auth.register.step1.error.confirmMismatch'))
             return false
         }
         return true
@@ -90,20 +90,20 @@ export default function Register() {
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
                                     <div className={`size-8 rounded-full flex items-center justify-center font-bold shadow-md ${step >= 1 ? 'bg-primary-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>1</div>
-                                    <span className={`text-base font-bold ${step >= 1 ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Thông tin tài khoản</span>
+                                    <span className={`text-base font-bold ${step >= 1 ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>{t('auth.register.step2.steps.info')}</span>
                                 </div>
                                 <div className="w-12 h-1 bg-slate-200 dark:bg-slate-700 rounded-full" />
                                 <div className="flex items-center gap-2">
                                     <div className={`size-8 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-primary-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>2</div>
-                                    <span className={`text-base ${step >= 2 ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Chọn Avatar</span>
+                                    <span className={`text-base ${step >= 2 ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>{t('auth.register.step2.steps.avatar')}</span>
                                 </div>
                                 <div className="w-12 h-1 bg-slate-200 dark:bg-slate-700 rounded-full opacity-50" />
                                 <div className="flex items-center gap-2 opacity-50">
                                     <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-500">3</div>
-                                    <span className="text-slate-500 dark:text-slate-400">Hoàn thành</span>
+                                    <span className="text-slate-500 dark:text-slate-400">{t('auth.register.step2.steps.done')}</span>
                                 </div>
                             </div>
-                        </div>
+                        </div>  
                     )}
 
                     {/* Step 1: Account Info */}
@@ -113,12 +113,12 @@ export default function Register() {
                                 <div className="absolute top-[-50px] left-[-50px] size-40 bg-primary-500/20 rounded-full blur-3xl" />
                                 <div className="absolute bottom-[-20px] right-[-20px] size-32 bg-primary-500/20 rounded-full blur-2xl" />
                                 <div className="relative z-10 w-full max-w-[280px] aspect-square bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url('${MASCOT_URL}')` }} />
-                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-6">Bắt đầu thôi!</h3>
-                                <p className="text-slate-600 dark:text-slate-400 mt-2">Tham gia hàng ngàn bạn nhỏ đang học tiếng Anh mỗi ngày. Sẽ rất vui!</p>
+                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-6">{t('auth.register.step1.title')}</h3>
+                                <p className="text-slate-600 dark:text-slate-400 mt-2">{t('auth.register.step1.description')}</p>  
                             </div>
                             <div className="lg:w-7/12 p-8 lg:p-12 flex flex-col justify-center">
-                                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Tạo tài khoản của bạn</h1>
-                                <p className="text-slate-600 dark:text-slate-400 mb-8">Điền thông tin để bắt đầu hành trình.</p>
+                                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">{t('auth.register.step1.title')}</h1>
+                                <p className="text-slate-600 dark:text-slate-400 mb-8">{t('auth.register.step1.description')}</p>  
 
                                 {displayError && (
                                     <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-sm">
@@ -128,7 +128,7 @@ export default function Register() {
 
                                 <form onSubmit={(e) => { e.preventDefault(); validateStep1() && setStep(2); }} className="space-y-5">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">Họ và tên</label>
+                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">{t('auth.register.step1.fullName')}</label>
                                         <div className="relative">
                                             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
@@ -136,13 +136,13 @@ export default function Register() {
                                                 value={fullName}
                                                 onChange={(e) => setFullName(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                                                placeholder="Bạn tên là gì?"
+                                                placeholder={t('auth.register.step1.fullNamePlaceholder')}  
                                                 required
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">Tên đăng nhập</label>
+                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">{t('auth.register.step1.username')}</label>
                                         <div className="relative">
                                             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
@@ -150,13 +150,13 @@ export default function Register() {
                                                 value={username}
                                                 onChange={(e) => setUsername(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                                                placeholder="superlearner123"
+                                                placeholder={t('auth.register.step1.usernamePlaceholder')}  
                                                 required
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">Email phụ huynh</label>
+                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">{t('auth.register.step1.parentEmail')}</label>
                                         <div className="relative">
                                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
@@ -164,14 +164,14 @@ export default function Register() {
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                                                placeholder="email@example.com"
+                                                placeholder={t('auth.register.step1.parentEmailPlaceholder')}  
                                                 required
                                             />
                                         </div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Chúng tôi cần email này để bảo vệ tài khoản của bạn.</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{t('auth.register.step1.parentEmailNote')}</p>  
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">Mật khẩu</label>
+                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">{t('auth.register.step1.password')}</label>
                                         <div className="relative">
                                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
@@ -179,13 +179,13 @@ export default function Register() {
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                                                placeholder="Tạo mật khẩu bí mật"
+                                                placeholder={t('auth.register.step1.passwordPlaceholder')}  
                                                 required
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">Xác nhận mật khẩu</label>
+                                        <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">{t('auth.register.step1.confirmPassword')}</label>
                                         <div className="relative">
                                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
@@ -193,17 +193,17 @@ export default function Register() {
                                                 value={confirmPassword}
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                                                placeholder="Nhập lại mật khẩu"
+                                                placeholder={t('auth.register.step1.confirmPasswordPlaceholder')}  
                                                 required
                                             />
                                         </div>
                                     </div>
                                     <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                                         <Link to="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium transition-colors">
-                                            ← Quay lại
-                                        </Link>
+                                            {t('auth.register.step1.back')}
+                                        </Link>  
                                         <button type="submit" className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-primary-500/25 transition-all active:scale-95">
-                                            Bước tiếp theo
+                                            {t('auth.register.step1.nextStep')}  
                                             <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
                                         </button>
                                     </div>
@@ -217,11 +217,11 @@ export default function Register() {
                         <>
                             <div className="text-center md:text-left">
                                 <div className="flex items-center gap-2 text-primary-500 justify-center md:justify-start mb-2">
-                                    <span className="text-sm font-bold uppercase tracking-wider">Bước 2 trên 3</span>
+                                    <span className="text-sm font-bold uppercase tracking-wider">{t('auth.register.step2.progress')}</span>
                                 </div>
-                                <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-2">Chọn bạn đồng hành!</h1>
+                                <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-2">{t('auth.register.step2.heading')}</h1>
                                 <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl">
-                                    Chọn một nhân vật để bắt đầu cuộc phiêu lưu. Đừng lo, bạn có thể đổi sau trong hồ sơ.
+                                    {t('auth.register.step2.description')}
                                 </p>
                             </div>
 
@@ -258,8 +258,8 @@ export default function Register() {
                                         <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${selectedAvatar.url}')` }} />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">Đúng rồi, giống mình!</h3>
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Lựa chọn tuyệt vời! Sẵn sàng chưa?</p>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('auth.register.step2.selected')}</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">{t('auth.register.step2.ready')}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-4 w-full md:w-auto">
@@ -269,7 +269,7 @@ export default function Register() {
                                         className="flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                                     >
                                         <ArrowLeft className="w-5 h-5" strokeWidth={2} />
-                                        Quay lại
+                                        {t('auth.register.step2.back')}
                                     </button>
                                     <button
                                         type="button"
@@ -277,9 +277,9 @@ export default function Register() {
                                         disabled={isLoading}
                                         className="flex-1 md:flex-none flex items-center justify-center gap-2 min-w-[200px] bg-primary-500 hover:bg-primary-600 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-primary-500/20 transition-all disabled:opacity-50"
                                     >
-                                        {isLoading ? 'Đang đăng ký...' : (
+                                        {isLoading ? t('auth.register.step2.signingUp') : (
                                             <>
-                                                Hoàn thành đăng ký
+                                                {t('auth.register.step2.finish')}
                                                 <ArrowRight className="w-5 h-5" strokeWidth={2} />
                                             </>
                                         )}
@@ -298,8 +298,7 @@ export default function Register() {
                                     <div className="absolute bottom-10 right-10 size-24 rounded-full bg-emerald-500/20 blur-xl" />
                                     <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-lg px-8 py-6 mb-8 -rotate-2">
                                         <h1 className="text-2xl md:text-3xl font-black text-center text-slate-900 dark:text-white leading-tight">
-                                            Chào mừng, {fullName || 'bạn'}!<br />
-                                            <span className="text-primary-500">Sẵn sàng học tiếng Anh chưa?</span>
+                                            {t('auth.register.step3.welcome', { name: fullName || 'bạn' })}
                                         </h1>
                                     </div>
                                     <div className="relative w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden">
@@ -311,9 +310,9 @@ export default function Register() {
                                         <div className="size-16 bg-primary-500 rounded-full flex items-center justify-center shadow-lg text-white">
                                             <span className="text-3xl">🪙</span>
                                         </div>
-                                        <h3 className="font-bold text-lg text-slate-900 dark:text-white">Mục tiêu đầu tiên đã mở khóa!</h3>
+                                        <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t('auth.register.step3.firstGoal')}</h3>
                                         <p className="text-slate-700 dark:text-slate-300 text-sm">
-                                            Hoàn thành bài học đầu tiên để nhận <span className="text-primary-500 font-black text-lg">50 xu!</span>
+                                            {t('auth.register.step3.firstGoalDesc', { coins: 50 })}
                                         </p>
                                     </div>
                                     <div className="space-y-4 w-full max-w-xs">
@@ -321,14 +320,14 @@ export default function Register() {
                                             onClick={handleLetsGo}
                                             className="w-full h-16 bg-primary-500 hover:bg-primary-600 text-white rounded-full font-black text-xl shadow-lg shadow-primary-500/30 transition-all active:scale-95 flex items-center justify-center gap-3"
                                         >
-                                            Bắt đầu thôi!
+                                            {t('auth.register.step3.getStarted')} 
                                             <ArrowRight className="w-6 h-6" strokeWidth={2.5} />
                                         </button>
                                         <Link
                                             to="/settings"
                                             className="block w-full h-12 text-slate-500 dark:text-slate-400 font-medium text-sm hover:text-primary-500 transition-colors leading-[3rem]"
                                         >
-                                            Đổi avatar của tôi
+                                            {t('auth.register.step3.changeAvatar')}
                                         </Link>
                                     </div>
                                 </div>

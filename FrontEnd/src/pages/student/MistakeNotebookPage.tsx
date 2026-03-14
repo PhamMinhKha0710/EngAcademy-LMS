@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
     BookOpen,
     RotateCcw,
@@ -25,6 +26,7 @@ type ViewMode = 'table' | 'review'
 type SortMode = 'recent' | 'mistakeCount'
 
 export default function MistakeNotebookPage() {
+    const { t } = useTranslation()
     const { user } = useAuthStore()
 
     const [mistakes, setMistakes] = useState<MistakeNotebook[]>([])
@@ -45,11 +47,11 @@ export default function MistakeNotebookPage() {
             setMistakes(allMistakes || [])
         } catch (err) {
             console.error('Failed to fetch mistakes:', err)
-            setError('Không thể tải sổ lỗi sai')
+            setError(t('common.error'))
         } finally {
             setLoading(false)
         }
-    }, [user?.id])
+    }, [user?.id, t])
 
     useEffect(() => {
         fetchData()
@@ -62,7 +64,7 @@ export default function MistakeNotebookPage() {
             setMistakes((prev) => prev.filter((m) => m.id !== id))
         } catch (err) {
             console.error('Failed to delete mistake:', err)
-            setError('Không thể xóa mục này')
+            setError(t('common.error'))
         } finally {
             setDeletingId(null)
         }
@@ -78,14 +80,14 @@ export default function MistakeNotebookPage() {
     }
 
     const formatRelativeTime = (dateStr?: string) => {
-        if (!dateStr) return 'Không rõ thời gian'
+        if (!dateStr) return t('mistakes.unknownTime')
         const now = new Date().getTime()
         const then = new Date(dateStr).getTime()
         const diffMs = now - then
 
-        if (diffMs < 60 * 60 * 1000) return `${Math.max(1, Math.floor(diffMs / (60 * 1000)))} phút trước`
-        if (diffMs < 24 * 60 * 60 * 1000) return `${Math.floor(diffMs / (60 * 60 * 1000))} giờ trước`
-        if (diffMs < 7 * 24 * 60 * 60 * 1000) return `${Math.floor(diffMs / (24 * 60 * 60 * 1000))} ngày trước`
+        if (diffMs < 60 * 60 * 1000) return t('mistakes.minutesAgo', { count: Math.max(1, Math.floor(diffMs / (60 * 1000))) })
+        if (diffMs < 24 * 60 * 60 * 1000) return t('mistakes.hoursAgo', { count: Math.floor(diffMs / (60 * 60 * 1000)) })
+        if (diffMs < 7 * 24 * 60 * 60 * 1000) return t('mistakes.daysAgo', { count: Math.floor(diffMs / (24 * 60 * 60 * 1000)) })
         return formatDate(dateStr)
     }
 
@@ -137,12 +139,12 @@ export default function MistakeNotebookPage() {
                         style={{ color: 'var(--color-text-secondary)' }}
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Quay lại sổ lỗi sai
+                        {t('mistakes.backToNotebook')}
                     </button>
                     <EmptyState
                         icon={<BookOpen className="w-8 h-8" />}
-                        title="Không có từ nào để ôn tập"
-                        description="Sổ lỗi sai trống. Hãy luyện tập thêm!"
+                        title={t('mistakes.noWordsToReview')}
+                        description={t('mistakes.notebookEmpty')}
                     />
                 </div>
             )
@@ -161,7 +163,7 @@ export default function MistakeNotebookPage() {
                     style={{ color: 'var(--color-text-secondary)' }}
                 >
                     <ArrowLeft className="w-4 h-4" />
-                    Quay lại sổ lỗi sai
+                    {t('mistakes.backToNotebook')}
                 </button>
 
                 <div className="rounded-3xl border p-6 md:p-8 mb-6 bg-gradient-to-br from-blue-50/70 to-white dark:from-slate-800/70 dark:to-slate-900/80" style={{ borderColor: 'var(--color-border)' }}>
@@ -169,13 +171,13 @@ export default function MistakeNotebookPage() {
                         <div>
                             <p className="text-sm font-semibold uppercase tracking-wide text-blue-500 inline-flex items-center gap-2">
                                 <Brain className="w-4 h-4" />
-                                Review Center
+                                {t('mistakes.reviewCenter')}
                             </p>
                             <h2 className="text-2xl md:text-3xl font-black mt-2" style={{ color: 'var(--color-text)' }}>
-                                Ôn lại lỗi sai
+                                {t('mistakes.reviewMistakes')}
                             </h2>
                             <p className="mt-2 text-sm md:text-base" style={{ color: 'var(--color-text-secondary)' }}>
-                                Chạm vào thẻ để lật xem nghĩa đúng và ghi nhớ nhanh hơn.
+                                {t('mistakes.tapToFlip')}
                             </p>
                         </div>
                         <button
@@ -185,7 +187,7 @@ export default function MistakeNotebookPage() {
                             }}
                             className="btn-secondary shrink-0"
                         >
-                            Xem danh sách
+                            {t('mistakes.viewList')}
                         </button>
                     </div>
                 </div>
@@ -211,28 +213,28 @@ export default function MistakeNotebookPage() {
                         front={
                             <div className="flex-1 flex flex-col justify-between p-8 md:p-10">
                                 <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 w-fit">
-                                    Vocabulary
+                                    {t('mistakes.vocabulary')}
                                 </div>
                                 <div className="text-center my-6">
                                     <p className="text-4xl md:text-5xl font-black" style={{ color: 'var(--color-text)' }}>
                                         {currentItem.word || '—'}
                                     </p>
                                     <p className="text-sm mt-3" style={{ color: 'var(--color-text-secondary)' }}>
-                                        Sai {currentItem.mistakeCount ?? 0} lần • {formatRelativeTime(currentItem.lastMistakeAt ?? currentItem.addedAt)}
+                                        {t('mistakes.mistakesCount', { count: currentItem.mistakeCount ?? 0 })} • {formatRelativeTime(currentItem.lastMistakeAt ?? currentItem.addedAt)}
                                     </p>
                                 </div>
                                 <p className="text-xs uppercase tracking-wider text-center" style={{ color: 'var(--color-text-secondary)' }}>
-                                    Chạm để xem nghĩa
+                                    {t('mistakes.tapToSeeMeaning')}
                                 </p>
                             </div>
                         }
                         back={
                             <div>
                                 <p className="text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                                    Nghĩa đúng
+                                    {t('mistakes.correctMeaning')}
                                 </p>
                                 <p className="text-3xl md:text-4xl font-black">
-                                    {currentItem.meaning || 'Chưa có nghĩa'}
+                                    {currentItem.meaning || t('mistakes.noMeaningAvailable')}
                                 </p>
                             </div>
                         }
@@ -252,7 +254,7 @@ export default function MistakeNotebookPage() {
                         onClick={() => handleDelete(currentItem.id)}
                         disabled={deletingId === currentItem.id}
                         className="p-3 rounded-xl text-red-500 bg-red-500/10 hover:bg-red-500/15 transition-colors disabled:opacity-50"
-                        title="Xóa mục hiện tại"
+                        title={t('mistakes.deleteCurrent')}
                     >
                         {deletingId === currentItem.id ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -286,16 +288,15 @@ export default function MistakeNotebookPage() {
             <div className="mx-auto max-w-6xl space-y-8">
                 <section className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
                     <div className="max-w-2xl">
-                        <p className="text-sm font-semibold uppercase tracking-wider text-blue-500 inline-flex items-center gap-2">
+                        <p className="text-sm font-semibold uppercase tracking-wide text-blue-500 inline-flex items-center gap-2">
                             <Brain className="w-4 h-4" />
-                            Review Center
+                            {t('mistakes.reviewCenter')}
                         </p>
                         <h1 className="mt-2 text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
-                            Phần lỗi sai của bạn
+                            {t('mistakes.yourMistakes')}
                         </h1>
                         <p className="mt-3 text-base md:text-lg text-slate-600 dark:text-slate-400">
-                            Ôn lại thường xuyên để chuyển lỗi sai thành phản xạ đúng. Bạn đang có{' '}
-                            <span className="font-bold text-slate-900 dark:text-white">{totalItems}</span> mục cần xem lại.
+                            {t('mistakes.reviewRegularly')}
                         </p>
                     </div>
 
@@ -308,7 +309,7 @@ export default function MistakeNotebookPage() {
                         className="group flex items-center justify-center gap-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <RotateCcw className="w-5 h-5" />
-                        <span>Ôn lại ngay</span>
+                        <span>{t('mistakes.reviewNow')}</span>
                     </button>
                 </section>
 
@@ -322,8 +323,8 @@ export default function MistakeNotebookPage() {
                 {sortedMistakes.length === 0 ? (
                     <EmptyState
                         icon={<BookOpen className="w-8 h-8" />}
-                        title="Bạn chưa có mục lỗi sai nào"
-                        description="Luyện thêm bài tập để hệ thống ghi nhận các lỗi cần ôn tập."
+                        title={t('mistakes.noMistakes')}
+                        description={t('mistakes.practiceMore')}
                     />
                 ) : (
                     <>
@@ -333,7 +334,7 @@ export default function MistakeNotebookPage() {
                                     <CircleX className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Tổng mục sai</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('mistakes.totalMistakes')}</p>
                                     <p className="text-3xl font-black text-slate-900 dark:text-white">{totalItems}</p>
                                 </div>
                             </div>
@@ -342,7 +343,7 @@ export default function MistakeNotebookPage() {
                                     <CircleCheck className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Tỷ lệ đã ổn định</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('mistakes.stableRate')}</p>
                                     <p className="text-3xl font-black text-slate-900 dark:text-white">{reviewedRate}%</p>
                                 </div>
                             </div>
@@ -351,7 +352,7 @@ export default function MistakeNotebookPage() {
                                     <TrendingUp className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Tổng số lần sai</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('mistakes.totalErrors')}</p>
                                     <p className="text-3xl font-black text-slate-900 dark:text-white">{totalMistakeCount}</p>
                                 </div>
                             </div>
@@ -360,7 +361,7 @@ export default function MistakeNotebookPage() {
                         <section className="space-y-4">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                                    Danh sách cần ôn tập
+                                    {t('mistakes.toReviewList')}
                                 </h2>
                                 <div className="flex gap-2">
                                     <button
@@ -372,7 +373,7 @@ export default function MistakeNotebookPage() {
                                         }`}
                                     >
                                         <Filter className="w-4 h-4" />
-                                        Gần đây
+                                        {t('mistakes.recent')}
                                     </button>
                                     <button
                                         onClick={() => setSortMode('mistakeCount')}
@@ -383,7 +384,7 @@ export default function MistakeNotebookPage() {
                                         }`}
                                     >
                                         <ArrowUpDown className="w-4 h-4" />
-                                        Sai nhiều
+                                        {t('mistakes.mostMistakes')}
                                     </button>
                                 </div>
                             </div>
@@ -400,7 +401,7 @@ export default function MistakeNotebookPage() {
                                             <div className="flex-1 p-5 md:p-7">
                                                 <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                                                     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                                                        Vocabulary
+                                                        {t('mistakes.vocabulary')}
                                                     </span>
                                                     <span className="text-xs text-slate-400 font-medium">
                                                         {formatRelativeTime(item.lastMistakeAt ?? item.addedAt)}
@@ -408,14 +409,14 @@ export default function MistakeNotebookPage() {
                                                 </div>
 
                                                 <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-5 break-all">
-                                                    {item.word || 'Không có dữ liệu từ vựng'}
+                                                    {item.word || t('mistakes.noWordData')}
                                                 </h3>
 
                                                 <div className="grid md:grid-cols-2 gap-4">
                                                     <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl p-4 relative">
                                                         <div className="absolute -top-3 left-4 bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900/20 text-red-500 text-xs font-bold px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
                                                             <CircleX className="w-3.5 h-3.5" />
-                                                            Từ đã sai
+                                                            {t('mistakes.wrongWord')}
                                                         </div>
                                                         <p className="text-slate-700 dark:text-slate-300 font-semibold pt-2 break-all">
                                                             {item.word || '—'}
@@ -425,10 +426,10 @@ export default function MistakeNotebookPage() {
                                                     <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 rounded-xl p-4 relative">
                                                         <div className="absolute -top-3 left-4 bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/20 text-emerald-600 text-xs font-bold px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
                                                             <CircleCheck className="w-3.5 h-3.5" />
-                                                            Nghĩa đúng
+                                                            {t('mistakes.correctMeaning')}
                                                         </div>
                                                         <p className="text-slate-700 dark:text-slate-300 font-semibold pt-2 break-words">
-                                                            {item.meaning || 'Chưa có nghĩa trong dữ liệu'}
+                                                            {item.meaning || t('mistakes.noMeaningData')}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -437,18 +438,17 @@ export default function MistakeNotebookPage() {
                                                     <Lightbulb className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
                                                     <div>
                                                         <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-                                                            Gợi ý ghi nhớ
+                                                            {t('mistakes.memoryTip')}
                                                         </p>
                                                         <p className="text-sm text-slate-600 dark:text-slate-300">
-                                                            Từ này bạn đã sai <strong>{item.mistakeCount ?? 0}</strong> lần.
-                                                            Hãy ôn theo flashcard trong 1-2 phút để tăng tốc độ phản xạ.
+                                                            {t('mistakes.mistakeTip', { count: item.mistakeCount ?? 0 })}
                                                         </p>
                                                     </div>
                                                 </div>
 
                                                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                                                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                        Cập nhật lần cuối: {formatDate(item.lastMistakeAt ?? item.addedAt)}
+                                                        {t('mistakes.lastUpdated')}: {formatDate(item.lastMistakeAt ?? item.addedAt)}
                                                     </p>
 
                                                     <button
@@ -459,12 +459,12 @@ export default function MistakeNotebookPage() {
                                                         {deletingId === item.id ? (
                                                             <>
                                                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                                                Đang xóa...
+                                                                {t('mistakes.deleting')}
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <Trash2 className="w-4 h-4" />
-                                                                Xóa mục
+                                                                {t('mistakes.deleteItem')}
                                                             </>
                                                         )}
                                                     </button>
@@ -481,3 +481,4 @@ export default function MistakeNotebookPage() {
         </div>
     )
 }
+

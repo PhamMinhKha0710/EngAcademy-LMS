@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '../store/themeStore'
 import { useAuthStore } from '../store/authStore'
 import { useRole } from '../hooks/useRole'
@@ -12,6 +13,7 @@ import {
 import type { User } from '../store/authStore'
 
 export default function SettingsPage() {
+    const { t } = useTranslation()
     const { isDark } = useThemeStore()
     const { user, setUser } = useAuthStore()
     const { isStudent } = useRole()
@@ -54,9 +56,9 @@ export default function SettingsPage() {
         try {
             const updatedUser = await userApi.updateProfile(fullName, selectedAvatarUrl)
             setUser(updatedUser as User)
-            setMessage({ type: 'success', text: 'Đã lưu thay đổi!' })
+            setMessage({ type: 'success', text: t('settings.saved') })
         } catch (err: any) {
-            setMessage({ type: 'error', text: err.response?.data?.message || 'Có lỗi xảy ra khi lưu.' })
+            setMessage({ type: 'error', text: err.response?.data?.message || t('settings.saveError') })
         } finally {
             setIsUpdating(false)
         }
@@ -72,12 +74,12 @@ export default function SettingsPage() {
         setPwdMessage(null)
         try {
             await userApi.changePassword(oldPassword, newPassword, confirmPassword)
-            setPwdMessage({ type: 'success', text: '🎉 Đổi mật khẩu thành công!' })
+            setPwdMessage({ type: 'success', text: t('settings.changePasswordSuccess') })
             setOldPassword('')
             setNewPassword('')
             setConfirmPassword('')
         } catch (err: any) {
-            setPwdMessage({ type: 'error', text: err.response?.data?.message || 'Có lỗi xảy ra. Kiểm tra mật khẩu cũ.' })
+            setPwdMessage({ type: 'error', text: err.response?.data?.message || t('settings.oldPasswordError') })
         } finally {
             setIsChangingPwd(false)
         }
@@ -88,8 +90,8 @@ export default function SettingsPage() {
         return (
             <div className="p-6 lg:p-8 space-y-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Cài đặt</h1>
-                    <p className="mt-1 text-slate-600 dark:text-slate-400">Tùy chỉnh giao diện ứng dụng</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('settings.title')}</h1>
+                    <p className="mt-1 text-slate-600 dark:text-slate-400">{t('settings.subtitle')}</p>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-6">
@@ -97,18 +99,18 @@ export default function SettingsPage() {
                         <nav className="flex lg:flex-col gap-1">
                             <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-primary-500/10 text-primary-500">
                                 <Palette className="w-4 h-4" />
-                                Giao diện
+                                {t('settings.interface')}
                             </div>
                         </nav>
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <h2 className="text-lg font-semibold mb-5 text-slate-900 dark:text-white">Giao diện</h2>
+                            <h2 className="text-lg font-semibold mb-5 text-slate-900 dark:text-white">{t('settings.interface')}</h2>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium text-slate-900 dark:text-white">Chế độ tối</p>
+                                    <p className="font-medium text-slate-900 dark:text-white">{t('settings.darkMode')}</p>
                                     <p className="text-sm mt-0.5 text-slate-500 dark:text-slate-400">
-                                        {isDark ? 'Đang sử dụng giao diện tối' : 'Đang sử dụng giao diện sáng'}
+                                        {t(isDark ? 'settings.darkModeOn' : 'settings.darkModeOff')}
                                     </p>
                                 </div>
                                 <ThemeToggle />
@@ -130,10 +132,10 @@ export default function SettingsPage() {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
                         <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-2">
-                            Hồ sơ & Cài đặt của tôi
+                            {t('settings.profileSettings')}
                         </h2>
                         <p className="text-lg text-slate-600 dark:text-slate-400">
-                            Tùy chỉnh giao diện và trải nghiệm của bạn!
+                            {t('settings.customizeExperience')}
                         </p>
                     </div>
                     <button
@@ -142,7 +144,7 @@ export default function SettingsPage() {
                         className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-xl font-bold text-base transition-all shadow-lg shadow-primary-500/30 flex items-center gap-2 disabled:opacity-50"
                     >
                         {isUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        Lưu thay đổi
+                        {t('settings.saveChanges')}
                     </button>
                 </div>
 
@@ -174,14 +176,14 @@ export default function SettingsPage() {
                                 <button
                                     type="button"
                                     className="absolute bottom-2 right-2 bg-primary-500 text-white p-2 rounded-full hover:scale-110 transition-transform shadow-lg"
-                                    title="Đổi ảnh"
+                                    title={t('settings.changeAvatar')}
                                 >
                                     <Camera className="w-5 h-5" strokeWidth={2} />
                                 </button>
                             </div>
                             <div className="flex-1 w-full text-center md:text-left space-y-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">Tên hiển thị</label>
+                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">{t('settings.displayName')}</label>
                                     <div className="relative">
                                         <input
                                             type="text"
@@ -196,11 +198,11 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                                        <p className="text-blue-600 dark:text-blue-400 text-sm font-bold mb-1">Level hiện tại</p>
-                                        <p className="text-2xl font-black text-slate-900 dark:text-white">Level {userLevel}</p>
+                                        <p className="text-blue-600 dark:text-blue-400 text-sm font-bold mb-1">{t('settings.currentLevel')}</p>
+                                        <p className="text-2xl font-black text-slate-900 dark:text-white">{t('dashboard.level')} {userLevel}</p>
                                     </div>
                                     <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800/30">
-                                        <p className="text-amber-600 dark:text-amber-400 text-sm font-bold mb-1">Tổng điểm</p>
+                                        <p className="text-amber-600 dark:text-amber-400 text-sm font-bold mb-1">{t('settings.totalPoints')}</p>
                                         <p className="text-2xl font-black text-slate-900 dark:text-white">{totalPoints.toLocaleString()}</p>
                                     </div>
                                 </div>
@@ -211,7 +213,7 @@ export default function SettingsPage() {
                         <div className="bg-white dark:bg-slate-800/50 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
                             <div className="flex items-center gap-3 mb-6">
                                 <span className="text-3xl">😊</span>
-                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Chọn Avatar của bạn</h3>
+                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('settings.selectAvatar')}</h3>
                             </div>
                             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
                                 {AVATARS.map((avatar) => (
@@ -247,8 +249,8 @@ export default function SettingsPage() {
                                     <Lock className="w-6 h-6" strokeWidth={2} />
                                 </div>
                                 <div>
-                                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Đổi mật khẩu</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Bảo vệ tài khoản của bạn</p>
+                                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('settings.changePassword')}</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('settings.protectAccount')}</p>
                                 </div>
                             </div>
 
@@ -264,7 +266,7 @@ export default function SettingsPage() {
 
                             <form onSubmit={handleChangePassword} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">Mật khẩu hiện tại</label>
+                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">{t('settings.currentPassword')}</label>
                                     <div className="relative">
                                         <input
                                             type={showOld ? 'text' : 'password'}
@@ -272,7 +274,7 @@ export default function SettingsPage() {
                                             onChange={e => setOldPassword(e.target.value)}
                                             required
                                             className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-primary-500 focus:ring-primary-500/20 focus:outline-none transition-colors pr-10"
-                                            placeholder="Nhập mật khẩu hiện tại"
+                                            placeholder={t('settings.currentPassword')}
                                         />
                                         <button type="button" onClick={() => setShowOld(!showOld)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                             {showOld ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -280,7 +282,7 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">Mật khẩu mới</label>
+                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">{t('settings.newPassword')}</label>
                                     <div className="relative">
                                         <input
                                             type={showNew ? 'text' : 'password'}
@@ -289,7 +291,7 @@ export default function SettingsPage() {
                                             required
                                             minLength={6}
                                             className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-primary-500 focus:ring-primary-500/20 focus:outline-none transition-colors pr-10"
-                                            placeholder="Ít nhất 6 ký tự"
+                                            placeholder={t('settings.atLeastChars')}
                                         />
                                         <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                             {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -297,7 +299,7 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">Xác nhận mật khẩu mới</label>
+                                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">{t('settings.confirmNewPassword')}</label>
                                     <div className="relative">
                                         <input
                                             type={showConfirm ? 'text' : 'password'}
@@ -311,14 +313,14 @@ export default function SettingsPage() {
                                                     ? 'border-emerald-400 focus:border-emerald-400'
                                                     : 'border-slate-200 dark:border-slate-700 focus:border-primary-500'
                                             }`}
-                                            placeholder="Nhập lại mật khẩu mới"
+                                            placeholder={t('settings.confirmNewPassword')}
                                         />
                                         <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                             {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                     </div>
                                     {confirmPassword && confirmPassword !== newPassword && (
-                                        <p className="text-xs text-red-500 mt-1">Mật khẩu không khớp</p>
+                                        <p className="text-xs text-red-500 mt-1">{t('settings.passwordsNotMatch')}</p>
                                     )}
                                 </div>
 
@@ -328,7 +330,7 @@ export default function SettingsPage() {
                                     className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold text-base transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
                                 >
                                     {isChangingPwd ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
-                                    {isChangingPwd ? 'Đang xử lý...' : 'Xác nhận đổi mật khẩu'}
+                                    {isChangingPwd ? t('common.loading') : t('settings.confirmPasswordChange')}
                                 </button>
                             </form>
                         </div>
@@ -342,7 +344,7 @@ export default function SettingsPage() {
                                 <div className="p-2 bg-primary-500/10 rounded-xl text-primary-500">
                                     <Palette className="w-6 h-6" strokeWidth={2} />
                                 </div>
-                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Tùy chọn</h3>
+                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('settings.preferences')}</h3>
                             </div>
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between cursor-pointer group">
@@ -351,8 +353,8 @@ export default function SettingsPage() {
                                             <Volume2 className="w-5 h-5" strokeWidth={2} />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-lg text-slate-900 dark:text-white">Âm thanh</span>
-                                            <span className="text-sm text-slate-500 dark:text-slate-400">Phát âm khi trả lời đúng</span>
+                                            <span className="font-bold text-lg text-slate-900 dark:text-white">{t('settings.soundEffects')}</span>
+                                            <span className="text-sm text-slate-500 dark:text-slate-400">{t('settings.playSoundCorrect')}</span>
                                         </div>
                                     </div>
                                     <button
@@ -373,8 +375,8 @@ export default function SettingsPage() {
                                             <Bell className="w-5 h-5" strokeWidth={2} />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-lg text-slate-900 dark:text-white">Nhắc nhở hàng ngày</span>
-                                            <span className="text-sm text-slate-500 dark:text-slate-400">Nhận thông báo lúc 4 giờ chiều</span>
+                                            <span className="font-bold text-lg text-slate-900 dark:text-white">{t('settings.dailyReminders')}</span>
+                                            <span className="text-sm text-slate-500 dark:text-slate-400">{t('settings.receiveNotifications')}</span>
                                         </div>
                                     </div>
                                     <button
@@ -395,8 +397,8 @@ export default function SettingsPage() {
                                             <Moon className="w-5 h-5" strokeWidth={2} />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-lg text-slate-900 dark:text-white">Chế độ tối</span>
-                                            <span className="text-sm text-slate-500 dark:text-slate-400">Dễ nhìn hơn vào ban đêm</span>
+                                            <span className="font-bold text-lg text-slate-900 dark:text-white">{t('settings.darkMode')}</span>
+                                            <span className="text-sm text-slate-500 dark:text-slate-400">{t('settings.easierOnEyes')}</span>
                                         </div>
                                     </div>
                                     <ThemeToggle />
@@ -408,7 +410,7 @@ export default function SettingsPage() {
                         <div className="bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl p-8 text-white shadow-lg">
                             <div className="flex items-center gap-3 mb-6">
                                 <Timer className="w-8 h-8" strokeWidth={2} />
-                                <h3 className="text-2xl font-bold">Thời gian học</h3>
+                                <h3 className="text-2xl font-bold">{t('settings.learningTime')}</h3>
                             </div>
                             <div className="flex flex-col items-center justify-center py-4">
                                 <div className="relative size-40">
@@ -432,11 +434,11 @@ export default function SettingsPage() {
                                     </svg>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                                         <span className="text-3xl font-black">{timeLearningTotal}</span>
-                                        <span className="text-sm font-medium opacity-90">Giờ</span>
+                                        <span className="text-sm font-medium opacity-90">{t('dashboard.hours')}</span>
                                     </div>
                                 </div>
                                 <p className="mt-4 text-center text-white/90 font-medium">
-                                    Làm tốt lắm, {user.fullName?.split(' ')[0] || 'bạn'}! Bạn đã học {timeLearningThisWeek} giờ tuần này.
+                                    {t('settings.greatJob', { name: user.fullName?.split(' ')[0] || t('common.you'), hours: timeLearningThisWeek })}
                                 </p>
                             </div>
                         </div>

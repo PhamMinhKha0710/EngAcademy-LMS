@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Award, Loader2, Calendar } from 'lucide-react'
 import { badgeApi, BadgeResponse } from '../../services/api/badgeApi'
 import EmptyState from '../../components/ui/EmptyState'
 
 export default function BadgesPage() {
+    const { t } = useTranslation()
     const [badges, setBadges] = useState<BadgeResponse[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -17,13 +19,13 @@ export default function BadgesPage() {
                 setBadges(data || [])
             } catch (err) {
                 console.error('Failed to fetch badges:', err)
-                setError('Không thể tải danh sách huy hiệu')
+                setError(t('common.error'))
             } finally {
                 setLoading(false)
             }
         }
         fetchBadges()
-    }, [])
+    }, [t])
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return '—'
@@ -50,10 +52,10 @@ export default function BadgesPage() {
                     className="text-2xl md:text-3xl font-bold mb-2"
                     style={{ color: 'var(--color-text)' }}
                 >
-                    Huy hiệu
+                    {t('badges.title')}
                 </h1>
                 <p style={{ color: 'var(--color-text-secondary)' }}>
-                    Bộ sưu tập huy hiệu thành tích của bạn
+                    {t('badges.subtitle')}
                 </p>
             </div>
 
@@ -75,7 +77,7 @@ export default function BadgesPage() {
                             {badges.length}
                         </p>
                         <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                            huy hiệu đã đạt được
+                            {t('badges.earnedCount')}
                         </p>
                     </div>
                 </div>
@@ -85,8 +87,8 @@ export default function BadgesPage() {
             {badges.length === 0 && !error && (
                 <EmptyState
                     icon={<Award className="w-8 h-8" />}
-                    title="Chưa có huy hiệu nào"
-                    description="Hoàn thành các thử thách và nhiệm vụ để nhận huy hiệu đầu tiên!"
+                    title={t('badges.noBadges')}
+                    description={t('badges.completeChallenges')}
                 />
             )}
 
@@ -142,7 +144,7 @@ export default function BadgesPage() {
                                     }}
                                 >
                                     <Calendar className="w-3.5 h-3.5" />
-                                    Đạt ngày {formatDate(badge.earnedAt)}
+                                    {t('badges.earnedOn')} {formatDate(badge.earnedAt)}
                                 </div>
                             )}
                         </div>
@@ -152,3 +154,4 @@ export default function BadgesPage() {
         </div>
     )
 }
+

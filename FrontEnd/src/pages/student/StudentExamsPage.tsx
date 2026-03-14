@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
     ArrowRight,
@@ -19,6 +20,7 @@ import EmptyState from '../../components/ui/EmptyState'
 type ExamTab = 'all' | 'ongoing' | 'upcoming' | 'ended'
 
 export default function StudentExamsPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const user = useAuthStore((s) => s.user)
     const [classes, setClasses] = useState<ClassRoomResponse[]>([])
@@ -46,13 +48,13 @@ export default function StudentExamsPage() {
                 }
             } catch (err) {
                 console.error('Failed to fetch classes:', err)
-                setError('Không thể tải danh sách lớp học')
+                setError(t('common.error'))
             } finally {
                 setLoadingClasses(false)
             }
         }
         fetchClasses()
-    }, [user?.id])
+    }, [user?.id, t])
 
     // Fetch active exams when class is selected
     useEffect(() => {
@@ -66,13 +68,13 @@ export default function StudentExamsPage() {
                 setExams(data || [])
             } catch (err) {
                 console.error('Failed to fetch exams:', err)
-                setError('Không thể tải danh sách bài thi')
+                setError(t('common.error'))
             } finally {
                 setLoadingExams(false)
             }
         }
         fetchExams()
-    }, [selectedClassId])
+    }, [selectedClassId, t])
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return '—'
@@ -91,15 +93,15 @@ export default function StudentExamsPage() {
         const end = exam.endTime ? new Date(exam.endTime) : null
 
         if (start && start > now) {
-            return { key: 'upcoming' as const, label: 'Sắp tới' }
+            return { key: 'upcoming' as const, label: t('exams.upcoming') }
         }
         if (start && end && start <= now && end >= now) {
-            return { key: 'ongoing' as const, label: 'Đang diễn ra' }
+            return { key: 'ongoing' as const, label: t('exams.ongoing') }
         }
         if (end && end < now) {
-            return { key: 'ended' as const, label: 'Đã kết thúc' }
+            return { key: 'ended' as const, label: t('exams.ended') }
         }
-        return { key: 'ongoing' as const, label: 'Đang mở' }
+        return { key: 'ongoing' as const, label: t('exams.open') }
     }
 
     const canTakeExam = (exam: ExamResponse) => {
@@ -118,10 +120,10 @@ export default function StudentExamsPage() {
     }, [activeTab, exams])
 
     const tabItems: { key: ExamTab; label: string }[] = [
-        { key: 'all', label: 'Tất cả bài thi' },
-        { key: 'ongoing', label: 'Đang diễn ra' },
-        { key: 'upcoming', label: 'Sắp tới' },
-        { key: 'ended', label: 'Đã kết thúc' },
+        { key: 'all', label: t('exams.allExams') },
+        { key: 'ongoing', label: t('exams.ongoing') },
+        { key: 'upcoming', label: t('exams.upcoming') },
+        { key: 'ended', label: t('exams.ended') },
     ]
 
     if (loadingClasses) {
@@ -142,8 +144,8 @@ export default function StudentExamsPage() {
                 )}
                 <EmptyState
                     icon={<FileText className="w-8 h-8" />}
-                    title="Chưa tham gia lớp học nào"
-                    description="Bạn cần tham gia một lớp học để xem và làm bài thi."
+                    title={t('exams.noClassesJoined')}
+                    description={t('exams.needJoinClass')}
                 />
             </div>
         )
@@ -158,17 +160,17 @@ export default function StudentExamsPage() {
                             className="text-[28px] font-extrabold leading-tight"
                             style={{ color: 'var(--color-text)' }}
                         >
-                            Danh sách bài thi
+                            {t('exams.examList')}
                         </h1>
                         <p className="mt-1 text-sm md:text-base" style={{ color: 'var(--color-text-secondary)' }}>
-                            Chọn lớp học và sẵn sàng cho bài kiểm tra của bạn.
+                            {t('exams.selectClass')}
                         </p>
                     </div>
 
                     <div className="flex items-center gap-2 self-start md:self-auto">
                         <button className="btn-secondary text-sm gap-2">
                             <ListFilter className="w-4 h-4" />
-                            Lọc bài thi
+                            {t('exams.filterExams')}
                         </button>
                     </div>
                 </div>
@@ -179,7 +181,7 @@ export default function StudentExamsPage() {
                     className="block text-sm font-medium mb-2.5"
                     style={{ color: 'var(--color-text-secondary)' }}
                 >
-                    Lớp học
+                    {t('exams.classroom')}
                 </label>
                 <div className="relative w-full max-w-md">
                     <select
@@ -232,16 +234,16 @@ export default function StudentExamsPage() {
             {!loadingExams && exams.length === 0 && (
                 <EmptyState
                     icon={<FileText className="w-8 h-8" />}
-                    title="Không có bài thi nào"
-                    description="Hiện tại chưa có bài thi nào đang diễn ra trong lớp này."
+                    title={t('exams.noExams')}
+                    description={t('exams.noActiveExams')}
                 />
             )}
 
             {!loadingExams && exams.length > 0 && filteredExams.length === 0 && (
                 <EmptyState
                     icon={<FileText className="w-8 h-8" />}
-                    title="Không có bài thi phù hợp"
-                    description="Hãy chọn tab khác để xem thêm bài thi."
+                    title={t('exams.noMatchingExams')}
+                    description={t('exams.tryDifferentTab')}
                 />
             )}
 
@@ -282,24 +284,24 @@ export default function StudentExamsPage() {
                                 <div className="p-5 flex flex-col gap-4 flex-1">
                                     <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                                         <Users className="w-4 h-4" />
-                                        <span className="font-medium truncate">{exam.className || 'Lớp học'}</span>
+                                        <span className="font-medium truncate">{exam.className || t('exams.classroom')}</span>
                                     </div>
 
                                     <div className="space-y-2.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                                         <p className="flex items-center gap-2">
                                             <Clock className="w-4 h-4" />
-                                            <span>Thời lượng: {exam.durationMinutes ?? '—'} phút</span>
+                                            <span>{t('exams.duration')}: {exam.durationMinutes ?? '—'} {t('exams.minutes')}</span>
                                         </p>
                                         <p className="flex items-center gap-2">
                                             <HelpCircle className="w-4 h-4" />
-                                            <span>Số câu hỏi: {exam.questionCount ?? 0} câu</span>
+                                            <span>{t('exams.numberQuestions')}: {exam.questionCount ?? 0} {t('exams.questions')}</span>
                                         </p>
                                         <p className="flex items-start gap-2">
                                             <CalendarDays className="w-4 h-4 mt-0.5" />
                                             <span>
-                                                Bắt đầu: {formatDate(exam.startTime)}
+                                                {t('exams.start')}: {formatDate(exam.startTime)}
                                                 <br />
-                                                Kết thúc: {formatDate(exam.endTime)}
+                                                {t('exams.end')}: {formatDate(exam.endTime)}
                                             </span>
                                         </p>
                                     </div>
@@ -311,7 +313,7 @@ export default function StudentExamsPage() {
                                             available ? 'btn-primary' : 'btn-secondary opacity-70 cursor-not-allowed'
                                         }`}
                                     >
-                                        {available ? 'Xem hướng dẫn & vào thi' : 'Đã quá thời gian làm bài'}
+                                        {available ? t('exams.viewIntroStart') : t('exams.timeExpired')}
                                         {available && <ArrowRight className="w-4 h-4" />}
                                     </button>
                                 </div>
@@ -323,3 +325,4 @@ export default function StudentExamsPage() {
         </div>
     )
 }
+

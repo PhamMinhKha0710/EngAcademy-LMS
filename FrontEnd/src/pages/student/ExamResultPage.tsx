@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { CheckCircle, XCircle, ArrowLeft, Loader2, Trophy, AlertTriangle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { examApi, ExamResultResponse } from '../../services/api/examApi'
 import ProgressBar from '../../components/ui/ProgressBar'
 import ActivitySuccessCelebrationOverlay from '../../components/ui/ActivitySuccessCelebrationOverlay'
 
 export default function ExamResultPage() {
+    const { t } = useTranslation()
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const { user } = useAuthStore()
@@ -39,11 +41,15 @@ export default function ExamResultPage() {
                 setResult(studentResult)
             } catch (err: any) {
                 console.error('Failed to fetch result:', err)
-                const message = err.response?.data?.message || 'Không thể tải kết quả bài thi'
-                if (typeof message === 'string' && message.includes('Giáo viên chưa công bố kết quả bài thi')) {
-                    setAwaitingPublish(true)
-                    setError(null)
-                    return
+                const message = err.response?.data?.message || t('examResult.loadingResults')
+                if (typeof message === 'string') {
+                    const vn = 'Giáo viên chưa công bố kết quả bài thi'
+                    const en = t('examResult.examNotPublished')
+                    if (message.includes(vn) || message.includes(en)) {
+                        setAwaitingPublish(true)
+                        setError(null)
+                        return
+                    }
                 }
                 setError(message)
             } finally {
@@ -68,21 +74,27 @@ export default function ExamResultPage() {
 
     const getGradeLabel = (grade?: string) => {
         if (!grade) return 'N/A'
-        const labels: Record<string, string> = {
-            A: 'Xuất sắc',
-            B: 'Giỏi',
-            C: 'Khá',
-            D: 'Trung bình',
-            F: 'Chưa đạt',
+        switch (grade) {
+            case 'A':
+                return t('examResult.excellent')
+            case 'B':
+                return t('examResult.good')
+            case 'C':
+                return t('examResult.fair')
+            case 'D':
+                return t('examResult.average')
+            case 'F':
+                return t('examResult.failed')
+            default:
+                return grade
         }
-        return labels[grade] || grade
     }
 
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-                <p style={{ color: 'var(--color-text-secondary)' }}>Đang tải kết quả...</p>
+                <p style={{ color: 'var(--color-text-secondary)' }}>{t('examResult.loadingResults')}</p>
             </div>
         )
     }
@@ -93,12 +105,12 @@ export default function ExamResultPage() {
                 <>
                     <ActivitySuccessCelebrationOverlay
                         open={showCelebration}
-                        title="Nop bai thanh cong!"
-                        subtitle="Bai lam da duoc ghi nhan. Cho giao vien cong bo diem de xem ket qua chi tiet."
+                        title={t('examResult.submittedSuccess')}
+                        subtitle={t('examResult.submittedSuccessDesc')}
                         xpLabel="+10 XP"
                         streakLabel="1 Ngay"
-                        primaryLabel="Quay ve danh sach"
-                        secondaryLabel="Dong"
+                        primaryLabel={t('examResult.backToList')}
+                        secondaryLabel={t('common.close')}
                         onClose={() => setShowCelebration(false)}
                         onPrimaryAction={() => {
                             setShowCelebration(false)
@@ -111,14 +123,14 @@ export default function ExamResultPage() {
                         <div className="card overflow-hidden">
                         <div className="px-6 py-8 text-center bg-gradient-to-r from-emerald-500 to-teal-500">
                             <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-1">
-                                Nộp bài thành công
+                                {t('examResult.submitSuccess')}
                             </h1>
                             <p className="text-white/85 text-sm mt-2">
-                                Bài làm của bạn đã được ghi nhận. Vui lòng chờ giáo viên công bố điểm để xem kết quả chi tiết.
+                                {t('examResult.submitSuccessDesc')}
                             </p>
                             {!showSubmitSuccess && (
                                 <p className="text-white/75 text-xs mt-3">
-                                    Bạn đã nộp bài trước đó và đang ở trạng thái chờ công bố điểm.
+                                    {t('examResult.alreadySubmittedDesc')}
                                 </p>
                             )}
                         </div>
@@ -129,7 +141,7 @@ export default function ExamResultPage() {
                                 className="btn-primary inline-flex items-center gap-2"
                             >
                                 <ArrowLeft className="w-4 h-4" />
-                                Quay về danh sách bài thi
+                                {t('examResult.backToList')}
                             </button>
                         </div>
                     </div>
@@ -145,14 +157,14 @@ export default function ExamResultPage() {
                         <AlertTriangle className="w-8 h-8 text-red-400" />
                     </div>
                     <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text)' }}>
-                        {error || 'Không tìm thấy kết quả'}
+                        {error || t('examResult.noResults')}
                     </h2>
                     <button
                         onClick={() => navigate('/exams')}
                         className="btn-secondary mt-2 flex items-center gap-2"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Quay về danh sách
+                        {t('examResult.backToList')}
                     </button>
                 </div>
             </div>
@@ -166,21 +178,20 @@ export default function ExamResultPage() {
         <>
             <ActivitySuccessCelebrationOverlay
                 open={showCelebration}
-                title="Nop bai thanh cong!"
-                subtitle="Ban da hoan thanh bai thi. Day la ket qua cua ban."
+                title={t('examResult.submittedSuccess')}
+                subtitle={t('examResult.submittedSuccessDesc')}
                 xpLabel="+10 XP"
                 streakLabel="1 Ngay"
-                primaryLabel="Tiep tuc"
-                secondaryLabel="Dong"
+                primaryLabel={t('common.continue')}
+                secondaryLabel={t('common.close')}
                 onClose={() => setShowCelebration(false)}
-                onPrimaryAction={() => setShowCelebration(false)}
                 onSecondaryAction={() => setShowCelebration(false)}
             />
 
             <div className="max-w-3xl mx-auto px-4 py-8">
             {showSubmitSuccess && (
                 <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-400 text-sm font-medium">
-                    Nộp bài thành công! Đây là kết quả của bạn.
+                    {t('examResult.submitSuccessTitle')} {t('examResult.submitSuccessDesc')}
                 </div>
             )}
             {/* Back button */}
@@ -190,7 +201,7 @@ export default function ExamResultPage() {
                 style={{ color: 'var(--color-text-secondary)' }}
             >
                 <ArrowLeft className="w-4 h-4" />
-                Quay về danh sách bài thi
+                {t('examResult.backToList')}
             </button>
 
             {/* Result card */}
@@ -209,7 +220,7 @@ export default function ExamResultPage() {
                         </div>
                     </div>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-1">
-                        {result.score != null ? result.score.toFixed(1) : '—'} điểm
+                        {result.score != null ? result.score.toFixed(1) : '—'} {t('examResult.points')}
                     </h1>
                     {result.examTitle && (
                         <p className="text-white/80 text-sm mt-2">{result.examTitle}</p>
@@ -229,7 +240,7 @@ export default function ExamResultPage() {
                             ) : (
                                 <XCircle className="w-4 h-4" />
                             )}
-                            {result.grade ? `${result.grade} — ${getGradeLabel(result.grade)}` : (percentage >= 50 ? 'Đạt' : 'Chưa đạt')}
+                            {result.grade ? `${result.grade} — ${getGradeLabel(result.grade)}` : (percentage >= 50 ? t('examResult.passed') : t('examResult.failed'))}
                         </span>
                     </div>
 
@@ -237,7 +248,7 @@ export default function ExamResultPage() {
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-                                Tỉ lệ đúng
+                                {t('examResult.correctRate')}
                             </span>
                             <span className={`text-sm font-bold ${colors.text}`}>
                                 {percentage.toFixed(1)}%
@@ -299,7 +310,7 @@ export default function ExamResultPage() {
                                 {result.violationCount ?? 0}
                             </p>
                             <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                                Vi phạm
+                                {t('examResult.violations')}
                             </p>
                         </div>
                     </div>
@@ -307,8 +318,8 @@ export default function ExamResultPage() {
                     {/* Submitted at */}
                     {result.submittedAt && (
                         <p className="text-center text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                            Nộp bài lúc:{' '}
-                            {new Date(result.submittedAt).toLocaleString('vi-VN', {
+                            {t('examResult.submittedAt')}{' '}
+                            {new Date(result.submittedAt).toLocaleString(undefined, {
                                 day: '2-digit',
                                 month: '2-digit',
                                 year: 'numeric',
@@ -325,7 +336,7 @@ export default function ExamResultPage() {
                             className="btn-primary flex items-center gap-2"
                         >
                             <ArrowLeft className="w-4 h-4" />
-                            Quay về danh sách
+                            {t('examResult.backToList')}
                         </button>
                     </div>
                 </div>

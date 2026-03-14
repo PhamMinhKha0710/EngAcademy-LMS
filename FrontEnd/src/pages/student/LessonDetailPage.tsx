@@ -25,11 +25,11 @@ import Badge from '../../components/ui/Badge'
 
 type TabKey = 'content' | 'grammar' | 'vocabulary' | 'practice'
 
-const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    { key: 'content', label: 'Nội dung', icon: <BookOpen className="w-4 h-4" /> },
-    { key: 'grammar', label: 'Ngữ pháp', icon: <FileText className="w-4 h-4" /> },
-    { key: 'vocabulary', label: 'Từ vựng', icon: <Languages className="w-4 h-4" /> },
-    { key: 'practice', label: 'Luyện tập', icon: <Dumbbell className="w-4 h-4" /> },
+const getTabs = (t: (key: string, opts?: any) => string): { key: TabKey; label: string; icon: React.ReactNode }[] => [
+    { key: 'content', label: t('lessons.tabContent'), icon: <BookOpen className="w-4 h-4" /> },
+    { key: 'grammar', label: t('lessons.tabGrammar'), icon: <FileText className="w-4 h-4" /> },
+    { key: 'vocabulary', label: t('lessons.tabVocabulary'), icon: <Languages className="w-4 h-4" /> },
+    { key: 'practice', label: t('lessons.tabPractice'), icon: <Dumbbell className="w-4 h-4" /> },
 ]
 
 function fireConfetti() {
@@ -52,6 +52,7 @@ export default function LessonDetailPage() {
     const [activeTab, setActiveTab] = useState<TabKey>('content')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const tabs = getTabs(t)
 
     const [answers, setAnswers] = useState<Record<number, number[]>>({})
     const [showResults, setShowResults] = useState(false)
@@ -81,7 +82,7 @@ export default function LessonDetailPage() {
                     questionApi.getByLesson(lessonId),
                 ])
                 if (lessonData.status === 'fulfilled') setLesson(lessonData.value)
-                else setError('Không thể tải bài học này.')
+                else setError(t('lessons.loadError'))
                 if (vocabData.status === 'fulfilled') setVocabulary(vocabData.value)
                 if (questionData.status === 'fulfilled') setQuestions(questionData.value)
 
@@ -101,7 +102,7 @@ export default function LessonDetailPage() {
                 setProgressLoaded(true)
             } catch (err) {
                 console.error('Failed to load lesson:', err)
-                setError('Đã xảy ra lỗi. Vui lòng thử lại.')
+                setError(t('lessons.networkError'))
             } finally {
                 setLoading(false)
             }
@@ -665,20 +666,58 @@ export default function LessonDetailPage() {
                                             </>
                                         )}
                                     </motion.div>
-                                </div>
-                            ) : (
-                                <div className="card p-12 text-center">
-                                    <p className="text-[var(--color-text-secondary)]">Bài học này chưa có câu hỏi luyện tập.</p>
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                ))}
+
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4"
+                                >
+                                    {showResults ? (
+                                        <>
+                                            <div>
+                                                <p className="text-lg font-bold text-[var(--color-text)]">
+                                                    Kết quả: {quizScore}/{questions.length} câu đúng
+                                                </p>
+                                                <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                                                    {quizScore === questions.length
+                                                        ? t('lessons.perfectScore')
+                                                        : t('lessons.reviewAndTryAgain')}
+                                                </p>
+                                            </div>
+                                            <button onClick={handleResetQuiz} className="btn-secondary">
+                                                {t('lessons.retryQuiz')}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm text-[var(--color-text-secondary)]">
+                                                {t('lessons.answeredCount', { answered: Object.keys(answers).length, total: questions.length })}
+                                            </p>
+                                            <button
+                                                onClick={handleSubmitQuiz}
+                                                disabled={Object.keys(answers).length === 0}
+                                                className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                {t('lessons.submitQuiz')}
+                                            </button>
+                                        </>
+                                    )}
+                                </motion.div>
+                            </div>
+                        ) : (
+                            <div className="card p-12 text-center">
+                                <p className="text-[var(--color-text-secondary)]">Bài học này chưa có câu hỏi luyện tập.</p>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
                 <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl p-4 flex items-start gap-3 border border-blue-100/50 dark:border-blue-900/30">
                     <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5 shrink-0" />
                     <p className="text-xs text-blue-600 dark:text-blue-300 leading-snug">
-                        Bạn cần bấm "Bắt đầu học" và hoàn tất các bước học trước khi đánh dấu hoàn thành.
+                        {t('lessons.completeWarning')}
                     </p>
                 </div>
             </div>
