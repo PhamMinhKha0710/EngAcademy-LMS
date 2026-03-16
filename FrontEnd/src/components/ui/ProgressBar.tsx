@@ -70,8 +70,7 @@ export default function ProgressBar({
         </div>
       )}
       <div
-        className={`w-full ${height} rounded-full overflow-hidden relative`}
-        style={{ backgroundColor: 'var(--color-bg-secondary)' }}
+        className={`w-full ${height} rounded-full overflow-hidden relative bg-slate-200 dark:bg-slate-700`}
       >
         <motion.div
           ref={ref}
