@@ -2,9 +2,16 @@ package com.englishlearn.presentation.controller;
 
 import com.englishlearn.application.dto.request.BadgeRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
+import com.englishlearn.application.dto.response.BadgeDTO;
+import com.englishlearn.application.dto.response.BadgeProgressDTO;
 import com.englishlearn.application.dto.response.BadgeResponse;
+import com.englishlearn.application.dto.response.CheckBadgeResponse;
+import com.englishlearn.application.service.BadgeCheckService;
+import com.englishlearn.application.service.BadgeDefinitionService;
+import com.englishlearn.application.service.BadgeProgressService;
 import com.englishlearn.application.service.BadgeService;
 import com.englishlearn.domain.entity.User;
+import com.englishlearn.domain.enums.BadgeGroup;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,6 +47,9 @@ import java.util.List;
 public class BadgeController {
 
     private final BadgeService badgeService;
+    private final BadgeDefinitionService badgeDefinitionService;
+    private final BadgeProgressService badgeProgressService;
+    private final BadgeCheckService badgeCheckService;
     private final UserRepository userRepository;
 
     /**
@@ -141,6 +151,53 @@ public class BadgeController {
     public ResponseEntity<ApiResponse<List<BadgeResponse>>> checkAndAwardAchievements(
             @PathVariable Long userId) {
         List<BadgeResponse> response = badgeService.checkAndAwardAchievements(userId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // ========== Hệ thống Badge mới (24 badge theo nhóm) ==========
+
+    /**
+     * GET /api/v1/badges/definitions - Toàn bộ badge definitions, filter theo group
+     */
+    @GetMapping("/definitions")
+    @Operation(summary = "Lấy danh sách badge definitions (có filter group)")
+    public ResponseEntity<ApiResponse<List<BadgeDTO>>> getBadgeDefinitions(
+            @RequestParam(required = false) BadgeGroup group) {
+        List<BadgeDTO> response = badgeDefinitionService.getAllBadges(group);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * GET /api/v1/badges/users/{id}/earned - Badge đã đạt của user (hệ thống mới)
+     */
+    @GetMapping("/users/{id}/earned")
+    @Operation(summary = "Lấy badge đã đạt của user (hệ thống mới)")
+    public ResponseEntity<ApiResponse<List<BadgeDTO>>> getUserEarnedBadges(
+            @PathVariable("id") Long userId) {
+        List<BadgeDTO> response = badgeDefinitionService.getUserEarnedBadges(userId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * GET /api/v1/badges/users/{id}/progress - Tiến trình badge chưa đạt
+     */
+    @GetMapping("/users/{id}/progress")
+    @Operation(summary = "Lấy tiến trình từng badge chưa đạt")
+    public ResponseEntity<ApiResponse<List<BadgeProgressDTO>>> getUserBadgeProgress(
+            @PathVariable("id") Long userId) {
+        List<BadgeProgressDTO> response = badgeProgressService.getAllProgress(userId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * POST /api/v1/badges/check/{id} - Trigger check & trao badge, trả về badge mới
+     */
+    @PostMapping("/check/{id}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Kiểm tra và trao badge, trả về badge mới đạt được")
+    public ResponseEntity<ApiResponse<CheckBadgeResponse>> checkAndAwardBadges(
+            @PathVariable("id") Long userId) {
+        CheckBadgeResponse response = badgeCheckService.checkAndAward(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

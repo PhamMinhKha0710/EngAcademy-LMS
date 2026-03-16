@@ -81,12 +81,14 @@ public class ProgressController {
         Long completedCount = progressService.getCompletedCount(userId);
         Double avgProgress = progressService.getAverageProgress(userId);
         Long totalLessons = progressService.getTotalLessonsCount();
+        Long wordsLearned = progressService.getWordsLearnedCount(userId);
 
         Map<String, Object> stats = Map.of(
                 "completedLessons", completedCount,
                 "totalLessons", totalLessons,
                 "averageScore", avgProgress,
-                "totalTimeSpent", 0);
+                "totalTimeSpent", 0,
+                "wordsLearned", wordsLearned);
 
         return ResponseEntity.ok(ApiResponse.success("Lấy thống kê học tập thành công", stats));
     }

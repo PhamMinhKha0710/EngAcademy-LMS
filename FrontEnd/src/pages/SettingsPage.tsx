@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '../store/themeStore'
 import { useAuthStore } from '../store/authStore'
 import { useRole } from '../hooks/useRole'
-import { userApi } from '../services/api/userApi'
+import { userApi, type UserSettings } from '../services/api/userApi'
 import { AVATARS } from '../constants/avatars'
 import ThemeToggle from '../components/ui/ThemeToggle'
 import {
@@ -25,6 +25,8 @@ export default function SettingsPage() {
     const [isUpdating, setIsUpdating] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+    const [learningStats, setLearningStats] = useState<UserSettings | null>(null)
+
     // ─── Đổi mật khẩu state ───────────────────────────────────────────────────
     const [oldPassword, setOldPassword] = useState('')
     const [newPassword, setNewPassword] = useState('')
@@ -37,16 +39,33 @@ export default function SettingsPage() {
 
     const userLevel = user?.coins != null ? Math.floor(user.coins / 500) + 1 : 1
     const totalPoints = user?.coins ?? 0
-    // Placeholder: Time learning - chưa có backend
-    const timeLearningTotal = 12.5
-    const timeLearningThisWeek = 2.5
-    const timeLearningProgress = 75 // %
+
+    const timeLearningTotal = learningStats ? +(learningStats.totalStudyMinutes / 60).toFixed(1) : 0
+    const timeLearningThisWeek = learningStats ? +(learningStats.weeklyStudyMinutes / 60).toFixed(1) : 0
+    const timeLearningProgress = learningStats && learningStats.weeklyGoalMinutes > 0
+        ? Math.min(100, Math.round((learningStats.weeklyStudyMinutes / learningStats.weeklyGoalMinutes) * 100))
+        : 0
 
     useEffect(() => {
-        if (user) {
-            setFullName(user.fullName || '')
-            setSelectedAvatarUrl(user.avatarUrl || AVATARS[0].url)
-        }
+        if (!user) return
+
+        setFullName(user.fullName || '')
+        setSelectedAvatarUrl(user.avatarUrl || AVATARS[0].url)
+
+        // Load settings + learning stats
+        userApi.getSettings()
+            .then((settings) => {
+                setLearningStats(settings)
+                if (settings.soundEffectsEnabled != null) {
+                    setSoundEffects(settings.soundEffectsEnabled)
+                }
+                if (settings.dailyRemindersEnabled != null) {
+                    setDailyReminders(settings.dailyRemindersEnabled)
+                }
+            })
+            .catch(() => {
+                // giữ UI mặc định, không chặn trang
+            })
     }, [user])
 
     const handleSaveChanges = async () => {
@@ -54,8 +73,15 @@ export default function SettingsPage() {
         setIsUpdating(true)
         setMessage(null)
         try {
-            const updatedUser = await userApi.updateProfile(fullName, selectedAvatarUrl)
+            const [updatedUser, updatedSettings] = await Promise.all([
+                userApi.updateProfile(fullName, selectedAvatarUrl),
+                userApi.updateSettings({
+                    soundEffectsEnabled: soundEffects,
+                    dailyRemindersEnabled: dailyReminders,
+                }),
+            ])
             setUser(updatedUser as User)
+            setLearningStats(updatedSettings)
             setMessage({ type: 'success', text: t('settings.saved') })
         } catch (err: any) {
             setMessage({ type: 'error', text: err.response?.data?.message || t('settings.saveError') })
@@ -67,7 +93,7 @@ export default function SettingsPage() {
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault()
         if (newPassword !== confirmPassword) {
-            setPwdMessage({ type: 'error', text: 'Mật khẩu xác nhận không khớp' })
+            setPwdMessage({ type: 'error', text: t('settings.passwordsNotMatch') })
             return
         }
         setIsChangingPwd(true)

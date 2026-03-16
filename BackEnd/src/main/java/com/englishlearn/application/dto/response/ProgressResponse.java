@@ -27,4 +27,7 @@ public class ProgressResponse {
     private Integer completionPercentage;
     private Boolean isCompleted;
     private LocalDateTime lastAccessed;
+
+    // Quest integration - set when completing a lesson triggers a daily quest task completion
+    private Boolean questTaskCompleted;
 }

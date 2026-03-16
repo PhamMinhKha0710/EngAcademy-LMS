@@ -3,12 +3,15 @@ package com.englishlearn.presentation.controller;
 import com.englishlearn.application.dto.request.ChangePasswordRequest;
 import com.englishlearn.application.dto.request.CreateUserRequest;
 import com.englishlearn.application.dto.request.UpdateUserRequest;
+import com.englishlearn.application.dto.request.UpdateUserSettingsRequest;
 import com.englishlearn.application.dto.response.AdminUserStatsResponse;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.AuditLogResponse;
 import com.englishlearn.application.dto.response.UserResponse;
+import com.englishlearn.application.dto.response.UserSettingsResponse;
 import com.englishlearn.application.service.AuditLogService;
 import com.englishlearn.application.service.UserService;
+import com.englishlearn.application.service.UserSettingsService;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,6 +49,7 @@ public class UserController {
     private final UserService userService;
     private final AuditLogService auditLogService;
     private final UserRepository userRepository;
+    private final UserSettingsService userSettingsService;
 
     /**
      * GET /api/v1/users/me - Lấy thông tin user đang đăng nhập
@@ -56,6 +60,31 @@ public class UserController {
             @AuthenticationPrincipal UserDetails userDetails) {
         UserResponse user = userService.getUserByUsername(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success(user));
+    }
+
+    /**
+     * GET /api/v1/users/me/settings - Lấy cài đặt cá nhân + thống kê học tập cơ bản
+     */
+    @GetMapping("/me/settings")
+    @Operation(summary = "Lấy cài đặt cá nhân cho trang settings")
+    public ResponseEntity<ApiResponse<UserSettingsResponse>> getMySettings(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        UserSettingsResponse settings = userSettingsService.getSettingsForUser(currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(settings));
+    }
+
+    /**
+     * PUT /api/v1/users/me/settings - Cập nhật cài đặt cá nhân (preferences)
+     */
+    @PutMapping("/me/settings")
+    @Operation(summary = "Cập nhật cài đặt cá nhân cho trang settings")
+    public ResponseEntity<ApiResponse<UserSettingsResponse>> updateMySettings(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody UpdateUserSettingsRequest request) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        UserSettingsResponse settings = userSettingsService.updateSettingsForUser(currentUser.getId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật cài đặt thành công", settings));
     }
 
     /**

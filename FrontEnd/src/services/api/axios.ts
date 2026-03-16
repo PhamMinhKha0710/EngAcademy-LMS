@@ -66,12 +66,15 @@ api.interceptors.response.use(
             })
             console.error('Network error - please check your connection')
         }
-        // Other errors (400, 500, etc.)
+        // Other errors (400, 500, etc.) - skip toast for login so Login page shows in-line only
         else {
-            addToast({
-                type: 'error',
-                message: error.response?.data?.message || 'Đã xảy ra lỗi hệ thống.',
-            })
+            const isLoginRequest = error.config?.url?.includes('/auth/login')
+            if (!isLoginRequest) {
+                addToast({
+                    type: 'error',
+                    message: error.response?.data?.message || 'Đã xảy ra lỗi hệ thống.',
+                })
+            }
         }
 
         return Promise.reject(error)
