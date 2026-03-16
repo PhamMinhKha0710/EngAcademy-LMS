@@ -27,7 +27,7 @@ HELP.md
 
 # Sensitive Spring configs (use *.example.properties instead)
 BackEnd/src/main/resources/application.properties
-BackEnd/src/main/resources/application-*.properties
+BackEnd/src/main/resources/application-dev.properties
 
 # Logs
 logs/
