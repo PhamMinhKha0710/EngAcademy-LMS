@@ -79,11 +79,11 @@ export default function Home() {
                                     {t('home.forStudents')}
                                 </span>
                                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-slate-900 dark:text-white">
-                                    {t('home.heroTitle')}{' '}
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-orange-600">
-                                        {t('home.heroSubtitle')}
-                                    </span>
+                                    {t('home.heroTitle')}
                                 </h1>
+                                <span className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-orange-600">
+                                    {t('home.heroSubtitle')}
+                                </span>
                                 <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
                                     {t('home.heroDescription')}
                                 </p>
