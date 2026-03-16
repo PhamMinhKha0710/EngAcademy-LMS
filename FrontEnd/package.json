@@ -10,10 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ckeditor/ckeditor5-react": "9.5.0",
     "@react-oauth/google": "^0.13.4",
     "@stomp/stompjs": "^7.3.0",
     "axios": "^1.6.2",
     "canvas-confetti": "^1.9.4",
+    "ckeditor5": "42.0.2",
     "framer-motion": "^12.34.0",
     "global": "^4.4.0",
     "i18next": "^25.8.17",
@@ -27,6 +29,7 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^25.2.2",
     "@types/react": "^18.2.43",
