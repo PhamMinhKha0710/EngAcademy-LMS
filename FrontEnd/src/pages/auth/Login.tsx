@@ -68,7 +68,7 @@ export default function Login() {
             addToast({ type: 'success', message: 'Đăng nhập thành công! Chào mừng bạn.' })
             navigate(getRoleDashboard(roles), { replace: true })
         } catch {
-            addToast({ type: 'error', message: 'Sai thông tin đăng nhập! Vui lòng kiểm tra lại.' })
+            // Error already shown in-line via authStore.error (no duplicate toast)
         }
     }
 

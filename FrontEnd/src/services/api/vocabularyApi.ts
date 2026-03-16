@@ -15,7 +15,7 @@ export interface TopicProgress {
     totalWords: number; masteredWords: number; progress: number; completed: boolean;
 }
 export interface ReviewResult {
-    status: string; topicCompleted: boolean;
+    status: string; topicCompleted: boolean; questTaskCompleted?: boolean;
 }
 
 export const vocabularyApi = {

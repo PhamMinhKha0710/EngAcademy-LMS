@@ -28,6 +28,8 @@ public class VocabularyService {
     private final UserTopicProgressRepository userTopicProgressRepository;
     private final UserRepository userRepository;
     private final TopicRepository topicRepository;
+    private final DailyQuestService dailyQuestService;
+    private final MistakeNotebookRepository mistakeNotebookRepository;
 
     @Transactional(readOnly = true)
     public List<VocabularyResponse> getVocabularyByLesson(Long lessonId) {
@@ -163,9 +165,27 @@ public class VocabularyService {
             topicCompleted = checkAndMarkTopicCompletion(userId, topic.getId(), user);
         }
 
+        boolean questTaskCompleted = false;
+        if (correct) {
+            try {
+                questTaskCompleted = dailyQuestService.incrementProgressForTaskType(userId, "LEARN_VOCAB", 1);
+            } catch (Exception e) {
+                log.debug("Could not update quest for LEARN_VOCAB: {}", e.getMessage());
+            }
+            if (mistakeNotebookRepository.findByUserIdAndVocabularyId(userId, vocabularyId).isPresent()) {
+                try {
+                    boolean reviewCompleted = dailyQuestService.incrementProgressForTaskType(userId, "REVIEW_MISTAKES", 1);
+                    if (reviewCompleted) questTaskCompleted = true;
+                } catch (Exception e) {
+                    log.debug("Could not update quest for REVIEW_MISTAKES: {}", e.getMessage());
+                }
+            }
+        }
+
         Map<String, Object> result = new HashMap<>();
         result.put("status", uv.getStatus().name());
         result.put("topicCompleted", topicCompleted);
+        result.put("questTaskCompleted", questTaskCompleted);
         return result;
     }
 

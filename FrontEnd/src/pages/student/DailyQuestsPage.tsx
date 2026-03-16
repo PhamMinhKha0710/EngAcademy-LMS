@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
     ArrowRight,
+    BookMarked,
     BookOpen,
     CheckCircle2,
     Clock3,
@@ -62,6 +63,16 @@ const getTaskMeta = (taskType: string, t: (key: string) => string): TaskMeta => 
                 progressColor: 'from-amber-500 to-orange-600',
                 rewardLabel: '+50 Xu',
             }
+        case 'REVIEW_MISTAKES':
+            return {
+                titleKey: 'quests.reviewMistakes',
+                descriptionKey: 'quests.reviewMistakesDesc',
+                route: '/mistakes',
+                actionLabelKey: 'sidebar.mistakeNotebook',
+                icon: <BookMarked className="w-5 h-5" />,
+                progressColor: 'from-rose-500 to-pink-600',
+                rewardLabel: '+15 Xu',
+            }
         default:
             return {
                 titleKey: 'quests.dailyQuest',
@@ -88,7 +99,6 @@ export default function DailyQuestsPage() {
     const [history, setHistory] = useState<DailyQuestResponse[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null)
     const [completingQuest, setCompletingQuest] = useState(false)
     const [showStreakOverlay, setShowStreakOverlay] = useState(false)
     const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false)
@@ -147,52 +157,6 @@ export default function DailyQuestsPage() {
         const mins = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60))
         return `${hours} giờ ${mins} phút`
     }, [])
-
-    const handleTaskProgress = async (task: QuestTask) => {
-        try {
-            setUpdatingTaskId(task.id)
-            const wasDone = isTaskDone(task)
-            const current = getTaskCurrent(task)
-            const nextProgress = Math.min(task.targetCount ?? current, current + 1)
-            const updated = await questApi.updateTaskProgress(task.id, nextProgress)
-            setQuest(updated)
-
-            const updatedTask = updated.tasks.find((item) => item.id === task.id)
-            const nowDone = updatedTask ? isTaskDone(updatedTask) : false
-            const streakKey = `streak_overlay_task_${user?.id ?? 'guest'}_${task.id}_${updated.questDate}`
-            if (!wasDone && nowDone && !sessionStorage.getItem(streakKey)) {
-                sessionStorage.setItem(streakKey, '1')
-                setOverlayStreakDays(user?.streakDays ?? 0)
-                setShowStreakOverlay(true)
-            }
-        } catch (err: any) {
-            setError(t('common.error'))
-        } finally {
-            setUpdatingTaskId(null)
-        }
-    }
-
-    const handleMarkCompleted = async (task: QuestTask) => {
-        try {
-            setUpdatingTaskId(task.id)
-            const wasDone = isTaskDone(task)
-            const updated = await questApi.updateTaskProgress(task.id, task.targetCount)
-            setQuest(updated)
-
-            const updatedTask = updated.tasks.find((item) => item.id === task.id)
-            const nowDone = updatedTask ? isTaskDone(updatedTask) : false
-            const streakKey = `streak_overlay_task_${user?.id ?? 'guest'}_${task.id}_${updated.questDate}`
-            if (!wasDone && nowDone && !sessionStorage.getItem(streakKey)) {
-                sessionStorage.setItem(streakKey, '1')
-                setOverlayStreakDays(user?.streakDays ?? 0)
-                setShowStreakOverlay(true)
-            }
-        } catch (err: any) {
-            setError(t('common.error'))
-        } finally {
-            setUpdatingTaskId(null)
-        }
-    }
 
     const handleCompleteQuest = async () => {
         if (!quest) return
@@ -349,8 +313,6 @@ export default function DailyQuestsPage() {
                         const current = getTaskCurrent(task)
                         const done = isTaskDone(task)
                         const percent = task.targetCount > 0 ? Math.min((current / task.targetCount) * 100, 100) : 0
-                        const taskBusy = updatingTaskId === task.id
-
                         return (
                             <article key={task.id} className="card p-5 flex flex-col border-2" style={{ borderColor: done ? 'color-mix(in srgb, var(--color-success) 30%, var(--color-border))' : 'var(--color-border)' }}>
                                 <div className="flex items-start justify-between gap-3 mb-3">
@@ -393,7 +355,6 @@ export default function DailyQuestsPage() {
                                       gradientEnd={meta.progressColor.split(' ')[1]}
                                       variant="gradient"
                                       completed={done}
-                                      isAnimating={taskBusy}
                                     />
                                 </div>
 
@@ -407,7 +368,7 @@ export default function DailyQuestsPage() {
                                             <ArrowRight className="w-4 h-4" />
                                         </span>
                                     </button>
-                                    {done ? (
+                                    {done && (
                                         <button
                                             disabled
                                             className="btn-secondary w-full text-sm opacity-80 cursor-not-allowed"
@@ -417,23 +378,6 @@ export default function DailyQuestsPage() {
                                                 {t('quests.questRewardReceived')}
                                             </span>
                                         </button>
-                                    ) : (
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                onClick={() => handleTaskProgress(task)}
-                                                disabled={taskBusy}
-                                                className="btn-secondary w-full text-sm rounded-xl"
-                                            >
-                                                {taskBusy ? t('quests.updating') : t('quests.updateProgress')}
-                                            </button>
-                                            <button
-                                                onClick={() => handleMarkCompleted(task)}
-                                                disabled={taskBusy}
-                                                className="btn-secondary w-full text-sm rounded-xl"
-                                            >
-                                                {t('quests.markComplete')}
-                                            </button>
-                                        </div>
                                     )}
                                 </div>
                             </article>
