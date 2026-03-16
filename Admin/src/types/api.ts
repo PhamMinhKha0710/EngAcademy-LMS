@@ -60,6 +60,8 @@ export interface User {
     updatedAt?: string
     schoolId?: number
     schoolName?: string
+    classId?: number
+    className?: string
 }
 
 // ==================== School ====================
@@ -84,6 +86,8 @@ export interface SchoolRequest {
     email?: string
     trialEndDate?: string
     isActive?: boolean
+    managerUsername?: string
+    managerPassword?: string
 }
 
 // ==================== Lesson ====================

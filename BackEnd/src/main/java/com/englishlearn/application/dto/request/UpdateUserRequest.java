@@ -17,4 +17,5 @@ public class UpdateUserRequest {
     private Set<String> roles;
     private Boolean isActive;
     private Integer coins;
+    private Long classId;
 }

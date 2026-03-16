@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Users, Search, Trash2, UserX, Loader2, TrendingUp, CheckCircle, ChevronLeft, ChevronRight, Mail, Calendar, Plus, Edit } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 import type { ApiResponse, User } from '@/types/api'
@@ -203,6 +203,7 @@ export default function StudentsPage() {
                                         <TableHead className="w-20 h-14 font-black text-muted-foreground uppercase text-[10px] tracking-widest pl-8">ID</TableHead>
                                         <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Học sinh</TableHead>
                                         <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Thông tin tài khoản</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-center">Lớp học</TableHead>
                                         <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-center">Trạng thái</TableHead>
                                         <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-right pr-8">Thao tác</TableHead>
                                     </TableRow>
@@ -234,9 +235,18 @@ export default function StudentsPage() {
                                                         {student.email || '—'}
                                                     </div>
                                                     <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/30 uppercase tracking-tight">
-                                                        <Calendar className="h-3 w-3" /> Gia nhập: 15/01/2024
+                                                        <Calendar className="h-3 w-3" /> Gia nhập: {formatDate(student.createdAt)}
                                                     </div>
                                                 </div>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {student.className ? (
+                                                    <div className="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[11px] font-black uppercase tracking-wider border border-primary/20">
+                                                        {student.className}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest italic">Chưa chọn lớp</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <div className={cn(

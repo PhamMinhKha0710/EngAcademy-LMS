@@ -156,12 +156,20 @@ public class UserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Xóa người dùng")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails,
-            HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> deleteUser(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         UserResponse targetUser = userService.getUserById(id);
-        
+
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(targetUser.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xóa người dùng này", null));
+            }
+        }
+
         userService.deleteUser(id);
 
         // Log action
