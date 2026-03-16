@@ -74,7 +74,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         <aside className="fixed left-0 top-16 bottom-0 w-64 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-20">
             {/* User Profile - Student only */}
             {isStudent && user && (
-                <div className="px-4 py-4 shrink-0">
+                <div className="px-4 py-4 shrink-0 transform translate-y-3">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-primary-500/5 border border-primary-500/10">
                         <div className="relative size-12 rounded-full overflow-hidden border-2 border-primary-500 bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
                             {user.avatarUrl ? (
