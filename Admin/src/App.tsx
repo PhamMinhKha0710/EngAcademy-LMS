@@ -25,10 +25,11 @@ function AppRoutes() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-            {/* Routes for both ADMIN and SCHOOL */}
-            <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_SCHOOL']} />}>
+            {/* Routes for ADMIN, SCHOOL and TEACHER */}
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_SCHOOL', 'ROLE_TEACHER']} />}>
                 <Route element={<AdminLayout />}>
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/leaderboard" element={<LeaderboardPage />} />
                 </Route>
             </Route>
 
@@ -48,7 +49,6 @@ function AppRoutes() {
                     <Route path="/schools" element={<SchoolsPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/notifications" element={<NotificationsPage />} />
-                    <Route path="/leaderboard" element={<LeaderboardPage />} />
                     <Route path="/badges" element={<BadgesPage />} />
                 </Route>
             </Route>

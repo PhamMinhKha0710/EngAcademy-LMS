@@ -49,4 +49,23 @@ public class NotificationController {
         notificationService.broadcastNotification(request);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+    @PostMapping("/send/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Gửi thông báo trực tiếp cho một người dùng")
+    public ResponseEntity<ApiResponse<Void>> sendNotification(
+            @PathVariable Long userId,
+            @RequestParam String title,
+            @RequestParam String message,
+            @RequestParam(required = false) String imageUrl) {
+        notificationService.sendNotification(userId, title, message, imageUrl);
+        return ResponseEntity.ok(ApiResponse.success("Gửi thông báo thành công", null));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Xóa thông báo")
+    public ResponseEntity<ApiResponse<Void>> deleteNotification(@PathVariable Long id) {
+        notificationService.deleteNotification(id);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

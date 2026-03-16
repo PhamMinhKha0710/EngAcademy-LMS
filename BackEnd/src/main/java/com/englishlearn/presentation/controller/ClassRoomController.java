@@ -29,6 +29,8 @@ public class ClassRoomController {
 
     private final ClassRoomService classRoomService;
     private final UserService userService;
+    private final com.englishlearn.application.service.AuditLogService auditLogService;
+    private final com.englishlearn.infrastructure.persistence.UserRepository userRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
@@ -87,8 +89,19 @@ public class ClassRoomController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Create a new classroom")
     public ResponseEntity<ApiResponse<ClassRoomResponse>> createClassRoom(
-            @Valid @RequestBody ClassRoomRequest request) {
+            @Valid @RequestBody ClassRoomRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletRequest servletRequest) {
+        
+        com.englishlearn.domain.entity.User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
         ClassRoomResponse classRoom = classRoomService.createClassRoom(request);
+        
+        // Log action
+        auditLogService.log(currentUser.getId(), "CREATE_CLASS", "Tạo lớp học: " + classRoom.getName(),
+                servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+                
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo lớp học thành công", classRoom));
     }
@@ -98,8 +111,19 @@ public class ClassRoomController {
     @Operation(summary = "Update a classroom")
     public ResponseEntity<ApiResponse<ClassRoomResponse>> updateClassRoom(
             @PathVariable Long id,
-            @Valid @RequestBody ClassRoomRequest request) {
+            @Valid @RequestBody ClassRoomRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletRequest servletRequest) {
+        
+        com.englishlearn.domain.entity.User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+                
         ClassRoomResponse classRoom = classRoomService.updateClassRoom(id, request);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "UPDATE_CLASS", "Cập nhật lớp học: " + classRoom.getName(),
+                servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Cập nhật lớp học thành công", classRoom));
     }
 
@@ -108,8 +132,20 @@ public class ClassRoomController {
     @Operation(summary = "Assign a teacher to classroom")
     public ResponseEntity<ApiResponse<Void>> assignTeacher(
             @PathVariable Long classId,
-            @PathVariable Long teacherId) {
+            @PathVariable Long teacherId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletRequest servletRequest) {
+        
+        com.englishlearn.domain.entity.User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
         classRoomService.assignTeacher(classId, teacherId);
+        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "ASSIGN_TEACHER", "Phân công giáo viên cho lớp: " + classRoom.getName(),
+                servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Phân công giáo viên thành công", null));
     }
 
@@ -118,8 +154,20 @@ public class ClassRoomController {
     @Operation(summary = "Add a student to classroom")
     public ResponseEntity<ApiResponse<Void>> addStudentToClass(
             @PathVariable Long classId,
-            @PathVariable Long studentId) {
+            @PathVariable Long studentId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletRequest servletRequest) {
+        
+        com.englishlearn.domain.entity.User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
         classRoomService.addStudentToClass(classId, studentId);
+        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "ADD_STUDENT_TO_CLASS", "Thêm học sinh vào lớp: " + classRoom.getName(),
+                servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Thêm học sinh vào lớp thành công", null));
     }
 
@@ -155,8 +203,20 @@ public class ClassRoomController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Soft delete a classroom")
-    public ResponseEntity<ApiResponse<Void>> deleteClassRoom(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteClassRoom(@PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletRequest servletRequest) {
+        
+        com.englishlearn.domain.entity.User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        ClassRoomResponse targetClass = classRoomService.getClassRoomById(id);
         classRoomService.deleteClassRoom(id);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "DELETE_CLASS", "Xóa lớp học: " + targetClass.getName(),
+                servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Xóa lớp học thành công", null));
     }
 }
