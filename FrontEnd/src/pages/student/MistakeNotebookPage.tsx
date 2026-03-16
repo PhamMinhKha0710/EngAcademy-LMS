@@ -18,7 +18,10 @@ import {
     ArrowUpDown,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import { useToastStore } from '../../store/toastStore'
 import { mistakeApi, MistakeNotebook } from '../../services/api/mistakeApi'
+import { vocabularyApi } from '../../services/api/vocabularyApi'
+import { triggerQuestRefresh } from '../../utils/questRefresh'
 import EmptyState from '../../components/ui/EmptyState'
 import FlashCard from '../../components/ui/FlashCard'
 
@@ -28,11 +31,13 @@ type SortMode = 'recent' | 'mistakeCount'
 export default function MistakeNotebookPage() {
     const { t } = useTranslation()
     const { user } = useAuthStore()
+    const { addToast } = useToastStore()
 
     const [mistakes, setMistakes] = useState<MistakeNotebook[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [deletingId, setDeletingId] = useState<number | null>(null)
+    const [reviewingId, setReviewingId] = useState<number | null>(null)
     const [viewMode, setViewMode] = useState<ViewMode>('table')
     const [currentCardIndex, setCurrentCardIndex] = useState(0)
     const [sortMode, setSortMode] = useState<SortMode>('recent')
@@ -67,6 +72,27 @@ export default function MistakeNotebookPage() {
             setError(t('common.error'))
         } finally {
             setDeletingId(null)
+        }
+    }
+
+    const handleReviewWord = async (correct: boolean) => {
+        const currentItem = reviewItems[currentCardIndex]
+        const vocabId = currentItem?.vocabularyId
+        if (!vocabId || !user?.id) return
+
+        try {
+            setReviewingId(currentItem.id)
+            const result = await vocabularyApi.reviewWord(vocabId, user.id, correct ? 'correct' : 'wrong')
+            if (result.questTaskCompleted) {
+                addToast({ type: 'success', message: t('quests.taskCompleted') })
+            }
+            if (correct) triggerQuestRefresh()
+            if (canGoNext) setCurrentCardIndex((i) => i + 1)
+        } catch (err) {
+            console.error('Failed to review word:', err)
+            addToast({ type: 'error', message: t('common.error') })
+        } finally {
+            setReviewingId(null)
         }
     }
 
@@ -206,6 +232,22 @@ export default function MistakeNotebookPage() {
                         />
                     </div>
                 </div>
+                {currentCardIndex === reviewItems.length - 1 && reviewItems.length > 0 && (
+                    <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                            {t('mistakes.lastCardReached', { total: reviewItems.length })}
+                        </p>
+                        <button
+                            onClick={() => {
+                                setViewMode('table')
+                                setCurrentCardIndex(0)
+                            }}
+                            className="btn-primary text-sm shrink-0"
+                        >
+                            {t('mistakes.finishReview')}
+                        </button>
+                    </div>
+                )}
 
                 <div className="mb-8">
                     <FlashCard
@@ -241,35 +283,58 @@ export default function MistakeNotebookPage() {
                     />
                 </div>
 
-                <div className="flex items-center justify-center gap-4">
-                    <button
-                        onClick={handlePrevCard}
-                        disabled={!canGoPrev}
-                        className="p-3 rounded-xl transition-colors disabled:opacity-30"
-                        style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={() => handleDelete(currentItem.id)}
-                        disabled={deletingId === currentItem.id}
-                        className="p-3 rounded-xl text-red-500 bg-red-500/10 hover:bg-red-500/15 transition-colors disabled:opacity-50"
-                        title={t('mistakes.deleteCurrent')}
-                    >
-                        {deletingId === currentItem.id ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <Trash2 className="w-5 h-5" />
-                        )}
-                    </button>
-                    <button
-                        onClick={handleNextCard}
-                        disabled={!canGoNext}
-                        className="p-3 rounded-xl transition-colors disabled:opacity-30"
-                        style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
+                <div className="flex flex-col items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => handleReviewWord(false)}
+                            disabled={reviewingId === currentItem.id || !currentItem.vocabularyId}
+                            className="px-4 py-2 rounded-xl text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors disabled:opacity-50 text-sm font-semibold"
+                        >
+                            {t('mistakes.notMastered')}
+                        </button>
+                        <button
+                            onClick={() => handleReviewWord(true)}
+                            disabled={reviewingId === currentItem.id || !currentItem.vocabularyId}
+                            className="px-4 py-2 rounded-xl text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 text-sm font-semibold flex items-center gap-2"
+                        >
+                            {reviewingId === currentItem.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <CircleCheck className="w-4 h-4" />
+                            )}
+                            {t('mistakes.mastered')}
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={handlePrevCard}
+                            disabled={!canGoPrev}
+                            className="p-3 rounded-xl transition-colors disabled:opacity-30"
+                            style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => handleDelete(currentItem.id)}
+                            disabled={deletingId === currentItem.id}
+                            className="p-3 rounded-xl text-red-500 bg-red-500/10 hover:bg-red-500/15 transition-colors disabled:opacity-50"
+                            title={t('mistakes.deleteCurrent')}
+                        >
+                            {deletingId === currentItem.id ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <Trash2 className="w-5 h-5" />
+                            )}
+                        </button>
+                        <button
+                            onClick={handleNextCard}
+                            disabled={!canGoNext}
+                            className="p-3 rounded-xl transition-colors disabled:opacity-30"
+                            style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}
+                        >
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
             </div>
         )

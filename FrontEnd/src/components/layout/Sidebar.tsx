@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { QUEST_PROGRESS_CHANGED } from '../../utils/questRefresh'
 import { useTranslation } from 'react-i18next'
 import { useRole } from '../../hooks/useRole'
 import { useAuthStore } from '../../store/authStore'
@@ -63,17 +64,26 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     const userLevel = user?.exp ? Math.floor(user.exp / 1000) + 1 : 1
     const questPercent = questProgress.total > 0 ? (questProgress.completed / questProgress.total) * 100 : 0
 
-    useEffect(() => {
-        if (isStudent) {
-            questApi.getToday()
-                .then((q) => {
-                    const total = q?.tasks?.length ?? 0
-                    const completed = q?.tasks?.filter((t) => t.completed).length ?? 0
-                    setQuestProgress({ completed, total })
-                })
-                .catch(() => { })
-        }
+    const refetchQuest = useCallback(() => {
+        if (!isStudent) return
+        questApi.getToday()
+            .then((q) => {
+                const total = q?.tasks?.length ?? 0
+                const completed = q?.tasks?.filter((t) => Boolean(t.completed ?? t.isCompleted)).length ?? 0
+                setQuestProgress({ completed, total })
+            })
+            .catch(() => { })
     }, [isStudent])
+
+    useEffect(() => {
+        refetchQuest()
+    }, [refetchQuest, location.pathname])
+
+    useEffect(() => {
+        const handler = () => refetchQuest()
+        window.addEventListener(QUEST_PROGRESS_CHANGED, handler)
+        return () => window.removeEventListener(QUEST_PROGRESS_CHANGED, handler)
+    }, [refetchQuest])
 
     return (
         <aside className="fixed left-0 top-16 bottom-0 w-64 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-20">

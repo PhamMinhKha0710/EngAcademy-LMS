@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
 import { useToastStore } from '../../store/toastStore'
 import { vocabularyApi, VocabularyResponse, TopicProgress } from '../../services/api/vocabularyApi'
+import { triggerQuestRefresh } from '../../utils/questRefresh'
 import { mistakeApi } from '../../services/api/mistakeApi'
 import FlashCard from '../../components/ui/FlashCard'
 import PageHero from '../../components/ui/PageHero'
@@ -128,6 +129,10 @@ export default function VocabularyPage() {
             if (result.topicCompleted) {
                 addToast({ type: 'success', message: t('vocabulary.topicDone') })
             }
+            if (result.questTaskCompleted) {
+                addToast({ type: 'success', message: t('quests.taskCompleted') })
+            }
+            if (correct) triggerQuestRefresh()
         } catch { /* silent */ }
 
         goToNext()

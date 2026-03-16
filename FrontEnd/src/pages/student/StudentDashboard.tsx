@@ -3,15 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
     ArrowRight,
-    Bell,
     BookOpen,
     CheckCircle2,
     Clock,
-    Flame,
-    Gem,
     Loader2,
     PlayCircle,
-    Settings,
     Trophy,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
@@ -109,11 +105,8 @@ export default function StudentDashboard() {
     const questCompletedCount = questTasks.filter((task) => Boolean(task.completed ?? task.isCompleted)).length
     const questTotalCount = questTasks.length
     const primaryQuest = questTasks.find((task) => !(task.completed ?? task.isCompleted)) ?? questTasks[0]
-    const primaryQuestProgress = primaryQuest
-        ? Math.min(
-            (((primaryQuest.currentProgress ?? primaryQuest.currentCount ?? 0) / Math.max(primaryQuest.targetCount ?? 1, 1)) * 100),
-            100
-        )
+    const questOverallProgress = questTotalCount > 0
+        ? Math.round((questCompletedCount / questTotalCount) * 100)
         : 0
     const learningItems = inProgress.slice(0, 3)
 
@@ -127,43 +120,16 @@ export default function StudentDashboard() {
 
     return (
         <div className="flex flex-col min-h-full bg-background-light dark:bg-background-dark">
-            <header className="border-b border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4 md:px-8 py-4">
-                <div className="mx-auto max-w-7xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-black text-slate-900 dark:text-white">
-                            {t('dashboard.welcomeBack')} {user?.fullName || t('dashboard.you')}!
-                        </h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1">
-                            {t('dashboard.readyToContinue')}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-sm font-bold inline-flex items-center gap-1.5">
-                            <Flame className="w-4 h-4" />
-                            {user?.streakDays ?? 0}
-                            <span className="ml-0.5">{t('dashboard.streaks')}</span>
-                        </span>
-                        <span className="px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-bold inline-flex items-center gap-1.5">
-                            <Gem className="w-4 h-4" />
-                            {(user?.coins ?? 0).toLocaleString()}
-                        </span>
-                        <button className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500">
-                            <Bell className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500">
-                            <Settings className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            </header>
-
             <div className="flex-1 overflow-y-auto p-4 md:p-8">
                 <div className="mx-auto max-w-7xl space-y-6">
+                    <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                        {t('dashboard.overview')}
+                    </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="card p-5">
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('dashboard.dailyStreak')}</p>
                             <p className="text-3xl font-black mt-2 text-slate-900 dark:text-white">{user?.streakDays ?? 0} <span className="text-lg font-semibold">{t('dashboard.days')}</span></p>
-                            <p className="text-xs mt-2 text-emerald-500 font-semibold">+1 {t('dashboard.today')}</p>
+                            <p className="text-xs mt-2 text-emerald-500 font-semibold">{t('dashboard.keepStreakHint')}</p>
                         </div>
                         <div className="card p-5">
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('dashboard.totalXP')}</p>
@@ -190,13 +156,18 @@ export default function StudentDashboard() {
                                 <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-2xl">
                                     {t('dashboard.completeQuest')}
                                 </p>
-                                <ProgressBar 
-                                  value={primaryQuestProgress}
-                                  height="h-3"
-                                  gradientStart="from-primary-500"
-                                  gradientEnd="to-amber-400"
-                                  variant="gradient"
-                                />
+                                {questTotalCount > 0 && (
+                                    <div className="mt-3">
+                                        <ProgressBar
+                                            value={questOverallProgress}
+                                            height="h-3"
+                                            gradientStart="from-primary-500"
+                                            gradientEnd="to-amber-400"
+                                            variant="gradient"
+                                            showPercentage
+                                        />
+                                    </div>
+                                )}
                                 <div className="mt-4 flex items-center justify-between gap-3">
                                     <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                                         {questCompletedCount} / {questTotalCount} {t('dashboard.dailyQuestsCompleted')}
@@ -293,10 +264,10 @@ export default function StudentDashboard() {
                                                     {entry.avatarUrl ? <img src={entry.avatarUrl} alt="" className="size-full object-cover" /> : ((entry.fullName || entry.username)?.[0] ?? '?')}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className={`font-bold truncate ${isCurrentUser ? 'text-black' : 'text-white'}`}>
+                                                    <p className={`font-bold truncate ${isCurrentUser ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                                                         {isCurrentUser ? t('dashboard.you') : (entry.fullName || entry.username)}
                                                     </p>
-                                                    <p className="text-xs text-slate-500">{(entry.totalCoins ?? 0).toLocaleString()} XP</p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">{(entry.totalCoins ?? 0).toLocaleString()} XP</p>
                                                 </div>
                                             </div>
                                         )
