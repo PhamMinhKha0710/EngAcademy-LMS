@@ -26,29 +26,29 @@ const MainLayout = () => {
     }, [isAuthenticated, fetchCurrentUser])
 
     return (
-        <div className="min-h-screen flex flex-col transition-colors duration-300">
-            <Header onMenuClick={() => setIsMobileMenuOpen(true)} showMenuButton={showSidebar} />
+        <div className="min-h-screen flex transition-colors duration-300">
+            {showSidebar && (
+                <>
+                    {/* Mobile Overlay */}
+                    {isMobileMenuOpen && (
+                        <div 
+                            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        />
+                    )}
+                    <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+                </>
+            )}
 
-            <div className="flex flex-1 relative">
-                {showSidebar && (
-                    <>
-                        {/* Mobile Overlay */}
-                        {isMobileMenuOpen && (
-                            <div 
-                                className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            />
-                        )}
-                        <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
-                    </>
-                )}
-
-                <main className={`flex-1 transition-all duration-300 w-full ${showSidebar ? 'md:ml-64' : ''}`}>
+            <div className={`flex flex-col flex-1 min-w-0 transition-all duration-300 ${showSidebar ? 'md:pl-64' : ''}`}>
+                <Header onMenuClick={() => setIsMobileMenuOpen(true)} showMenuButton={showSidebar} />
+                
+                <main className="flex-1 w-full relative">
                     <Outlet />
                 </main>
-            </div>
 
-            {showFooter && <Footer />}
+                {showFooter && <Footer />}
+            </div>
         </div>
     )
 }

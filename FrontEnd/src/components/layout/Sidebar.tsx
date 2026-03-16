@@ -51,10 +51,11 @@ const teacherMenuItems: MenuItem[] = [
 ]
 
 interface SidebarProps {
+    isOpen?: boolean;
     onClose?: () => void;
 }
 
-const Sidebar = ({ onClose }: SidebarProps) => {
+const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     const { t } = useTranslation()
     const location = useLocation()
     const { isTeacher, isStudent } = useRole()
@@ -77,9 +78,9 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     }, [isStudent])
 
     return (
-        <aside className="fixed left-0 top-16 bottom-0 w-64 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-20">
+        <aside className={`fixed left-0 top-0 bottom-0 w-64 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-hidden z-40 transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
             {/* Logo */}
-            <div className="flex h-16 items-center gap-3 px-6 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="flex h-[73px] items-center gap-3 px-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
                 <div className="flex items-center justify-center size-10 rounded-xl bg-primary-500/10 text-primary-500">
                     <School className="w-6 h-6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                 </div>

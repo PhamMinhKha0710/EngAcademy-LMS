@@ -25,7 +25,7 @@ const Header = ({ showMenuButton, onMenuClick }: HeaderProps) => {
     }
 
     return (
-        <header className="sticky top-0 z-40 flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 sm:px-6 md:px-10 lg:px-16 xl:px-40 py-4">
+        <header className={`sticky top-0 z-40 flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md h-[73px] ${showMenuButton ? 'px-4 sm:px-6 lg:px-8' : 'px-4 sm:px-6 md:px-10 lg:px-16 xl:px-40'}`}>
             <div className="flex items-center gap-3">
                 {showMenuButton && (
                     <button 
@@ -35,7 +35,7 @@ const Header = ({ showMenuButton, onMenuClick }: HeaderProps) => {
                         <Menu className="w-6 h-6" strokeWidth={2} />
                     </button>
                 )}
-                <Link to="/" className="flex items-center gap-3 text-slate-900 dark:text-white">
+                <Link to="/" className={`flex items-center gap-3 text-slate-900 dark:text-white ${showMenuButton ? 'md:hidden' : ''}`}>
                     <div className="size-8 text-primary-500 flex items-center justify-center">
                         <GraduationCap className="w-8 h-8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                     </div>
