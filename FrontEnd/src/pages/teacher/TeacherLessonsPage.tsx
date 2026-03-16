@@ -137,6 +137,15 @@ export default function TeacherLessonsPage() {
 
   const columns = [
     {
+      key: "orderIndex",
+      label: "Thứ tự",
+      render: (item: Record<string, unknown>) => (
+        <span style={{ color: "var(--color-text-secondary)" }}>
+          {(item.orderIndex as number) ?? 0}
+        </span>
+      ),
+    },
+    {
       key: "title",
       label: "Tiêu đề",
       render: (item: Record<string, unknown>) => (
@@ -175,15 +184,6 @@ export default function TeacherLessonsPage() {
         <Badge variant={item.isPublished ? "success" : "warning"}>
           {item.isPublished ? "Đã xuất bản" : "Nháp"}
         </Badge>
-      ),
-    },
-    {
-      key: "orderIndex",
-      label: "Thứ tự",
-      render: (item: Record<string, unknown>) => (
-        <span style={{ color: "var(--color-text-secondary)" }}>
-          {(item.orderIndex as number) ?? 0}
-        </span>
       ),
     },
     {
