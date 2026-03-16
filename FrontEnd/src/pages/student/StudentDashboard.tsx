@@ -119,7 +119,7 @@ export default function StudentDashboard() {
     }
 
     return (
-        <div className="flex flex-col min-h-full bg-background-light dark:bg-background-dark">
+        <div className="flex flex-col min-h-full bg-slate-50 dark:bg-slate-900">
             <div className="flex-1 overflow-y-auto p-4 md:p-8">
                 <div className="mx-auto max-w-7xl space-y-6">
                     <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">
