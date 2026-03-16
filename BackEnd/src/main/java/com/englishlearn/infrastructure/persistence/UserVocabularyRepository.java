@@ -26,4 +26,11 @@ public interface UserVocabularyRepository extends JpaRepository<UserVocabulary, 
     @Query("SELECT uv FROM UserVocabulary uv JOIN FETCH uv.vocabulary v JOIN FETCH v.lesson " +
            "WHERE uv.user.id = :userId AND uv.status = 'MASTERED' ORDER BY uv.lastReviewedAt DESC")
     List<UserVocabulary> findMasteredByUserId(@Param("userId") Long userId);
+
+    /** Đếm từ đã ôn hôm nay (lastReviewedAt trong ngày) */
+    @Query("SELECT COUNT(uv) FROM UserVocabulary uv WHERE uv.user.id = :userId " +
+           "AND uv.lastReviewedAt >= :startOfDay AND uv.lastReviewedAt < :endOfDay")
+    Long countReviewedTodayByUserId(@Param("userId") Long userId,
+                                    @Param("startOfDay") java.time.LocalDateTime startOfDay,
+                                    @Param("endOfDay") java.time.LocalDateTime endOfDay);
 }

@@ -27,6 +27,7 @@ public class ProgressService {
     private final UserRepository userRepository;
     private final LessonRepository lessonRepository;
     private final UserVocabularyRepository userVocabularyRepository;
+    private final DailyQuestService dailyQuestService;
 
     @Transactional(readOnly = true)
     public List<ProgressResponse> getProgressByUser(Long userId) {
@@ -77,14 +78,27 @@ public class ProgressService {
                         .isCompleted(false)
                         .build());
 
+        boolean wasCompleted = Boolean.TRUE.equals(progress.getIsCompleted());
+        boolean questTaskCompleted = false;
         progress.setCompletionPercentage(percentage);
         if (percentage >= 100) {
             progress.setIsCompleted(true);
             log.info("User {} completed lesson: {}", user.getFullName(), lesson.getTitle());
+            if (!wasCompleted) {
+                try {
+                    questTaskCompleted = dailyQuestService.incrementProgressForTaskType(userId, "COMPLETE_LESSON", 1);
+                } catch (Exception e) {
+                    log.debug("Could not update quest for COMPLETE_LESSON: {}", e.getMessage());
+                }
+            }
         }
 
         Progress savedProgress = progressRepository.save(progress);
-        return mapToResponse(savedProgress);
+        ProgressResponse response = mapToResponse(savedProgress);
+        if (questTaskCompleted) {
+            response.setQuestTaskCompleted(true);
+        }
+        return response;
     }
 
     @Transactional
