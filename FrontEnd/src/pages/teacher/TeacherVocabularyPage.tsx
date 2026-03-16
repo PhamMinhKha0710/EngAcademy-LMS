@@ -18,6 +18,7 @@ import {
   BookOpen,
   Inbox,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Lesson {
   id: number;
@@ -45,6 +46,7 @@ const emptyForm: VocabForm = {
 };
 
 export default function TeacherVocabularyPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialLessonId = searchParams.get("lessonId") || "";
 
@@ -84,7 +86,7 @@ export default function TeacherVocabularyPage() {
       const data = await vocabularyApi.getByLesson(parseInt(lessonId));
       setVocabulary(data);
     } catch {
-      setError("Không thể tải từ vựng.");
+      setError(t("teacherVocabulary.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -151,26 +153,26 @@ export default function TeacherVocabularyPage() {
       setDialogOpen(false);
       await fetchVocabulary(selectedLesson);
     } catch {
-      alert("Lưu từ vựng thất bại.");
+      alert(t("teacherVocabulary.saveFailed"));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Bạn có chắc muốn xóa từ vựng này?")) return;
+    if (!confirm(t("teacherVocabulary.confirmDelete"))) return;
     try {
       await vocabularyApi.delete(id);
       await fetchVocabulary(selectedLesson);
     } catch {
-      alert("Xóa thất bại.");
+      alert(t("teacherVocabulary.deleteFailed"));
     }
   };
 
   const columns = [
     {
       key: "word",
-      label: "Từ vựng",
+      label: t("teacherVocabulary.columns.word"),
       render: (item: Record<string, unknown>) => (
         <span className="font-semibold" style={{ color: "var(--color-text)" }}>
           {item.word as string}
@@ -179,7 +181,7 @@ export default function TeacherVocabularyPage() {
     },
     {
       key: "meaning",
-      label: "Nghĩa",
+      label: t("teacherVocabulary.columns.meaning"),
       render: (item: Record<string, unknown>) => (
         <span style={{ color: "var(--color-text-secondary)" }}>
           {item.meaning as string}
@@ -188,7 +190,7 @@ export default function TeacherVocabularyPage() {
     },
     {
       key: "pronunciation",
-      label: "Phát âm",
+      label: t("teacherVocabulary.columns.pronunciation"),
       render: (item: Record<string, unknown>) => (
         <span
           className="italic"
@@ -200,7 +202,7 @@ export default function TeacherVocabularyPage() {
     },
     {
       key: "actions",
-      label: "Thao tác",
+      label: t("teacherVocabulary.columns.actions"),
       render: (item: Record<string, unknown>) => {
         const v = item as unknown as VocabularyResponse;
         return (
@@ -211,7 +213,7 @@ export default function TeacherVocabularyPage() {
                 openEdit(v);
               }}
               className="p-2 rounded-lg hover:bg-emerald-500/15 text-emerald-400 transition-colors"
-              title="Sửa"
+              title={t("teacherVocabulary.actions.edit")}
             >
               <Pencil className="w-4 h-4" />
             </button>
@@ -221,7 +223,7 @@ export default function TeacherVocabularyPage() {
                 handleDelete(v.id);
               }}
               className="p-2 rounded-lg hover:bg-red-500/15 text-red-400 transition-colors"
-              title="Xóa"
+              title={t("teacherVocabulary.actions.delete")}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -240,12 +242,12 @@ export default function TeacherVocabularyPage() {
             className="text-2xl font-bold"
             style={{ color: "var(--color-text)" }}
           >
-            Quản lý từ vựng
+            {t("teacherVocabulary.title")}
           </h1>
           <p className="mt-1" style={{ color: "var(--color-text-secondary)" }}>
             {selectedLesson
-              ? `${vocabulary.length} từ vựng`
-              : "Chọn bài học để xem từ vựng"}
+              ? t("teacherVocabulary.count", { count: vocabulary.length })
+              : t("teacherVocabulary.selectLessonHelper")}
           </p>
         </div>
         <button
@@ -278,7 +280,7 @@ export default function TeacherVocabularyPage() {
             color: "var(--color-text)",
           }}
         >
-          <option value=""> Chọn bài học </option>
+          <option value="">{t("teacherVocabulary.selectLessonPlaceholder")}</option>
           {lessons.map((l) => (
             <option key={l.id} value={l.id}>
               {l.title}
@@ -292,10 +294,10 @@ export default function TeacherVocabularyPage() {
 
       {/* Content */}
       {!selectedLesson ? (
-        <EmptyState
+          <EmptyState
           icon={<Inbox className="w-8 h-8" />}
-          title="Chọn bài học"
-          description="Vui lòng chọn một bài học từ dropdown để quản lý từ vựng."
+          title={t("teacherVocabulary.selectLessonTitle")}
+          description={t("teacherVocabulary.selectLessonDescription")}
         />
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -305,7 +307,7 @@ export default function TeacherVocabularyPage() {
             onClick={() => fetchVocabulary(selectedLesson)}
             className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
-            Thử lại
+            {t("common.retry")}
           </button>
         </div>
       ) : (
@@ -313,7 +315,7 @@ export default function TeacherVocabularyPage() {
           columns={columns}
           data={vocabulary as unknown as Record<string, unknown>[]}
           loading={loading}
-          emptyMessage="Bài học này chưa có từ vựng nào"
+          emptyMessage={t("teacherVocabulary.emptyMessage")}
         />
       )}
 
@@ -321,7 +323,7 @@ export default function TeacherVocabularyPage() {
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title={editingId ? "Chỉnh sửa từ vựng" : "Thêm từ vựng mới"}
+        title={editingId ? t("teacherVocabulary.editTitle") : t("teacherVocabulary.createTitle")}
         footer={
           <>
             <button
@@ -329,7 +331,7 @@ export default function TeacherVocabularyPage() {
               className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-slate-700/50"
               style={{ color: "var(--color-text-secondary)" }}
             >
-              Hủy
+              {t("common.cancel")}
             </button>
             <button
               onClick={handleSave}
@@ -340,7 +342,7 @@ export default function TeacherVocabularyPage() {
               }}
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {editingId ? "Cập nhật" : "Thêm mới"}
+              {editingId ? t("teacherVocabulary.updateButton") : t("teacherVocabulary.createButton")}
             </button>
           </>
         }
@@ -352,7 +354,7 @@ export default function TeacherVocabularyPage() {
               className="block text-sm font-medium mb-1.5"
               style={{ color: "var(--color-text-secondary)" }}
             >
-              Bài học
+              {t("teacherVocabulary.form.lesson")}
             </label>
             <select
               value={form.lessonId}
@@ -384,7 +386,7 @@ export default function TeacherVocabularyPage() {
                 className="block text-sm font-medium mb-1.5"
                 style={{ color: "var(--color-text-secondary)" }}
               >
-                Từ vựng <span className="text-red-400">*</span>
+                {t("teacherVocabulary.form.word")} <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -403,7 +405,7 @@ export default function TeacherVocabularyPage() {
                 className="block text-sm font-medium mb-1.5"
                 style={{ color: "var(--color-text-secondary)" }}
               >
-                Nghĩa <span className="text-red-400">*</span>
+                {t("teacherVocabulary.form.meaning")} <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -424,7 +426,7 @@ export default function TeacherVocabularyPage() {
               className="block text-sm font-medium mb-1.5"
               style={{ color: "var(--color-text-secondary)" }}
             >
-              Phát âm
+              {t("teacherVocabulary.form.pronunciation")}
             </label>
             <input
               type="text"
@@ -447,7 +449,7 @@ export default function TeacherVocabularyPage() {
               className="block text-sm font-medium mb-1.5"
               style={{ color: "var(--color-text-secondary)" }}
             >
-              Câu ví dụ
+              {t("teacherVocabulary.form.example")}
             </label>
             <textarea
               rows={2}
@@ -470,7 +472,7 @@ export default function TeacherVocabularyPage() {
                 className="block text-sm font-medium mb-1.5"
                 style={{ color: "var(--color-text-secondary)" }}
               >
-                URL hình ảnh
+                {t("teacherVocabulary.form.imageUrl")}
               </label>
               <input
                 type="url"
@@ -489,7 +491,7 @@ export default function TeacherVocabularyPage() {
                 className="block text-sm font-medium mb-1.5"
                 style={{ color: "var(--color-text-secondary)" }}
               >
-                URL âm thanh
+                {t("teacherVocabulary.form.audioUrl")}
               </label>
               <input
                 type="url"

@@ -6,48 +6,33 @@ import { useRole } from '../../hooks/useRole'
 import { useAuthStore } from '../../store/authStore'
 import { questApi } from '../../services/api/questApi'
 import ProgressBar from '../ui/ProgressBar'
-import {
-  LayoutDashboard,
-  BookOpen,
-  Languages,
-  FileText,
-  Trophy,
-  BookMarked,
-  Award,
-  Settings,
-  GraduationCap,
-  HelpCircle,
-  BarChart3,
-  Flame,
-  } from "lucide-react";
-import { ClipboardList } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import AppIcon, { AppIconName } from '../common/AppIcon'
 
 interface MenuItem {
-    icon: LucideIcon
+    icon: AppIconName
     labelKey: string
     path: string
 }
 
 const studentMenuItems: MenuItem[] = [
-    { icon: LayoutDashboard, labelKey: 'sidebar.dashboard', path: '/dashboard' },
-    { icon: ClipboardList, labelKey: 'sidebar.dailyQuests', path: '/quests' },
-    { icon: BookOpen, labelKey: 'sidebar.lessons', path: '/lessons' },
-    { icon: Languages, labelKey: 'sidebar.vocabulary', path: '/vocabulary' },
-    { icon: FileText, labelKey: 'sidebar.exams', path: '/exams' },
-    { icon: Trophy, labelKey: 'sidebar.leaderboard', path: '/leaderboard' },
-    { icon: BookMarked, labelKey: 'sidebar.mistakeNotebook', path: '/mistakes' },
-    { icon: Award, labelKey: 'sidebar.badges', path: '/badges' },
+    { icon: 'dashboard', labelKey: 'sidebar.dashboard', path: '/dashboard' },
+    { icon: 'dailyQuests', labelKey: 'sidebar.dailyQuests', path: '/quests' },
+    { icon: 'lessons', labelKey: 'sidebar.lessons', path: '/lessons' },
+    { icon: 'vocabulary', labelKey: 'sidebar.vocabulary', path: '/vocabulary' },
+    { icon: 'exams', labelKey: 'sidebar.exams', path: '/exams' },
+    { icon: 'leaderboard', labelKey: 'sidebar.leaderboard', path: '/leaderboard' },
+    { icon: 'mistakeNotebook', labelKey: 'sidebar.mistakeNotebook', path: '/mistakes' },
+    { icon: 'badges', labelKey: 'sidebar.badges', path: '/badges' },
 ]
 
 const teacherMenuItems: MenuItem[] = [
-    { icon: LayoutDashboard, labelKey: 'sidebar.dashboard', path: '/teacher/dashboard' },
-    { icon: GraduationCap, labelKey: 'sidebar.classManagement', path: '/teacher/management' },
-    { icon: BookOpen, labelKey: 'sidebar.lessons', path: '/teacher/lessons' },
-    { icon: HelpCircle, labelKey: 'sidebar.questions', path: '/teacher/questions' },
-    { icon: Languages, labelKey: 'sidebar.vocabulary', path: '/teacher/vocabulary' },
-    { icon: FileText, labelKey: 'sidebar.exams', path: '/teacher/exams' },
-    { icon: BarChart3, labelKey: 'sidebar.progress', path: '/teacher/progress' },
+    { icon: 'dashboard', labelKey: 'sidebar.dashboard', path: '/teacher/dashboard' },
+    { icon: 'classManagement', labelKey: 'sidebar.classManagement', path: '/teacher/management' },
+    { icon: 'lessons', labelKey: 'sidebar.lessons', path: '/teacher/lessons' },
+    { icon: 'questions', labelKey: 'sidebar.questions', path: '/teacher/questions' },
+    { icon: 'vocabulary', labelKey: 'sidebar.vocabulary', path: '/teacher/vocabulary' },
+    { icon: 'exams', labelKey: 'sidebar.exams', path: '/teacher/exams' },
+    { icon: 'progress', labelKey: 'sidebar.progress', path: '/teacher/progress' },
 ]
 
 interface SidebarProps {
@@ -112,7 +97,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             <nav className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
                 {(isTeacher ? teacherMenuItems : studentMenuItems).map((item) => {
                     const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/')
-                    const Icon = item.icon
                     return (
                         <Link
                             key={item.path}
@@ -124,7 +108,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                                 }`}
                         >
-                            <Icon className="w-5 h-5 shrink-0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                            <AppIcon name={item.icon} className="shrink-0" />
                             <span className={`text-sm font-medium ${isActive ? 'font-semibold' : ''}`}>{t(item.labelKey)}</span>
                         </Link>
                     )
@@ -135,7 +119,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                     <div className="mt-auto pt-4">
                         <div className="rounded-2xl p-5 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/50 dark:border-amber-700/30 shadow-sm">
                             <div className="flex items-center gap-2 mb-2">
-                                <Flame className="w-5 h-5 text-amber-500" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                <AppIcon name="streak" className="text-amber-500" />
                                 <span className="font-bold text-slate-900 dark:text-white text-sm">{t('sidebar.dailyStreak')}</span>
                             </div>
                             <p className="text-3xl font-black text-slate-900 dark:text-white mb-1">
@@ -170,7 +154,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                             : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                         }`}
                 >
-                    <Settings className="w-5 h-5 shrink-0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    <AppIcon name="settings" className="shrink-0" />
                     <span className="text-sm font-medium">{t('sidebar.settings')}</span>
                 </Link>
             </nav>

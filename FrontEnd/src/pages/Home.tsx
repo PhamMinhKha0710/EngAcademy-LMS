@@ -3,24 +3,25 @@ import { Link } from 'react-router-dom'
 import { PlayCircle, CheckCircle, Swords, Medal, Users, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import api from '../services/api/axios'
+import { useTranslation } from 'react-i18next'
 
 const features = [
     {
         icon: Swords,
-        title: 'Nhiệm vụ hàng ngày',
-        description: 'Hoàn thành nhiệm vụ vui vẻ mỗi ngày để kiếm điểm, duy trì chuỗi thành tích và leo bảng xếp hạng.',
+        titleKey: 'home.featureDailyQuestTitle',
+        descriptionKey: 'home.featureDailyQuestDesc',
         imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCDMYqtATszxfQEnl3EaAYG5Wcswei8sUjuhQwQJ8afNVI_eT-_8FRNUHFqhXuTIL_lZ7Dy1MdQSBA47DVFWQPwMQGfgIsg42g71QAHJBmAxVBCCwbMDtKI-86Qez-a9WGQN_O-0zHrpYIDG8kusB-j02FmmxjVOZWgs40WdN9pYf7hKso9qmZ-wmTZ2gGQPnryUg8Z48ntI33beRh04l_GKIfJfeE5hPR_z-LXeQiuWSzdTkOiQo1Aw5uRQOnFwSUJ6m4GugTFVGth',
     },
     {
         icon: Medal,
-        title: 'Phần thưởng hấp dẫn',
-        description: 'Mở khóa huy hiệu đặc biệt, tùy chỉnh avatar với trang phục độc đáo và in chứng chỉ thật.',
+        titleKey: 'home.featureRewardsTitle',
+        descriptionKey: 'home.featureRewardsDesc',
         imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBP25PjO3bnvulx4HKg4wPIDOuXYrY2jr0_CPzXhyF1nekYrNLYujvDKe53DA2mTNrAwIAset-ehqoG14Sj_4COWojQcku0JAmoXkEOf-hT-I4UbxxySjPipscGubBrd_kDVKDS6wC-cx9n8gOSYk2qR2MJQowCzSoRdzCOJ-UMn1QWJlWcHHa5EGvALRPAS0022Eij-k0HzjTl8a5O2yMDoGxG7fuZgr24BrpAgH-jKXkR-oLSBErL4KfE_sppxWpSx1fDAWQrU9rp',
     },
     {
         icon: Users,
-        title: 'Học cùng bạn bè',
-        description: 'Thử thách bạn bè trong các trận đấu từ vựng và học cùng nhau trong môi trường an toàn.',
+        titleKey: 'home.featureFriendsTitle',
+        descriptionKey: 'home.featureFriendsDesc',
         imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC2M_RourhlvV6L1ILZ-u-_gudAyuUdyrjxxMOhjqaYxhHk6B8y9zhskzbkATrjLtjAkzUVz6C1IsjJu_Awf3R_r4JiToPNrN2KofvoePhXB9iqyw1miCPwVpPoWdCJk39gfjMNjIbcLcW8693bVAuL_9NATJ4pYiL0HKHvgetGdXNN_NswgpkINdXdDqpeNv9GCtjcsVpjkg_GdwGiyHd2uXJDO8eKfBuBMkQEIOpzB3-RewhYrVW0O8vj0J8_ZczLkj3Opt191EKi',
     },
 ]
@@ -32,15 +33,16 @@ interface PublicStats {
 }
 
 const statsFallback = [
-    { value: '10k+', label: 'Học sinh hài lòng' },
-    { value: '5k+', label: 'Bài học tương tác' },
-    { value: '4.9/5', label: 'Đánh giá phụ huynh' },
+    { value: '10k+', labelKey: 'home.statsHappyStudents' },
+    { value: '5k+', labelKey: 'home.statsInteractiveLessons' },
+    { value: '4.9/5', labelKey: 'home.statsParentRating' },
 ]
 
 const MASCOT_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDtd7mt0ekSY10QordPHDYNEfpQitEw3A8HZy-PRtH0z2AniqT8xAVPG-usG-jT94dkv664nmc2P3taW1pGfKJuT-uxOhb5JvXixQnzY4bheaW7nyvdoWxO7hF0ljMtHSpsYwGYPsZ8lANpI-fOl34tlpfya4UEJGumXnUdQXCLlS8wgui7uUIlwVSpj-tOVTgvWig3VcwlFahRhRblKIeaLPnKGtvK1Oq3SSCaJfaIzuOQ5E52ll4jRDFqdgdTlcGJowefbh_JlRbK'
 
 export default function Home() {
-    const [stats, setStats] = useState<{ value: string; label: string }[] | null>(null)
+    const { t } = useTranslation()
+    const [stats, setStats] = useState<{ value: string; labelKey: string }[] | null>(null)
 
     useEffect(() => {
         api.get<{ data: PublicStats } | { data: { data: PublicStats } }>('/public/stats')
@@ -51,9 +53,9 @@ export default function Home() {
                     const studentLabel = d.studentCount >= 1000 ? `${(d.studentCount / 1000).toFixed(0)}k+` : d.studentCount.toString()
                     const lessonLabel = d.lessonCount >= 1000 ? `${(d.lessonCount / 1000).toFixed(0)}k+` : d.lessonCount.toString()
                     setStats([
-                        { value: studentLabel, label: 'Học sinh hài lòng' },
-                        { value: lessonLabel, label: 'Bài học tương tác' },
-                        { value: '4.9/5', label: 'Đánh giá phụ huynh' },
+                        { value: studentLabel, labelKey: 'home.statsHappyStudents' },
+                        { value: lessonLabel, labelKey: 'home.statsInteractiveLessons' },
+                        { value: '4.9/5', labelKey: 'home.statsParentRating' },
                     ])
                 } else {
                     setStats(statsFallback)
@@ -74,16 +76,16 @@ export default function Home() {
                         <div className="flex flex-col gap-6 flex-1 text-center lg:text-left">
                             <div className="space-y-4">
                                 <span className="inline-block px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-primary-500 rounded-full text-xs font-bold uppercase tracking-wider">
-                                    Dành cho học sinh 11–12 tuổi
+                                    {t('home.forStudents')}
                                 </span>
                                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-slate-900 dark:text-white">
-                                    Làm chủ tiếng Anh{' '}
+                                    {t('home.heroTitle')}{' '}
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-orange-600">
-                                        vừa học vừa chơi!
+                                        {t('home.heroSubtitle')}
                                     </span>
                                 </h1>
                                 <p className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                                    Tham gia hàng ngàn học sinh trong hành trình thú vị. Học tiếng Anh qua trò chơi nhập vai, câu chuyện tương tác và thử thách hàng ngày.
+                                    {t('home.heroDescription')}
                                 </p>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
@@ -91,14 +93,14 @@ export default function Home() {
                                     to="/register"
                                     className="flex items-center justify-center h-14 px-8 rounded-full bg-primary-500 hover:bg-orange-600 text-white text-base font-bold transition-all transform hover:scale-105 shadow-xl shadow-orange-500/20"
                                 >
-                                    Bắt đầu học ngay
+                                    {t('home.startLearning')}
                                 </Link>
                                 <Link
                                     to="/login"
                                     className="flex items-center justify-center h-14 px-8 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-base font-bold hover:border-primary-500 hover:text-primary-500 dark:hover:border-primary-500 dark:hover:text-primary-500 transition-all"
                                 >
                                     <PlayCircle className="w-5 h-5 mr-2" strokeWidth={2} />
-                                    Xem Demo
+                                    {t('home.viewDemo')}
                                 </Link>
                             </div>
                             {/* Stats within Hero - Desktop */}
@@ -106,7 +108,7 @@ export default function Home() {
                                 {statsToShow.map((s, i) => (
                                     <div key={i}>
                                         <p className="text-3xl font-black text-slate-900 dark:text-white">{s.value}</p>
-                                        <p className="text-slate-500 dark:text-slate-400 font-medium">{s.label}</p>
+                                        <p className="text-slate-500 dark:text-slate-400 font-medium">{t(s.labelKey)}</p>
                                     </div>
                                 ))}
                             </div>
@@ -150,7 +152,7 @@ export default function Home() {
                     {statsToShow.map((s, i) => (
                         <div key={i} className="flex flex-col gap-1">
                             <p className="text-2xl font-black text-slate-900 dark:text-white">{s.value}</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{s.label}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t(s.labelKey)}</p>
                         </div>
                     ))}
                 </div>
@@ -162,17 +164,17 @@ export default function Home() {
                     <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
                         <div className="max-w-2xl">
                             <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-4">
-                                Vì sao trẻ thích học cùng chúng tôi
+                                {t('home.whyKidsLove')}
                             </h2>
                             <p className="text-lg text-slate-600 dark:text-slate-400">
-                                Chúng tôi biến bài học ngữ pháp nhàm chán thành cuộc phiêu lưu kiến thức.
+                                {t('home.weMakeGrammarFun')}
                             </p>
                         </div>
                         <Link
                             to="/register"
                             className="hidden md:flex items-center gap-2 text-primary-500 font-bold hover:gap-3 transition-all"
                         >
-                            Xem tất cả tính năng <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                            {t('home.viewAllFeatures')} <ArrowRight className="w-5 h-5" strokeWidth={2} />
                         </Link>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -197,8 +199,12 @@ export default function Home() {
                                         </div>
                                     </div>
                                     <div className="px-4">
-                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{f.title}</h3>
-                                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{f.description}</p>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                            {t(f.titleKey)}
+                                        </h3>
+                                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                            {t(f.descriptionKey)}
+                                        </p>
                                     </div>
                                 </motion.div>
                             )
@@ -209,7 +215,7 @@ export default function Home() {
                             to="/register"
                             className="inline-flex items-center gap-2 text-primary-500 font-bold hover:gap-3 transition-all"
                         >
-                            Xem tất cả tính năng <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                            {t('home.viewAllFeatures')} <ArrowRight className="w-5 h-5" strokeWidth={2} />
                         </Link>
                     </div>
                 </div>
@@ -225,16 +231,16 @@ export default function Home() {
                         className="rounded-3xl p-12 border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-800/50"
                     >
                         <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-4">
-                            Sẵn sàng bắt đầu?
+                            {t('home.readyToStart')}
                         </h2>
                         <p className="mb-8 max-w-lg mx-auto text-slate-600 dark:text-slate-400">
-                            Đăng ký miễn phí ngay hôm nay và bắt đầu hành trình chinh phục tiếng Anh!
+                            {t('home.registerFree')}
                         </p>
                         <Link
                             to="/register"
                             className="inline-flex items-center justify-center h-14 px-8 rounded-full bg-primary-500 hover:bg-orange-600 text-white text-base font-bold transition-all transform hover:scale-105 shadow-xl shadow-orange-500/20"
                         >
-                            Đăng ký ngay
+                            {t('home.registerCta')}
                         </Link>
                     </motion.div>
                 </div>

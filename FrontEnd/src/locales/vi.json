@@ -170,7 +170,17 @@
         "interactiveLessons": "Bài học tương tác",
         "parentRating": "Đánh giá phụ huynh",
         "readyToStart": "Sẵn sàng bắt đầu?",
-        "registerFree": "Đăng ký miễn phí ngay hôm nay và bắt đầu hành trình chinh phục tiếng Anh!"
+        "registerFree": "Đăng ký miễn phí ngay hôm nay và bắt đầu hành trình chinh phục tiếng Anh!",
+        "statsHappyStudents": "Học sinh hài lòng",
+        "statsInteractiveLessons": "Bài học tương tác",
+        "statsParentRating": "Đánh giá phụ huynh",
+        "featureDailyQuestTitle": "Nhiệm vụ hàng ngày",
+        "featureDailyQuestDesc": "Hoàn thành nhiệm vụ vui vẻ mỗi ngày để kiếm điểm, duy trì chuỗi thành tích và leo bảng xếp hạng.",
+        "featureRewardsTitle": "Phần thưởng hấp dẫn",
+        "featureRewardsDesc": "Mở khóa huy hiệu đặc biệt, tùy chỉnh avatar với trang phục độc đáo và in chứng chỉ thật.",
+        "featureFriendsTitle": "Học cùng bạn bè",
+        "featureFriendsDesc": "Thử thách bạn bè trong các trận đấu từ vựng và học cùng nhau trong môi trường an toàn.",
+        "registerCta": "Đăng ký ngay"
     },
     "dashboard": {
         "overview": "Tổng quan",
@@ -572,6 +582,71 @@
         "difficultyHard": "Khó",
         "difficultyLegendary": "Huyền thoại",
         "earnedCountOf": "{{earned}}/{{total}} huy hiệu"
+    },
+    "teacherVocabulary": {
+        "title": "Quản lý từ vựng",
+        "errorLoad": "Không thể tải từ vựng.",
+        "saveFailed": "Lưu từ vựng thất bại.",
+        "deleteFailed": "Xóa từ vựng thất bại.",
+        "confirmDelete": "Bạn có chắc muốn xóa từ vựng này?",
+        "count": "{{count}} từ vựng",
+        "selectLessonHelper": "Chọn bài học để xem từ vựng",
+        "selectLessonPlaceholder": "Chọn bài học",
+        "selectLessonTitle": "Chọn bài học",
+        "selectLessonDescription": "Vui lòng chọn một bài học từ dropdown để quản lý từ vựng.",
+        "emptyMessage": "Bài học này chưa có từ vựng nào",
+        "editTitle": "Chỉnh sửa từ vựng",
+        "createTitle": "Thêm từ vựng mới",
+        "updateButton": "Cập nhật",
+        "createButton": "Thêm mới",
+        "columns": {
+            "word": "Từ vựng",
+            "meaning": "Nghĩa",
+            "pronunciation": "Phát âm",
+            "actions": "Thao tác"
+        },
+        "actions": {
+            "edit": "Sửa",
+            "delete": "Xóa"
+        },
+        "form": {
+            "lesson": "Bài học",
+            "word": "Từ vựng",
+            "meaning": "Nghĩa",
+            "pronunciation": "Phát âm",
+            "example": "Câu ví dụ",
+            "imageUrl": "URL hình ảnh",
+            "audioUrl": "URL âm thanh"
+        }
+    },
+    "teacherProgress": {
+        "title": "Báo cáo tiến độ học sinh",
+        "subtitle": "Theo dõi mức độ hoàn thành theo từng lớp và từng học sinh.",
+        "classLabel": "Lớp học",
+        "studentLabel": "Học sinh",
+        "selectClassTitle": "Chọn lớp học",
+        "selectClassDescription": "Vui lòng chọn một lớp học để xem danh sách học sinh.",
+        "selectStudentTitle": "Chọn học sinh",
+        "selectStudentNoStudents": "Lớp này chưa có học sinh nào.",
+        "selectStudentDescription": "Vui lòng chọn một học sinh để xem tiến độ.",
+        "errorLoadClasses": "Không thể tải danh sách lớp.",
+        "errorLoadProgress": "Không thể tải tiến độ học sinh.",
+        "retry": "Thử lại",
+        "stats": {
+            "totalLessons": "Tổng bài học",
+            "completed": "Hoàn thành",
+            "inProgress": "Đang học",
+            "averageCompletion": "TB hoàn thành"
+        },
+        "table": {
+            "lesson": "Bài học",
+            "progress": "Tiến độ",
+            "status": "Trạng thái",
+            "statusCompleted": "Hoàn thành",
+            "statusLearning": "Đang học",
+            "lastAccessed": "Truy cập lần cuối",
+            "noProgress": "Học sinh chưa có tiến độ học tập nào"
+        }
     },
     "errors": {
         "unauthorized": "Không được phép",
