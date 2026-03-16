@@ -39,4 +39,7 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     Page<Exam> findBySchoolId(@Param("schoolId") Long schoolId, Pageable pageable);
 
     long countByStatus(String status);
+
+    @Query("SELECT COUNT(e) FROM Exam e WHERE e.classRoom.school.id = :schoolId")
+    long countBySchoolId(@Param("schoolId") Long schoolId);
 }

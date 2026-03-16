@@ -1,0 +1,28 @@
+=== DIAGNOSTIC REPORT - 2026-03-16T22:45:05.973444800 ===
+
+--- ROLES ---
+ID: 1, Name: ROLE_ADMIN
+ID: 2, Name: ROLE_SCHOOL
+ID: 3, Name: ROLE_TEACHER
+ID: 4, Name: ROLE_STUDENT
+
+--- SCHOOLS ---
+ID: 1, Name: Trường THCS Nguyễn Du
+ID: 2, Name: Trường THCS Nguyễn Du
+ID: 3, Name: Truong thpt An Minh
+ID: 4, Name: truong moi
+
+--- USERS & FIXES ---
+User: admin (ID: 1) | Final Roles: [ROLE_ADMIN] | School: NULL
+User: school1 (ID: 2) | Final Roles: [ROLE_SCHOOL] | School: 2
+User: teacher1 (ID: 3) | Final Roles: [ROLE_TEACHER] | School: 2
+User: student1 (ID: 4) | Final Roles: [ROLE_STUDENT] | School: 2
+User: student2 (ID: 5) | Final Roles: [ROLE_STUDENT] | School: 2
+User: student3 (ID: 6) | Final Roles: [ROLE_STUDENT] | School: 2
+User: hskiet1@gmail.com (ID: 7) | Final Roles: [ROLE_STUDENT] | School: 2
+User: truongkiet@gmail.com (ID: 8) | Final Roles: [ROLE_SCHOOL] | School: 3
+User: gvkiet@gmail.com (ID: 9) | Final Roles: [ROLE_TEACHER] | School: 3
+User: hskiet@gmail.com (ID: 10) | Final Roles: [ROLE_STUDENT] | School: 3
+User: truongmoi@gmail.com (ID: 11) | Final Roles: [ROLE_SCHOOL] | School: 4
+
+=== END OF REPORT ===

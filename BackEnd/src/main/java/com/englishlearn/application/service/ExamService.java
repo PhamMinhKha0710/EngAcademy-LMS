@@ -358,6 +358,8 @@ public class ExamService {
                 .title(exam.getTitle())
                 .status(exam.getStatus())
                 .scorePublished(exam.getScorePublished())
+                .schoolId(exam.getClassRoom() != null && exam.getClassRoom().getSchool() != null ? exam.getClassRoom().getSchool().getId() : null)
+                .schoolName(exam.getClassRoom() != null && exam.getClassRoom().getSchool() != null ? exam.getClassRoom().getSchool().getName() : null)
                 .classId(exam.getClassRoom().getId())
                 .className(exam.getClassRoom().getName())
                 .teacherId(exam.getTeacher().getId())

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { GraduationCap, Plus, Search, Edit, Trash2, Loader2, TrendingUp, CheckCircle, Users, BookOpen, ChevronLeft, ChevronRight, School } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 import { useRole } from '@/app/useRole'
@@ -32,6 +32,7 @@ export default function ClassRoomsPage() {
     const [deleting, setDeleting] = useState<ClassRoom | null>(null)
     const [submitting, setSubmitting] = useState(false)
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+    const [currentUser, setCurrentUser] = useState<User | null>(null)
 
     // Dropdown data
     const [schools, setSchools] = useState<SchoolType[]>([])
@@ -57,10 +58,11 @@ export default function ClassRoomsPage() {
             // Let's call /users/me to get fresh info including schoolId
             const meRes = await api.get<ApiResponse<User>>('/users/me')
             const me = meRes.data.data
+            setCurrentUser(me)
 
-            let url = '/classes'
+            let url = '/classes?size=1000'
             if (me.roles.includes('ROLE_SCHOOL') && me.schoolId) {
-                url = `/classes/school/${me.schoolId}`
+                url = `/classes/school/${me.schoolId}?size=1000`
             }
 
             const r = await api.get<ApiResponse<any>>(url)
@@ -263,7 +265,13 @@ export default function ClassRoomsPage() {
                     <h1 className="text-3xl font-extrabold tracking-tight">Quản lý lớp học</h1>
                     <p className="text-muted-foreground mt-1.5 font-medium">Theo dõi và quản lý các lớp học và sĩ số học sinh.</p>
                 </div>
-                <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="h-12 px-6 rounded-xl gap-2 font-bold transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary">
+                <Button onClick={() => { 
+                    resetForm(); 
+                    if (currentUser?.schoolId) {
+                        setForm(f => ({ ...f, schoolId: currentUser.schoolId }));
+                    }
+                    setDialogOpen(true) 
+                }} className="h-12 px-6 rounded-xl gap-2 font-bold transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary">
                     <Plus className="h-5 w-5" /> Thêm lớp học
                 </Button>
             </div>
@@ -376,9 +384,13 @@ export default function ClassRoomsPage() {
                                                         <span className="text-primary font-black text-lg">{room.name.charAt(0)}</span>
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-foreground leading-tight">{room.name}</span>
-                                                        <span className="text-[10px] font-black text-muted-foreground/30 mt-1 uppercase tracking-widest">{room.academicYear || 'Chưa rõ năm học'}</span>
-                                                    </div>
+                                                         <span className="font-bold text-foreground leading-tight">{room.name}</span>
+                                                         <div className="flex items-center gap-2 mt-1">
+                                                             <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-widest">{room.academicYear || 'Chưa rõ năm học'}</span>
+                                                             <span className="text-[8px] font-black text-muted-foreground/20 uppercase tracking-widest">•</span>
+                                                             <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-widest">Tạo: {formatDate(room.createdAt)}</span>
+                                                         </div>
+                                                     </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -481,7 +493,8 @@ export default function ClassRoomsPage() {
                                 <select
                                     value={form.schoolId ?? ''}
                                     onChange={(e) => setForm({ ...form, schoolId: e.target.value ? Number(e.target.value) : undefined })}
-                                    className={selectClassName}
+                                    className={cn(selectClassName, !isAdmin && "opacity-60 cursor-not-allowed")}
+                                    disabled={!isAdmin}
                                 >
                                     <option value="">-- Chọn trường --</option>
                                     {schools.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

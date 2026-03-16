@@ -3,6 +3,7 @@ package com.englishlearn.presentation.controller;
 import com.englishlearn.application.dto.request.ClassRoomRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.ClassRoomResponse;
+import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.application.dto.response.ClassStudentResponse;
 import com.englishlearn.application.service.ClassRoomService;
 import com.englishlearn.application.service.UserService;
@@ -33,7 +34,22 @@ public class ClassRoomController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
     @Operation(summary = "Get all classrooms")
-    public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getAllClassRooms() {
+    public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getAllClassRooms(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null) {
+                return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", List.of()));
+            }
+            // For school role, we should probably only return classes of their school.
+            // But ClassRoomService.getAllClassRooms doesn't take schoolId.
+            // Let's use getBySchool instead or add a method.
+            // Actually, we can just use the existing Service method if it exists or filter here.
+            List<ClassRoomResponse> classRooms = classRoomService.getClassRoomsBySchool(currentUser.getSchoolId());
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học của trường thành công", classRooms));
+        }
+
         List<ClassRoomResponse> classRooms = classRoomService.getAllClassRooms();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRooms));
     }
@@ -42,7 +58,17 @@ public class ClassRoomController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
     @Operation(summary = "Get classrooms by school")
     public ResponseEntity<ApiResponse<Page<ClassRoomResponse>>> getClassRoomsBySchool(
-            @PathVariable Long schoolId, Pageable pageable) {
+            @PathVariable Long schoolId, Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(schoolId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xem lớp của trường khác"));
+            }
+        }
+
         Page<ClassRoomResponse> classRooms = classRoomService.getClassRoomsBySchool(schoolId, pageable);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRooms));
     }
@@ -78,8 +104,20 @@ public class ClassRoomController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER', 'STUDENT')")
     @Operation(summary = "Get classroom by ID")
-    public ResponseEntity<ApiResponse<ClassRoomResponse>> getClassRoomById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<ClassRoomResponse>> getClassRoomById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         ClassRoomResponse classRoom = classRoomService.getClassRoomById(id);
+
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xem lớp của trường khác"));
+            }
+        }
+
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin lớp học thành công", classRoom));
     }
 
@@ -87,7 +125,19 @@ public class ClassRoomController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Create a new classroom")
     public ResponseEntity<ApiResponse<ClassRoomResponse>> createClassRoom(
-            @Valid @RequestBody ClassRoomRequest request) {
+            @Valid @RequestBody ClassRoomRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Tài khoản chưa được liên kết với trường học"));
+            }
+            // Force schoolId to own school
+            request.setSchoolId(currentUser.getSchoolId());
+        }
+
         ClassRoomResponse classRoom = classRoomService.createClassRoom(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo lớp học thành công", classRoom));
@@ -98,7 +148,21 @@ public class ClassRoomController {
     @Operation(summary = "Update a classroom")
     public ResponseEntity<ApiResponse<ClassRoomResponse>> updateClassRoom(
             @PathVariable Long id,
-            @Valid @RequestBody ClassRoomRequest request) {
+            @Valid @RequestBody ClassRoomRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        ClassRoomResponse existing = classRoomService.getClassRoomById(id);
+
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(existing.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền cập nhật lớp của trường khác"));
+            }
+            // Force schoolId to own school
+            request.setSchoolId(currentUser.getSchoolId());
+        }
+
         ClassRoomResponse classRoom = classRoomService.updateClassRoom(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật lớp học thành công", classRoom));
     }
@@ -108,7 +172,22 @@ public class ClassRoomController {
     @Operation(summary = "Assign a teacher to classroom")
     public ResponseEntity<ApiResponse<Void>> assignTeacher(
             @PathVariable Long classId,
-            @PathVariable Long teacherId) {
+            @PathVariable Long teacherId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+            UserResponse teacher = userService.getUserById(teacherId);
+            
+            if (currentUser.getSchoolId() == null 
+                    || !currentUser.getSchoolId().equals(classRoom.getSchoolId())
+                    || !currentUser.getSchoolId().equals(teacher.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này trên trường khác"));
+            }
+        }
+        
         classRoomService.assignTeacher(classId, teacherId);
         return ResponseEntity.ok(ApiResponse.success("Phân công giáo viên thành công", null));
     }
@@ -118,7 +197,22 @@ public class ClassRoomController {
     @Operation(summary = "Add a student to classroom")
     public ResponseEntity<ApiResponse<Void>> addStudentToClass(
             @PathVariable Long classId,
-            @PathVariable Long studentId) {
+            @PathVariable Long studentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
+            ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+            UserResponse student = userService.getUserById(studentId);
+            
+            if (currentUser.getSchoolId() == null 
+                    || !currentUser.getSchoolId().equals(classRoom.getSchoolId())
+                    || !currentUser.getSchoolId().equals(student.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này trên trường khác"));
+            }
+        }
+
         classRoomService.addStudentToClass(classId, studentId);
         return ResponseEntity.ok(ApiResponse.success("Thêm học sinh vào lớp thành công", null));
     }
@@ -128,7 +222,19 @@ public class ClassRoomController {
     @Operation(summary = "Remove a student from classroom")
     public ResponseEntity<ApiResponse<Void>> removeStudentFromClass(
             @PathVariable Long classId,
-            @PathVariable Long studentId) {
+            @PathVariable Long studentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
+            ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+            
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này trên lớp của trường khác"));
+            }
+        }
+
         classRoomService.removeStudentFromClass(classId, studentId);
         return ResponseEntity.ok(ApiResponse.success("Xóa học sinh khỏi lớp thành công", null));
     }
@@ -137,7 +243,18 @@ public class ClassRoomController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
     @Operation(summary = "Get active students in classroom")
     public ResponseEntity<ApiResponse<List<ClassStudentResponse>>> getStudentsByClass(
-            @PathVariable Long classId) {
+            @PathVariable Long classId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
+            ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xem danh sách này"));
+            }
+        }
+
         List<ClassStudentResponse> students = classRoomService.getStudentsByClass(classId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách học sinh trong lớp thành công", students));
     }
@@ -155,7 +272,20 @@ public class ClassRoomController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Soft delete a classroom")
-    public ResponseEntity<ApiResponse<Void>> deleteClassRoom(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteClassRoom(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        ClassRoomResponse existing = classRoomService.getClassRoomById(id);
+
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(existing.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xóa lớp của trường khác"));
+            }
+        }
+
         classRoomService.deleteClassRoom(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa lớp học thành công", null));
     }

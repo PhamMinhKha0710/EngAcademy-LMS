@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { School, Plus, Search, Edit, Trash2, Loader2, Eye, TrendingUp, CheckCircle, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 import { useRole } from '@/app/useRole'
@@ -19,6 +19,8 @@ const emptyForm: SchoolRequest = {
     email: '',
     trialEndDate: '',
     isActive: true,
+    managerUsername: '',
+    managerPassword: '',
 }
 
 export default function SchoolsPage() {
@@ -71,6 +73,16 @@ export default function SchoolsPage() {
             toast.error('Vui lòng nhập tên trường')
             return
         }
+        if (!editingSchool) {
+            if (!form.managerUsername?.trim()) {
+                toast.error('Vui lòng nhập tên đăng nhập quản lý')
+                return
+            }
+            if (!form.managerPassword?.trim() || form.managerPassword.length < 6) {
+                toast.error('Mật khẩu quản lý phải ít nhất 6 ký tự')
+                return
+            }
+        }
         setSubmitting(true)
         try {
             if (editingSchool) {
@@ -120,6 +132,8 @@ export default function SchoolsPage() {
             email: school.email || '',
             trialEndDate: school.trialEndDate || '',
             isActive: school.isActive ?? true,
+            managerUsername: '',
+            managerPassword: '',
         })
         setDialogOpen(true)
     }
@@ -411,6 +425,31 @@ export default function SchoolsPage() {
                                 </select>
                             </div>
                         </div>
+
+                        {!editingSchool && (
+                            <div className="pt-4 border-t border-border/50 space-y-4">
+                                <Label className="text-xs font-black text-primary uppercase tracking-widest">Tài khoản quản lý trường</Label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Tên đăng nhập *</Label>
+                                        <Input
+                                            value={form.managerUsername}
+                                            onChange={(e) => setForm({ ...form, managerUsername: e.target.value })}
+                                            placeholder="username"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Mật khẩu *</Label>
+                                        <Input
+                                            type="password"
+                                            value={form.managerPassword}
+                                            onChange={(e) => setForm({ ...form, managerPassword: e.target.value })}
+                                            placeholder="******"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={resetForm} disabled={submitting}>
@@ -494,7 +533,7 @@ export default function SchoolsPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Ngày tạo</Label>
-                                    <p className="text-sm font-bold text-foreground">01/01/2024</p>
+                                    <p className="text-sm font-bold text-foreground">{formatDate(viewingSchool.createdAt)}</p>
                                 </div>
                             </div>
                         </div>

@@ -26,4 +26,5 @@ public class ClassRoomResponse {
 
     // Summary
     private Long studentCount;
+    private java.time.LocalDateTime createdAt;
 }

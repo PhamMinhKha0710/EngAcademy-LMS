@@ -57,6 +57,14 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Tên đăng nhập hoặc mật khẩu không đúng"));
     }
 
+    @ExceptionHandler(org.springframework.security.authentication.DisabledException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDisabledException(org.springframework.security.authentication.DisabledException ex) {
+        log.error("Account disabled: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên."));
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
         log.error("Authentication failed: {}", ex.getMessage());

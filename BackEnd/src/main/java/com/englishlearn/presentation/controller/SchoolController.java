@@ -29,7 +29,19 @@ public class SchoolController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Get all schools", description = "Retrieve all schools (Admin/School only)")
-    public ResponseEntity<ApiResponse<List<SchoolResponse>>> getAllSchools() {
+    public ResponseEntity<ApiResponse<List<SchoolResponse>>> getAllSchools(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        
+        com.englishlearn.application.dto.response.UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null) {
+                return ResponseEntity.ok(ApiResponse.success("Lấy danh sách trường học thành công", List.of()));
+            }
+            SchoolResponse mySchool = schoolService.getSchoolById(currentUser.getSchoolId());
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách trường học thành công", List.of(mySchool)));
+        }
+
         List<SchoolResponse> schools = schoolService.getAllSchools();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách trường học thành công", schools));
     }
@@ -37,7 +49,20 @@ public class SchoolController {
     @GetMapping("/active")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Get active schools with pagination")
-    public ResponseEntity<ApiResponse<Page<SchoolResponse>>> getActiveSchools(Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<SchoolResponse>>> getActiveSchools(
+            Pageable pageable,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        
+        com.englishlearn.application.dto.response.UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null) {
+                return ResponseEntity.ok(ApiResponse.success("Lấy danh sách trường học thành công", Page.empty(pageable)));
+            }
+            SchoolResponse mySchool = schoolService.getSchoolById(currentUser.getSchoolId());
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách trường học thành công", new org.springframework.data.domain.PageImpl<>(List.of(mySchool), pageable, 1)));
+        }
+
         Page<SchoolResponse> schools = schoolService.getActiveSchools(pageable);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách trường học thành công", schools));
     }
@@ -45,7 +70,19 @@ public class SchoolController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Get school by ID")
-    public ResponseEntity<ApiResponse<SchoolResponse>> getSchoolById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<SchoolResponse>> getSchoolById(
+            @PathVariable Long id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        
+        com.englishlearn.application.dto.response.UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xem thông tin trường khác", null));
+            }
+        }
+        
         SchoolResponse school = schoolService.getSchoolById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin trường học thành công", school));
     }
