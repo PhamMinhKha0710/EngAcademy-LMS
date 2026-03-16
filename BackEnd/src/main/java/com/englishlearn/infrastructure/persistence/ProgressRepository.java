@@ -32,4 +32,11 @@ public interface ProgressRepository extends JpaRepository<Progress, Long> {
 
     @Query("SELECT AVG(p.completionPercentage) FROM Progress p WHERE p.user.id = :userId")
     Double averageCompletionByUserId(@Param("userId") Long userId);
+
+    /** Đếm bài học hoàn thành hôm nay (lastAccessed trong ngày) */
+    @Query("SELECT COUNT(p) FROM Progress p WHERE p.user.id = :userId AND p.isCompleted = true " +
+           "AND p.lastAccessed >= :startOfDay AND p.lastAccessed < :endOfDay")
+    Long countCompletedTodayByUserId(@Param("userId") Long userId,
+                                    @Param("startOfDay") java.time.LocalDateTime startOfDay,
+                                    @Param("endOfDay") java.time.LocalDateTime endOfDay);
 }
