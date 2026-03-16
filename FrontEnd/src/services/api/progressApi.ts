@@ -4,6 +4,7 @@ interface ApiResponse<T> { success: boolean; message: string; data: T }
 export interface ProgressResponse {
     id: number; userId: number; lessonId?: number; lessonTitle?: string;
     completionPercentage?: number; isCompleted?: boolean; lastAccessed?: string;
+    questTaskCompleted?: boolean;
 }
 
 export const progressApi = {
