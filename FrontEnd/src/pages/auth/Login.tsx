@@ -87,7 +87,7 @@ export default function Login() {
                                 }}
                             />
                             <div
-                                className="relative w-full max-w-md aspect-square rounded-2xl overflow-hidden shadow-lg transform rotate-2 hover:rotate-0 transition-transform duration-500 bg-cover bg-center"
+                                className="relative w-full max-w-md aspect-square rounded-2xl overflow-hidden shadow-lg"
                                 style={{ backgroundImage: `url('${LOGIN_IMAGE}')` }}
                             />
                             <div className="mt-8 text-center relative z-10">

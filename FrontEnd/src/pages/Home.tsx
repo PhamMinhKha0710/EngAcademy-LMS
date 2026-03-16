@@ -118,7 +118,7 @@ export default function Home() {
                         <div className="flex-1 w-full flex justify-center lg:justify-end relative group">
                             <div className="absolute inset-0 bg-gradient-to-tr from-orange-200 to-yellow-100 dark:from-orange-900/40 dark:to-yellow-900/20 rounded-full blur-3xl opacity-60 transform scale-90 group-hover:scale-100 transition-transform duration-700" />
                             <div
-                                className="relative w-full aspect-square max-w-[500px] rounded-3xl overflow-hidden shadow-2xl bg-orange-50 dark:bg-slate-800 border-4 border-white dark:border-slate-700 transform rotate-2 hover:rotate-0 transition-transform duration-500"
+                                className="relative w-full aspect-square max-w-[500px] rounded-3xl overflow-hidden shadow-2xl bg-orange-50 dark:bg-slate-800 border-4 border-white dark:border-slate-700"
                                 style={{
                                     backgroundImage: `url('${MASCOT_IMAGE}')`,
                                     backgroundSize: 'cover',
