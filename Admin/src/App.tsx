@@ -17,6 +17,7 @@ import StudentsPage from '@/features/students/StudentsPage'
 import GradesPage from '@/features/grades/GradesPage'
 import UnauthorizedPage from '@/features/error/UnauthorizedPage'
 import SettingsPage from '@/features/settings/SettingsPage'
+import NotificationDetailPage from '@/features/notifications/NotificationDetailPage'
 
 function AppRoutes() {
     return (
@@ -30,6 +31,7 @@ function AppRoutes() {
                 <Route element={<AdminLayout />}>
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/leaderboard" element={<LeaderboardPage />} />
+                    <Route path="/notifications/:id" element={<NotificationDetailPage />} />
                 </Route>
             </Route>
 

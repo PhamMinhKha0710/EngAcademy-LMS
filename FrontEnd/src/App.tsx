@@ -32,6 +32,7 @@ import StudentProgressPage from './pages/teacher/StudentProgressPage'
 
 // Shared
 import SettingsPage from './pages/SettingsPage'
+import NotificationDetailPage from './pages/NotificationDetailPage'
 import ToastContainer from './components/ui/ToastContainer'
 
 function App() {
@@ -79,6 +80,7 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="profile" element={<Navigate to="/settings" replace />} />
+                    <Route path="notifications/:id" element={<NotificationDetailPage />} />
                 </Route>
 
                 {/* Fallback */}

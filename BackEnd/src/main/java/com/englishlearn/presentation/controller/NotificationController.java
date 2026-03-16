@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,9 +30,27 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.success(notifications));
     }
 
+    @GetMapping("/user/me")
+    @Operation(summary = "Lấy danh sách thông báo của người dùng hiện tại")
+    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getMyNotifications(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = notificationService.getUserIdByUsername(userDetails.getUsername());
+        List<NotificationResponse> notifications = notificationService.getNotificationsByUserId(userId);
+        return ResponseEntity.ok(ApiResponse.success(notifications));
+    }
+
     @GetMapping("/user/{userId}/unread-count")
     @Operation(summary = "Lấy số lượng thông báo chưa đọc")
     public ResponseEntity<ApiResponse<Long>> getUnreadCount(@PathVariable Long userId) {
+        long count = notificationService.getUnreadCount(userId);
+        return ResponseEntity.ok(ApiResponse.success(count));
+    }
+
+    @GetMapping("/user/me/unread-count")
+    @Operation(summary = "Lấy số lượng thông báo chưa đọc của người dùng hiện tại")
+    public ResponseEntity<ApiResponse<Long>> getMyUnreadCount(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = notificationService.getUserIdByUsername(userDetails.getUsername());
         long count = notificationService.getUnreadCount(userId);
         return ResponseEntity.ok(ApiResponse.success(count));
     }
@@ -40,6 +60,22 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long id) {
         notificationService.markAsRead(id);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PutMapping("/user/{userId}/read-all")
+    @Operation(summary = "Đánh dấu tất cả thông báo của người dùng là đã đọc")
+    public ResponseEntity<ApiResponse<Void>> markAllAsRead(@PathVariable Long userId) {
+        notificationService.markAllAsRead(userId);
+        return ResponseEntity.ok(ApiResponse.success("Đã đánh dấu tất cả là đã đọc", null));
+    }
+
+    @PutMapping("/user/me/read-all")
+    @Operation(summary = "Đánh dấu tất cả thông báo của người dùng hiện tại là đã đọc")
+    public ResponseEntity<ApiResponse<Void>> markAllAsReadMe(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = notificationService.getUserIdByUsername(userDetails.getUsername());
+        notificationService.markAllAsRead(userId);
+        return ResponseEntity.ok(ApiResponse.success("Đã đánh dấu tất cả là đã đọc", null));
     }
 
     @PostMapping("/broadcast")

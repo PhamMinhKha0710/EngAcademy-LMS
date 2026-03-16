@@ -28,6 +28,12 @@ public class NotificationService {
     private final ClassRoomRepository classRoomRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
+    public Long getUserIdByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .map(User::getId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+    }
+
     @Transactional(readOnly = true)
     public List<NotificationResponse> getNotificationsByUserId(Long userId) {
         return notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId)
@@ -47,6 +53,11 @@ public class NotificationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
         notification.setIsRead(true);
         notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        notificationRepository.markAllAsReadByUserId(userId);
     }
 
     @Transactional
