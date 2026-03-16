@@ -30,6 +30,17 @@ public interface VocabularyRepository extends JpaRepository<Vocabulary, Long> {
     @Query("SELECT COUNT(v) FROM Vocabulary v WHERE v.lesson.id = :lessonId")
     Long countByLessonId(@Param("lessonId") Long lessonId);
 
+    @Query("SELECT COUNT(v) FROM Vocabulary v WHERE v.lesson.topic.id = :topicId")
+    Long countByTopicId(@Param("topicId") Long topicId);
+
+    @Query("SELECT v FROM Vocabulary v WHERE v.lesson.topic.id = :topicId " +
+           "AND v.id NOT IN (SELECT uv.vocabulary.id FROM UserVocabulary uv " +
+           "WHERE uv.user.id = :userId AND uv.status = 'MASTERED') " +
+           "ORDER BY v.id")
+    List<Vocabulary> findUnmasteredByTopicAndUser(@Param("topicId") Long topicId,
+                                                  @Param("userId") Long userId,
+                                                  Pageable pageable);
+
     @Query("""
             SELECT v
             FROM Vocabulary v

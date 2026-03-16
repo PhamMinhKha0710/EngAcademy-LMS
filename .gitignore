@@ -4,10 +4,12 @@
 
 # ===== Plans & Documentation =====
 Plans/
-docs/private/
+docs/
+antigravity-kit/
 .cursor/
 .husky/
 memory/
+.agent/
 
 # ===== Backend (Java/Spring Boot) =====
 
@@ -22,6 +24,10 @@ build/
 # Maven
 .mvn/wrapper/maven-wrapper.jar
 HELP.md
+
+# Sensitive Spring configs (use *.example.properties instead)
+BackEnd/src/main/resources/application.properties
+BackEnd/src/main/resources/application-dev.properties
 
 # Logs
 logs/

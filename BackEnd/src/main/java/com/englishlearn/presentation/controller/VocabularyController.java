@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/vocabulary")
@@ -114,5 +115,33 @@ public class VocabularyController {
             @RequestParam(defaultValue = "10") int count) {
         List<VocabularyResponse> vocabs = vocabularyService.getRandomFlashcards(count);
         return ResponseEntity.ok(ApiResponse.success("Lấy flashcard ngẫu nhiên thành công", vocabs));
+    }
+
+    @PostMapping("/review")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER')")
+    @Operation(summary = "Review a vocabulary word (correct/wrong)")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> reviewWord(
+            @RequestBody Map<String, Object> body) {
+        Long vocabularyId = ((Number) body.get("vocabularyId")).longValue();
+        Long userId = ((Number) body.get("userId")).longValue();
+        boolean correct = "correct".equals(body.get("result"));
+        Map<String, Object> result = vocabularyService.reviewWord(userId, vocabularyId, correct);
+        return ResponseEntity.ok(ApiResponse.success("Đã cập nhật kết quả học", result));
+    }
+
+    @GetMapping("/learned")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
+    @Operation(summary = "Get all mastered vocabulary for user")
+    public ResponseEntity<ApiResponse<List<VocabularyResponse>>> getLearnedWords(@RequestParam Long userId) {
+        List<VocabularyResponse> words = vocabularyService.getLearnedWords(userId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách từ đã học thành công", words));
+    }
+
+    @GetMapping("/learned/count")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
+    @Operation(summary = "Get mastered vocabulary count for user")
+    public ResponseEntity<ApiResponse<Long>> getLearnedCount(@RequestParam Long userId) {
+        Long count = vocabularyService.getLearnedCount(userId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy số từ đã học thành công", count));
     }
 }

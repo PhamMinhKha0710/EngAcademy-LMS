@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -42,9 +44,50 @@ public class DailyQuestService {
 
         if (quest == null) {
             quest = createDefaultDailyQuest(user, today);
+        } else {
+            quest = ensureDefaultTasks(quest);
         }
 
         return mapToResponse(quest);
+    }
+
+    /**
+     * Add missing default tasks to an existing quest (for users who had quest before we added new task types).
+     */
+    private DailyQuest ensureDefaultTasks(DailyQuest quest) {
+        List<DailyQuestTask> tasks = dailyQuestTaskRepository.findByDailyQuest(quest);
+        Set<String> existingTypes = tasks.stream()
+                .map(DailyQuestTask::getTaskType)
+                .collect(Collectors.toSet());
+
+        String[][] defaultTaskSpecs = {
+                {"LEARN_VOCAB", "10"},
+                {"COMPLETE_LESSON", "1"},
+                {"SCORE_EXAM", "1"},
+                {"REVIEW_MISTAKES", "3"}
+        };
+
+        boolean added = false;
+        for (String[] spec : defaultTaskSpecs) {
+            if (!existingTypes.contains(spec[0])) {
+                DailyQuestTask task = DailyQuestTask.builder()
+                        .dailyQuest(quest)
+                        .taskType(spec[0])
+                        .targetCount(Integer.parseInt(spec[1]))
+                        .currentCount(0)
+                        .isCompleted(false)
+                        .build();
+                dailyQuestTaskRepository.save(task);
+                existingTypes.add(spec[0]);
+                added = true;
+                log.info("Added missing task {} to quest {} for user {}", spec[0], quest.getId(), quest.getUser().getId());
+            }
+        }
+
+        if (added) {
+            quest = dailyQuestRepository.findById(quest.getId()).get();
+        }
+        return quest;
     }
 
     /**
@@ -161,6 +204,45 @@ public class DailyQuestService {
     }
 
     /**
+     * Increment progress for a task type (e.g. when user learns vocab, completes lesson).
+     * Called automatically from VocabularyService, ProgressService, ExamService.
+     * @return true if a task was completed (reached target) by this increment
+     */
+    @Transactional
+    public boolean incrementProgressForTaskType(Long userId, String taskType, int delta) {
+        if (delta <= 0) return false;
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
+
+        LocalDate today = LocalDate.now();
+        Optional<DailyQuest> questOpt = dailyQuestRepository.findByUserAndQuestDate(user, today);
+        if (questOpt.isEmpty()) return false;
+
+        DailyQuest quest = questOpt.get();
+        Optional<DailyQuestTask> taskOpt = dailyQuestTaskRepository.findByDailyQuestAndTaskType(quest, taskType);
+        if (taskOpt.isEmpty()) return false;
+
+        DailyQuestTask task = taskOpt.get();
+        if (Boolean.TRUE.equals(task.getIsCompleted())) return false;
+
+        int newCount = (task.getCurrentCount() != null ? task.getCurrentCount() : 0) + delta;
+        task.setCurrentCount(newCount);
+
+        boolean completed = false;
+        if (task.getTargetCount() != null && newCount >= task.getTargetCount()) {
+            task.setIsCompleted(true);
+            int coins = calculateCoinsForTask(task.getTaskType());
+            userRepository.addCoinsToUser(userId, coins);
+            log.info("Auto-completed quest task {} for user {} (awarded {} coins)", taskType, userId, coins);
+            completed = true;
+        }
+
+        dailyQuestTaskRepository.save(task);
+        return completed;
+    }
+
+    /**
      * Get quest history for a user
      */
     public List<DailyQuestResponse> getQuestHistory(Long userId) {
@@ -199,6 +281,20 @@ public class DailyQuestService {
                         .targetCount(1)
                         .currentCount(0)
                         .isCompleted(false)
+                        .build(),
+                DailyQuestTask.builder()
+                        .dailyQuest(quest)
+                        .taskType("SCORE_EXAM")
+                        .targetCount(1)
+                        .currentCount(0)
+                        .isCompleted(false)
+                        .build(),
+                DailyQuestTask.builder()
+                        .dailyQuest(quest)
+                        .taskType("REVIEW_MISTAKES")
+                        .targetCount(3)
+                        .currentCount(0)
+                        .isCompleted(false)
                         .build()
         };
 
@@ -217,6 +313,7 @@ public class DailyQuestService {
             case "LEARN_VOCAB" -> 10;
             case "COMPLETE_LESSON" -> 25;
             case "SCORE_EXAM" -> 50;
+            case "REVIEW_MISTAKES" -> 15;
             default -> 5;
         };
     }

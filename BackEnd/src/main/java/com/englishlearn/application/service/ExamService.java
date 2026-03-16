@@ -44,6 +44,7 @@ public class ExamService {
     private final MistakeNotebookService mistakeNotebookService;
     private final VocabularyRepository vocabularyRepository;
     private final SchoolRepository schoolRepository;
+    private final DailyQuestService dailyQuestService;
 
     @Transactional(readOnly = true)
     public Page<ExamResponse> getAllExams(Pageable pageable) {
@@ -308,6 +309,12 @@ public class ExamService {
 
         ExamResult savedResult = examResultRepository.save(result);
         log.info("Student {} submitted exam {} with score {}", student.getFullName(), exam.getTitle(), score);
+
+        try {
+            dailyQuestService.incrementProgressForTaskType(studentId, "SCORE_EXAM", 1);
+        } catch (Exception e) {
+            log.debug("Could not update quest for SCORE_EXAM: {}", e.getMessage());
+        }
 
         return mapToResultResponse(savedResult);
     }
@@ -718,6 +725,12 @@ public class ExamService {
         examResult.setCorrectCount(correctCount);
         examResult.setSubmittedAt(now);
         examResultRepository.save(examResult);
+
+        try {
+            dailyQuestService.incrementProgressForTaskType(userId, "SCORE_EXAM", 1);
+        } catch (Exception e) {
+            log.debug("Could not update quest for SCORE_EXAM: {}", e.getMessage());
+        }
 
         log.info("Exam submitted: resultId={}, score={}, correctCount={}/{}, status={}",
                 dto.getExamResultId(), score, correctCount, examResult.getTotalQuestions(), status);

@@ -4,6 +4,7 @@ import { AlertTriangle, Send, Loader2, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { examApi, ExamTakeDTO, SubmitExamRequest } from '../../services/api/examApi'
+import { triggerQuestRefresh } from '../../utils/questRefresh'
 import Timer from '../../components/ui/Timer'
 import QuizQuestion from '../../components/ui/QuizQuestion'
 import Dialog from '../../components/ui/Dialog'
@@ -33,6 +34,8 @@ export default function ExamTakePage() {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false)
     const [tabSwitchCount, setTabSwitchCount] = useState(0)
     const submittedRef = useRef(false)
+    const examContainerRef = useRef<HTMLDivElement>(null)
+    const pointerLockRequestedRef = useRef(false)
 
     const examResultId = examData?.examResultId
 
@@ -92,6 +95,76 @@ export default function ExamTakePage() {
         return () => document.removeEventListener('visibilitychange', handler)
     }, [examId, examResultId])
 
+    // Anti-cheat: block copy, cut, paste, context menu, text selection
+    useEffect(() => {
+        if (!examResultId) return
+
+        const prevent = (e: Event) => {
+            if (submittedRef.current) return
+            e.preventDefault()
+        }
+        const preventAndLog = (e: Event, eventType: string, details: string) => {
+            if (submittedRef.current) return
+            e.preventDefault()
+            examApi.logAntiCheatEvent(examId, { examResultId, eventType, details })
+        }
+
+        const handleCopy = (e: ClipboardEvent) => preventAndLog(e, 'COPY_ATTEMPT', 'Copy attempted')
+        const handleCut = (e: ClipboardEvent) => preventAndLog(e, 'CUT_ATTEMPT', 'Cut attempted')
+        const handlePaste = (e: ClipboardEvent) => preventAndLog(e, 'PASTE_ATTEMPT', 'Paste attempted')
+        const handleContextMenu = (e: MouseEvent) => preventAndLog(e, 'CONTEXT_MENU', 'Right-click menu opened')
+        const handleSelectStart = (e: Event) => prevent(e)
+
+        document.addEventListener('copy', handleCopy, true)
+        document.addEventListener('cut', handleCut, true)
+        document.addEventListener('paste', handlePaste, true)
+        document.addEventListener('contextmenu', handleContextMenu, true)
+        document.addEventListener('selectstart', handleSelectStart, true)
+        return () => {
+            document.removeEventListener('copy', handleCopy, true)
+            document.removeEventListener('cut', handleCut, true)
+            document.removeEventListener('paste', handlePaste, true)
+            document.removeEventListener('contextmenu', handleContextMenu, true)
+            document.removeEventListener('selectstart', handleSelectStart, true)
+        }
+    }, [examId, examResultId])
+
+    // Anti-cheat: pointer lock so mouse stays in tab; log when user escapes lock
+    useEffect(() => {
+        if (!examResultId || !examContainerRef.current) return
+
+        const el = examContainerRef.current
+        const handlePointerLockChange = () => {
+            if (submittedRef.current) return
+            if (!document.pointerLockElement && pointerLockRequestedRef.current) {
+                examApi.logAntiCheatEvent(examId, {
+                    examResultId,
+                    eventType: 'POINTER_LOCK_ESCAPE',
+                    details: 'Student exited pointer lock (mouse left exam area)',
+                })
+                pointerLockRequestedRef.current = false
+                // Re-request lock after a short delay; next user click will lock again if browser requires gesture
+                setTimeout(() => el.requestPointerLock?.(), 100)
+            }
+        }
+        const requestLock = () => {
+            if (submittedRef.current || pointerLockRequestedRef.current) return
+            pointerLockRequestedRef.current = true
+            el.requestPointerLock?.()
+        }
+
+        document.addEventListener('pointerlockchange', handlePointerLockChange)
+        el.addEventListener('click', requestLock, { once: true })
+        el.addEventListener('keydown', requestLock, { once: true })
+
+        return () => {
+            document.removeEventListener('pointerlockchange', handlePointerLockChange)
+            el.removeEventListener('click', requestLock)
+            el.removeEventListener('keydown', requestLock)
+            if (document.pointerLockElement === el) document.exitPointerLock()
+        }
+    }, [examId, examResultId])
+
     // Handle answer selection
     const handleSelect = useCallback((questionId: number, optionIds: number[]) => {
         setAnswers((prev) => {
@@ -123,6 +196,8 @@ export default function ExamTakePage() {
                 examResultId,
                 answers: answerPayload,
             })
+
+            triggerQuestRefresh()
 
             sessionStorage.removeItem(`exam_submit_success_${examId}`)
             sessionStorage.setItem(`exam_submit_success_${user?.id}_${examId}`, '1')
@@ -182,7 +257,11 @@ export default function ExamTakePage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div
+            ref={examContainerRef}
+            className="max-w-4xl mx-auto px-4 py-6 select-none"
+            style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+        >
             <Breadcrumb items={[
                 { label: t('sidebar.exams'), path: '/exams' },
                 { label: String((examData as any)?.examTitle || t('exams.sessionInitializing')) }
@@ -219,6 +298,10 @@ export default function ExamTakePage() {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }} title={t('exams.anticheatCopyAndPointerLock')}>
+                            <ShieldAlert className="w-3.5 h-3.5 inline-block align-middle mr-1" />
+                            {t('exams.anticheatNotice')}
+                        </span>
                         {tabSwitchCount > 0 && (
                             <span className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/25">
                                 <ShieldAlert className="w-3.5 h-3.5" />

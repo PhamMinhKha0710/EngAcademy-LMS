@@ -65,6 +65,22 @@ public class User {
     @JoinColumn(name = "school_id")
     private School school;
 
+    // ===== User preferences for settings page =====
+
+    @Column(name = "sound_effects_enabled", columnDefinition = "boolean default true")
+    @Builder.Default
+    private Boolean soundEffectsEnabled = true;
+
+    @Column(name = "daily_reminders_enabled", columnDefinition = "boolean default true")
+    @Builder.Default
+    private Boolean dailyRemindersEnabled = true;
+
+    /**
+     * Nullable: if null, follow system/default theme. true = dark, false = light.
+     */
+    @Column(name = "prefers_dark_mode")
+    private Boolean prefersDarkMode;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
