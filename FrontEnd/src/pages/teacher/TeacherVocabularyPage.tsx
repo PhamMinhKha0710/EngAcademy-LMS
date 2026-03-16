@@ -273,11 +273,12 @@ export default function TeacherVocabularyPage() {
           value={selectedLesson}
           onChange={(e) => handleLessonChange(e.target.value)}
           disabled={lessonsLoading}
-          className="px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500/40 min-w-[250px]"
+          className="px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500/40 min-w-[250px] appearance-none"
           style={{
             backgroundColor: "var(--color-bg-secondary)",
             borderColor: "var(--color-bg-secondary)",
             color: "var(--color-text)",
+            backgroundImage: "none",
           }}
         >
           <option value="">{t("teacherVocabulary.selectLessonPlaceholder")}</option>
@@ -364,11 +365,12 @@ export default function TeacherVocabularyPage() {
                   lessonId: e.target.value ? parseInt(e.target.value) : "",
                 })
               }
-              className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="w-full px-3 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-blue-500/40 appearance-none"
               style={{
                 backgroundColor: "var(--color-bg-secondary)",
                 borderColor: "var(--color-bg-secondary)",
                 color: "var(--color-text)",
+                backgroundImage: "none",
               }}
             >
               <option value="">-- Chọn bài học --</option>
