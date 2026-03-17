@@ -340,8 +340,8 @@ export default function QuestionsPage() {
           <select
             value={filterLesson}
             onChange={(e) => setFilterLesson(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[220px] bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700"
-            style={{ color: "var(--color-text)" }}
+            className="px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[220px] bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 appearance-none"
+            style={{ color: "var(--color-text)", backgroundImage: 'none' }}
           >
             <option value="">Tất cả bài học</option>
             {lessons.map((l) => (
@@ -353,8 +353,8 @@ export default function QuestionsPage() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[180px] bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700"
-            style={{ color: "var(--color-text)" }}
+            className="px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[180px] bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 appearance-none"
+            style={{ color: "var(--color-text)", backgroundImage: 'none' }}
           >
             <option value="">Tất cả loại</option>
             {QUESTION_TYPES.map((t) => (

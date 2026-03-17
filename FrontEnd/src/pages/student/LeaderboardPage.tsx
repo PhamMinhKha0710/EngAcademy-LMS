@@ -91,8 +91,10 @@ export default function LeaderboardPage() {
         return { bg: '', text: 'text-slate-400', border: 'border-transparent' }
     }
 
-    const top3 = entries.slice(0, 3)
-    const rest = entries.slice(3)
+    const rankedEntries = entries.map((entry, index) => ({ ...entry, computedRank: index + 1 }))
+
+    const top3 = rankedEntries.slice(0, 3)
+    const rest = rankedEntries.slice(3)
 
     // Reorder for podium display: 2nd, 1st, 3rd
     const podiumOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3
@@ -192,7 +194,7 @@ export default function LeaderboardPage() {
                     {top3.length >= 3 && (
                         <div className="grid grid-cols-3 gap-3 mb-8 items-end">
                             {podiumOrder.map((entry, i) => {
-                                const actualRank = i === 0 ? 2 : i === 1 ? 1 : 3
+                                const actualRank = entry.computedRank
                                 const medal = getMedalColor(actualRank)
                                 const isFirst = actualRank === 1
                                 const isMe = entry.userId === user?.id
@@ -261,7 +263,7 @@ export default function LeaderboardPage() {
                     {top3.length < 3 && top3.length > 0 && (
                         <div className="space-y-2 mb-6">
                             {top3.map((entry, index) => {
-                                const medal = getMedalColor(index + 1)
+                                const medal = getMedalColor(entry.computedRank)
                                 const isMe = entry.userId === user?.id
                                 return (
                                     <div
@@ -269,7 +271,7 @@ export default function LeaderboardPage() {
                                         className={`card p-4 flex items-center gap-4 ${isMe ? 'ring-2 ring-blue-500/30' : ''}`}
                                     >
                                         <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${medal.bg} flex items-center justify-center text-white font-bold text-sm`}>
-                                            {index + 1}
+                                            {entry.computedRank}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className={`font-semibold truncate ${isMe ? 'text-blue-500' : ''}`} style={!isMe ? { color: 'var(--color-text)' } : undefined}>
@@ -290,7 +292,7 @@ export default function LeaderboardPage() {
                             style={{ borderColor: 'var(--color-border)' }}
                         >
                             {rest.map((entry, index) => {
-                                const rank = index + 4
+                                const rank = entry.computedRank
                                 const isMe = entry.userId === user?.id
                                 return (
                                     <div
@@ -308,7 +310,7 @@ export default function LeaderboardPage() {
                                             className="w-8 text-center text-sm font-bold"
                                             style={{ color: 'var(--color-text-secondary)' }}
                                         >
-                                            {entry.rank ?? rank}
+                                            {rank}
                                         </span>
 
                                         {/* Avatar */}

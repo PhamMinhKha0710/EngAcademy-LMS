@@ -170,7 +170,17 @@
         "interactiveLessons": "Interactive Lessons",
         "parentRating": "Parent Rating",
         "readyToStart": "Ready to start?",
-        "registerFree": "Register for free today and start your English journey!"
+        "registerFree": "Register for free today and start your English journey!",
+        "statsHappyStudents": "Happy Students",
+        "statsInteractiveLessons": "Interactive Lessons",
+        "statsParentRating": "Parent Rating",
+        "featureDailyQuestTitle": "Daily quests",
+        "featureDailyQuestDesc": "Complete fun daily quests to earn points, keep your streak and climb the leaderboard.",
+        "featureRewardsTitle": "Exciting rewards",
+        "featureRewardsDesc": "Unlock special badges, customize your avatar with unique outfits and even print real certificates.",
+        "featureFriendsTitle": "Learn with friends",
+        "featureFriendsDesc": "Challenge your friends in vocabulary battles and learn together in a safe environment.",
+        "registerCta": "Register now"
     },
     "dashboard": {
         "overview": "Overview",
@@ -572,6 +582,71 @@
         "difficultyHard": "Hard",
         "difficultyLegendary": "Legendary",
         "earnedCountOf": "{{earned}}/{{total}} badges"
+    },
+    "teacherVocabulary": {
+        "title": "Vocabulary Management",
+        "errorLoad": "Unable to load vocabulary.",
+        "saveFailed": "Failed to save vocabulary.",
+        "deleteFailed": "Failed to delete vocabulary.",
+        "confirmDelete": "Are you sure you want to delete this vocabulary item?",
+        "count": "{{count}} vocabulary items",
+        "selectLessonHelper": "Select a lesson to view vocabulary",
+        "selectLessonPlaceholder": "Select a lesson",
+        "selectLessonTitle": "Select a lesson",
+        "selectLessonDescription": "Please choose a lesson from the dropdown to manage vocabulary.",
+        "emptyMessage": "This lesson has no vocabulary yet.",
+        "editTitle": "Edit vocabulary",
+        "createTitle": "Add new vocabulary",
+        "updateButton": "Update",
+        "createButton": "Create",
+        "columns": {
+            "word": "Word",
+            "meaning": "Meaning",
+            "pronunciation": "Pronunciation",
+            "actions": "Actions"
+        },
+        "actions": {
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "form": {
+            "lesson": "Lesson",
+            "word": "Word",
+            "meaning": "Meaning",
+            "pronunciation": "Pronunciation",
+            "example": "Example sentence",
+            "imageUrl": "Image URL",
+            "audioUrl": "Audio URL"
+        }
+    },
+    "teacherProgress": {
+        "title": "Student progress report",
+        "subtitle": "Track completion level by class and student.",
+        "classLabel": "Class",
+        "studentLabel": "Student",
+        "selectClassTitle": "Select a class",
+        "selectClassDescription": "Please choose a class to view the list of students.",
+        "selectStudentTitle": "Select a student",
+        "selectStudentNoStudents": "This class has no students yet.",
+        "selectStudentDescription": "Please choose a student to view learning progress.",
+        "errorLoadClasses": "Unable to load class list.",
+        "errorLoadProgress": "Unable to load student progress.",
+        "retry": "Try again",
+        "stats": {
+            "totalLessons": "Total lessons",
+            "completed": "Completed",
+            "inProgress": "In progress",
+            "averageCompletion": "Average completion"
+        },
+        "table": {
+            "lesson": "Lesson",
+            "progress": "Progress",
+            "status": "Status",
+            "statusCompleted": "Completed",
+            "statusLearning": "Learning",
+            "lastAccessed": "Last accessed",
+            "noProgress": "This student has no learning progress yet"
+        }
     },
     "errors": {
         "unauthorized": "Unauthorized",

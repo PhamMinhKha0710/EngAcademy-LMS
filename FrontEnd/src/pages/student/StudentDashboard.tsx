@@ -119,7 +119,7 @@ export default function StudentDashboard() {
     }
 
     return (
-        <div className="flex flex-col min-h-full bg-background-light dark:bg-background-dark">
+        <div className="flex flex-col min-h-full bg-slate-50 dark:bg-slate-900">
             <div className="flex-1 overflow-y-auto p-4 md:p-8">
                 <div className="mx-auto max-w-7xl space-y-6">
                     <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">
@@ -258,16 +258,16 @@ export default function StudentDashboard() {
                                     {top5.length > 0 ? top5.slice(0, 4).map((entry, index) => {
                                         const isCurrentUser = entry.userId === user?.id
                                         return (
-                                            <div key={entry.userId} className={`flex items-center gap-3 p-3 rounded-xl ${isCurrentUser ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50 dark:bg-slate-800/60'}`}>
-                                                <span className="w-6 text-center font-black text-slate-400">{index + 1}</span>
+                                            <div key={entry.userId} className={`flex items-center gap-3 p-3 rounded-xl ${isCurrentUser ? 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-600/50' : 'bg-slate-50 dark:bg-slate-800/60'}`}>
+                                                <span className={`w-6 text-center font-black ${isCurrentUser ? 'text-orange-600' : 'text-slate-400'}`}>{index + 1}</span>
                                                 <div className="size-10 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-purple-500 text-white grid place-items-center font-bold">
                                                     {entry.avatarUrl ? <img src={entry.avatarUrl} alt="" className="size-full object-cover" /> : ((entry.fullName || entry.username)?.[0] ?? '?')}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className={`font-bold truncate ${isCurrentUser ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                    <p className={`font-bold truncate ${isCurrentUser ? 'text-orange-700 dark:text-orange-300' : 'text-slate-800 dark:text-slate-200'}`}>
                                                         {isCurrentUser ? t('dashboard.you') : (entry.fullName || entry.username)}
                                                     </p>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">{(entry.totalCoins ?? 0).toLocaleString()} XP</p>
+                                                    <p className={`text-xs ${isCurrentUser ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-slate-400'}`}>{(entry.totalCoins ?? 0).toLocaleString()} XP</p>
                                                 </div>
                                             </div>
                                         )

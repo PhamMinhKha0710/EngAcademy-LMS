@@ -464,7 +464,7 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                                 <p className="mt-4 text-center text-white/90 font-medium">
-                                    {t('settings.greatJob', { name: user.fullName?.split(' ')[0] || t('common.you'), hours: timeLearningThisWeek })}
+                                    {t('settings.greatJob', { name: user.fullName || t('common.you'), hours: timeLearningThisWeek })}
                                 </p>
                             </div>
                         </div>

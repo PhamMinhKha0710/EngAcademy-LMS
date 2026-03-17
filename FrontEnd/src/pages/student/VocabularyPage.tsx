@@ -189,7 +189,7 @@ export default function VocabularyPage() {
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
                                 mode === tab.key
                                     ? 'bg-violet-500 text-white shadow-md'
-                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                             }`}
                             whileTap={{ scale: 0.98 }}
                         >
@@ -231,10 +231,10 @@ export default function VocabularyPage() {
                                                 15 {t('exams.minutes')}
                                             </span>
                                         </div>
-                                        <h3 className="text-2xl md:text-3xl font-black leading-tight text-[var(--color-text)]">
+                                        <h3 className="text-2xl md:text-3xl font-black leading-tight text-slate-900 dark:text-white">
                                             {topic.name}
                                         </h3>
-                                        <p className="mt-3 text-[var(--color-text-secondary)]">
+                                        <p className="mt-3 text-slate-600 dark:text-slate-400">
                                             {topic.description || t('dashboard.learnWithExamples')}
                                         </p>
                                         <button
@@ -247,7 +247,7 @@ export default function VocabularyPage() {
                                     </div>
                                 </motion.div>
                             ))}
-                    <p className="text-sm text-[var(--color-text-secondary)]">{t('vocabulary.selectTopic')}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('vocabulary.selectTopic')}</p>
                     {topicsLoading ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
@@ -255,7 +255,7 @@ export default function VocabularyPage() {
                     ) : topics.length === 0 ? (
                         <div className="card p-12 text-center rounded-2xl">
                             <FolderOpen className="w-12 h-12 text-violet-500/60 mx-auto mb-4" />
-                            <p className="text-[var(--color-text-secondary)]">{t('vocabulary.noTopics')}</p>
+                            <p className="text-slate-600 dark:text-slate-400">{t('vocabulary.noTopics')}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -266,10 +266,10 @@ export default function VocabularyPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.04 }}
                                     onClick={() => handleSelectTopic(topic)}
-                                    className="group text-left p-6 rounded-2xl border transition-all duration-300 hover:shadow-lg hover:border-violet-300 dark:hover:border-violet-600 bg-white dark:bg-surface-dark border-[var(--color-border)]"
+                                    className="group text-left p-6 rounded-2xl border transition-all duration-300 hover:shadow-lg hover:border-violet-300 dark:hover:border-violet-600 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                                 >
                                     <div className="flex items-start justify-between mb-3">
-                                        <h3 className="text-lg font-bold text-[var(--color-text)] group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                                             {topic.name}
                                         </h3>
                                         {topic.completed && (
@@ -280,11 +280,11 @@ export default function VocabularyPage() {
                                         )}
                                     </div>
                                     {topic.description && (
-                                        <p className="text-xs text-[var(--color-text-secondary)] mb-4 line-clamp-2">{topic.description}</p>
+                                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">{topic.description}</p>
                                     )}
                                     <ProgressBar value={topic.progress} height="h-2" variant="gradient" gradientStart="from-violet-500" gradientEnd="to-fuchsia-400" />
                                     <div className="flex items-center justify-between mt-3">
-                                        <span className="text-xs font-semibold text-[var(--color-text-secondary)]">
+                                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                                             {t('vocabulary.wordsCount', { mastered: topic.masteredWords, total: topic.totalWords })}
                                         </span>
                                         <span className="text-xs font-bold text-violet-500">{topic.progress}%</span>
@@ -302,11 +302,11 @@ export default function VocabularyPage() {
                     {selectedTopic && (
                         <div className="flex items-center gap-3 mb-6">
                             <button onClick={handleBackToTopics} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                <ArrowLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
+                                <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                             </button>
                             <div>
-                                <h2 className="text-xl font-bold text-[var(--color-text)]">{selectedTopic.name}</h2>
-                                <p className="text-xs text-[var(--color-text-secondary)]">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedTopic.name}</h2>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">
                                     {t('vocabulary.wordsCount', { mastered: selectedTopic.masteredWords, total: selectedTopic.totalWords })}
                                 </p>
                             </div>
@@ -316,7 +316,7 @@ export default function VocabularyPage() {
                     {!selectedTopic ? (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-12 text-center rounded-2xl">
                             <FolderOpen className="w-12 h-12 text-violet-500/60 mx-auto mb-4" />
-                            <p className="text-[var(--color-text-secondary)]">{t('vocabulary.selectTopic')}</p>
+                            <p className="text-slate-600 dark:text-slate-400">{t('vocabulary.selectTopic')}</p>
                             <button onClick={() => setMode('topics')} className="btn-primary mt-4">{t('vocabulary.backToTopics')}</button>
                         </motion.div>
                     ) : flashcardLoading ? (
@@ -329,9 +329,9 @@ export default function VocabularyPage() {
                             </div>
                         </div>
                     ) : flashcardError ? (
-                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-16 rounded-2xl bg-[var(--color-bg-secondary)]">
+                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-16 rounded-2xl bg-slate-100 dark:bg-slate-800">
                             <AlertCircle className="w-14 h-14 text-red-400 mb-4" />
-                            <p className="font-medium text-[var(--color-text)] mb-4">{flashcardError}</p>
+                            <p className="font-medium text-slate-900 dark:text-white mb-4">{flashcardError}</p>
                             <button onClick={() => fetchFlashcards(selectedTopic.id)} className="btn-primary">{t('common.retry')}</button>
                         </motion.div>
                     ) : topicDone || flashcards.length === 0 ? (
@@ -339,8 +339,8 @@ export default function VocabularyPage() {
                             <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
                                 <Trophy className="w-10 h-10 text-emerald-500" />
                             </div>
-                            <h3 className="text-2xl font-black text-[var(--color-text)] mb-2">{t('vocabulary.topicDone')}</h3>
-                            <p className="text-[var(--color-text-secondary)] mb-6">{t('vocabulary.noMoreWords')}</p>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{t('vocabulary.topicDone')}</h3>
+                            <p className="text-slate-600 dark:text-slate-400 mb-6">{t('vocabulary.noMoreWords')}</p>
                             <button onClick={handleBackToTopics} className="btn-primary">{t('vocabulary.backToTopics')}</button>
                         </motion.div>
                     ) : (
@@ -355,7 +355,7 @@ export default function VocabularyPage() {
                                         {flashcardIndex + 1} / {flashcards.length} {t('vocabulary.cards')}
                                     </div>
                                 </div>
-                                <div className="relative w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div className="relative w-full h-3 bg-slate-300 dark:bg-slate-600 rounded-full overflow-hidden">
                                     <motion.div
                                         className="absolute top-0 left-0 h-full bg-primary-500 rounded-full"
                                         initial={{ width: 0 }}
@@ -382,17 +382,17 @@ export default function VocabularyPage() {
                                                                 </button>
                                                             )}
                                                         </div>
-                                                        <div className="h-[35%] flex flex-col items-center justify-center gap-2 p-8 bg-white dark:bg-slate-900">
+                                                        <div className="h-[35%] flex flex-col items-center justify-center gap-2 p-8 bg-white dark:bg-slate-800">
                                                             <h3 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">{currentCard.word}</h3>
-                                                            <p className="text-slate-400 dark:text-slate-500 font-medium text-sm">{t('vocabulary.tapToFlip')}</p>
+                                                            <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">{t('vocabulary.tapToFlip')}</p>
                                                         </div>
                                                     </div>
                                                 }
                                                 back={
                                                     <div className="space-y-2 text-left px-4">
-                                                        <p className="text-xl font-semibold text-[var(--color-text)]">{currentCard.meaning}</p>
-                                                        {currentCard.pronunciation && <p className="text-sm italic text-[var(--color-text-secondary)]">/{currentCard.pronunciation}/</p>}
-                                                        {currentCard.exampleSentence && <p className="text-sm mt-3 text-[var(--color-text-secondary)]">"{currentCard.exampleSentence}"</p>}
+                                                        <p className="text-xl font-semibold text-slate-900 dark:text-white">{currentCard.meaning}</p>
+                                                        {currentCard.pronunciation && <p className="text-sm italic text-slate-600 dark:text-slate-400">/{currentCard.pronunciation}/</p>}
+                                                        {currentCard.exampleSentence && <p className="text-sm mt-3 text-slate-600 dark:text-slate-400">"{currentCard.exampleSentence}"</p>}
                                                     </div>
                                                 }
                                             />
@@ -402,7 +402,7 @@ export default function VocabularyPage() {
                             </div>
 
                             <div className="flex flex-col items-center gap-6 pb-8">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{t('vocabulary.didYouKnow')}</p>
+                                <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{t('vocabulary.didYouKnow')}</p>
                                 <div className="flex flex-col sm:flex-row w-full gap-4 max-w-[600px]">
                                     <motion.button onClick={() => handleReviewWord(false)} disabled={addingMistake}
                                         className="group flex-1 h-14 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-xl font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
@@ -427,7 +427,7 @@ export default function VocabularyPage() {
             {mode === 'learned' && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-[var(--color-text)]">{t('vocabulary.learnedWords')}</h2>
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('vocabulary.learnedWords')}</h2>
                         <span className="px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-bold">
                             {learnedWords.length} {t('vocabulary.mastered')}
                         </span>
@@ -440,7 +440,7 @@ export default function VocabularyPage() {
                     ) : learnedWords.length === 0 ? (
                         <div className="card p-12 text-center rounded-2xl">
                             <Sparkles className="w-12 h-12 text-violet-500/60 mx-auto mb-4" />
-                            <p className="text-[var(--color-text-secondary)]">{t('vocabulary.noLearnedWords')}</p>
+                            <p className="text-slate-600 dark:text-slate-400">{t('vocabulary.noLearnedWords')}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -450,21 +450,21 @@ export default function VocabularyPage() {
                                     initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.03 }}
-                                    className="group flex flex-col bg-white dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-[var(--color-border)]"
+                                    className="group flex flex-col bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-200 dark:border-slate-700"
                                 >
                                     <div className="p-5 flex flex-col gap-3 flex-1">
                                         <div className="flex items-start justify-between">
-                                            <h3 className="text-lg font-bold text-[var(--color-text)]">{vocab.word}</h3>
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{vocab.word}</h3>
                                             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
                                                 {t('vocabulary.mastered')}
                                             </span>
                                         </div>
                                         {vocab.pronunciation && (
-                                            <p className="text-xs italic text-[var(--color-text-secondary)]">/{vocab.pronunciation}/</p>
+                                            <p className="text-xs italic text-slate-600 dark:text-slate-400">/{vocab.pronunciation}/</p>
                                         )}
-                                        <p className="text-sm font-medium text-[var(--color-text)] line-clamp-2">{vocab.meaning || t('vocabulary.noMeaning')}</p>
+                                        <p className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2">{vocab.meaning || t('vocabulary.noMeaning')}</p>
                                         {vocab.exampleSentence && (
-                                            <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 mt-auto">"{vocab.exampleSentence}"</p>
+                                            <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mt-auto">"{vocab.exampleSentence}"</p>
                                         )}
                                         {vocab.audioUrl && (
                                             <button onClick={() => playAudio(vocab.audioUrl)}

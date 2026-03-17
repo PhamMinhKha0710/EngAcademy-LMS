@@ -18,6 +18,7 @@ import {
     School,
     Inbox,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface StudentInfo {
     id: number
@@ -41,6 +42,7 @@ interface ProgressStats {
 }
 
 export default function StudentProgressPage() {
+    const { t } = useTranslation()
     const user = useAuthStore((s) => s.user)
     const [classes, setClasses] = useState<ClassRoomResponse[]>([])
     const [selectedClass, setSelectedClass] = useState<string>('')
@@ -62,7 +64,7 @@ export default function StudentProgressPage() {
             const data = await classroomApi.getByTeacher(user.id)
             setClasses(data)
         } catch {
-            setError('Không thể tải danh sách lớp.')
+            setError(t('teacherProgress.errorLoadClasses'))
         } finally {
             setClassesLoading(false)
         }
@@ -104,7 +106,7 @@ export default function StudentProgressPage() {
             setProgress(prog)
             setStats(st as ProgressStats)
         } catch {
-            setError('Không thể tải tiến độ học sinh.')
+            setError(t('teacherProgress.errorLoadProgress'))
         } finally {
             setProgressLoading(false)
         }
@@ -178,10 +180,10 @@ export default function StudentProgressPage() {
         <div className="p-6 lg:p-8 space-y-6 bg-[#F8FAFC] dark:bg-slate-950 min-h-full">
             <section className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-6 md:p-8 shadow-sm">
                 <h1 className="text-2xl md:text-3xl font-black" style={{ color: 'var(--color-text)' }}>
-                    Báo cáo tiến độ học sinh
+                    {t('teacherProgress.title')}
                 </h1>
                 <p className="mt-2 text-sm md:text-base" style={{ color: 'var(--color-text-secondary)' }}>
-                    Theo dõi mức độ hoàn thành theo từng lớp và từng học sinh.
+                    {t('teacherProgress.subtitle')}
                 </p>
             </section>
 
@@ -189,7 +191,7 @@ export default function StudentProgressPage() {
                 <div className="flex flex-wrap items-end gap-4">
                     <div>
                         <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                            Lớp học
+                            {t('teacherProgress.classLabel')}
                         </label>
                         <div className="flex items-center gap-2">
                             <School className="w-4 h-4" style={{ color: 'var(--color-text-secondary)' }} />
@@ -197,10 +199,10 @@ export default function StudentProgressPage() {
                                 value={selectedClass}
                                 onChange={(e) => handleClassChange(e.target.value)}
                                 disabled={classesLoading}
-                                className="px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[220px] bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700"
-                                style={{ color: 'var(--color-text)' }}
+                                className="px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[220px] bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 appearance-none"
+                                style={{ color: 'var(--color-text)', backgroundImage: 'none'}}
                             >
-                                <option value="">-- Chọn lớp --</option>
+                                <option value="">{t('teacherProgress.selectClassPlaceholder', { defaultValue: '--' }) || '--'}</option>
                                 {classes.map((c) => (
                                     <option key={c.id} value={c.id}>
                                         {c.name}
@@ -214,7 +216,7 @@ export default function StudentProgressPage() {
                     {selectedClass && (
                         <div>
                             <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                                Học sinh
+                                {t('teacherProgress.studentLabel')}
                             </label>
                             <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4" style={{ color: 'var(--color-text-secondary)' }} />
@@ -225,7 +227,7 @@ export default function StudentProgressPage() {
                                     className="px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[240px] bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700"
                                     style={{ color: 'var(--color-text)' }}
                                 >
-                                    <option value="">-- Chọn học sinh --</option>
+                                    <option value="">{t('teacherProgress.selectStudentPlaceholder', { defaultValue: '--' }) || '--'}</option>
                                     {students.map((s) => (
                                         <option key={s.id} value={s.id}>
                                             {s.fullName || s.username}
@@ -243,17 +245,17 @@ export default function StudentProgressPage() {
             {!selectedClass ? (
                 <EmptyState
                     icon={<Inbox className="w-8 h-8" />}
-                    title="Chọn lớp học"
-                    description="Vui lòng chọn một lớp học để xem danh sách học sinh."
+                    title={t('teacherProgress.selectClassTitle')}
+                    description={t('teacherProgress.selectClassDescription')}
                 />
             ) : !selectedStudent ? (
                 <EmptyState
                     icon={<Users className="w-8 h-8" />}
-                    title="Chọn học sinh"
+                    title={t('teacherProgress.selectStudentTitle')}
                     description={
                         students.length === 0 && !studentsLoading
-                            ? 'Lớp này chưa có học sinh nào.'
-                            : 'Vui lòng chọn một học sinh để xem tiến độ.'
+                            ? t('teacherProgress.selectStudentNoStudents')
+                            : t('teacherProgress.selectStudentDescription')
                     }
                 />
             ) : error ? (
@@ -264,7 +266,7 @@ export default function StudentProgressPage() {
                         onClick={() => fetchProgress(selectedStudent)}
                         className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                     >
-                        Thử lại
+                        {t('teacherProgress.retry')}
                     </button>
                 </div>
             ) : progressLoading ? (
@@ -278,25 +280,25 @@ export default function StudentProgressPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                             <StatCard
                                 icon={<BookOpen className="w-6 h-6" />}
-                                label="Tổng bài học"
+                                label={t('teacherProgress.stats.totalLessons')}
                                 value={stats.totalLessons ?? progress.length}
                                 color="text-blue-400"
                             />
                             <StatCard
                                 icon={<CheckCircle className="w-6 h-6" />}
-                                label="Hoàn thành"
+                                label={t('teacherProgress.stats.completed')}
                                 value={stats.completedLessons ?? progress.filter((p) => p.isCompleted).length}
                                 color="text-emerald-400"
                             />
                             <StatCard
                                 icon={<Loader2 className="w-6 h-6" />}
-                                label="Đang học"
+                                label={t('teacherProgress.stats.inProgress')}
                                 value={stats.inProgressLessons ?? progress.filter((p) => !p.isCompleted).length}
                                 color="text-orange-400"
                             />
                             <StatCard
                                 icon={<BarChart3 className="w-6 h-6" />}
-                                label="TB hoàn thành"
+                                label={t('teacherProgress.stats.averageCompletion')}
                                 value={
                                     stats.averageCompletion != null
                                         ? `${Math.round(stats.averageCompletion)}%`
@@ -315,7 +317,7 @@ export default function StudentProgressPage() {
                             columns={columns}
                             data={progress as unknown as Record<string, unknown>[]}
                             loading={false}
-                            emptyMessage="Học sinh chưa có tiến độ học tập nào"
+                            emptyMessage={t('teacherProgress.table.noProgress')}
                         />
                     </section>
                 </>

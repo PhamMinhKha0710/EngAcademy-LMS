@@ -1,4 +1,4 @@
-import { GraduationCap, Trophy, Camera, Mail } from 'lucide-react'
+import { GraduationCap, Trophy, Settings, Github } from 'lucide-react'
 
 const Footer = () => {
     return (
@@ -35,22 +35,22 @@ const Footer = () => {
 
                     <div className="flex gap-4">
                         <a
-                            href="#"
+                            href="/leaderboard"
                             className="size-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary-500 hover:scale-110 transition-all shadow-sm"
                         >
                             <Trophy className="w-5 h-5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                         </a>
                         <a
-                            href="#"
+                            href="/settings"
                             className="size-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary-500 hover:scale-110 transition-all shadow-sm"
                         >
-                            <Camera className="w-5 h-5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                            <Settings className="w-5 h-5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                         </a>
                         <a
-                            href="#"
+                            href="https://github.com/PhamMinhKha0710/weblearnenglish"
                             className="size-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary-500 hover:scale-110 transition-all shadow-sm"
                         >
-                            <Mail className="w-5 h-5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                            <Github className="w-5 h-5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                         </a>
                     </div>
                 </div>
