@@ -34,10 +34,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
   java.util.List<User> findTopUsersByCoins(@Param("limit") int limit);
 
   // Leaderboard queries - Filtered by School
-  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId) ORDER BY u.coins DESC, u.streakDays DESC")
+  @Query("SELECT u FROM User u LEFT JOIN FETCH u.school JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId) ORDER BY u.coins DESC, u.streakDays DESC")
   Page<User> findLeaderboardBySchool(@Param("schoolId") Long schoolId, Pageable pageable);
 
-  @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId) ORDER BY u.coins DESC, u.streakDays DESC LIMIT :limit")
+  @Query("SELECT u FROM User u LEFT JOIN FETCH u.school JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId) ORDER BY u.coins DESC, u.streakDays DESC")
   List<User> findTopUsersByCoinsBySchool(@Param("schoolId") Long schoolId, @Param("limit") int limit);
 
   // Get all users with ROLE_STUDENT

@@ -12,6 +12,7 @@ import com.englishlearn.infrastructure.persistence.UserRepository;
 import com.englishlearn.infrastructure.persistence.UserVocabularyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,6 +105,20 @@ public class ProgressService {
     @Transactional
     public ProgressResponse completeLesson(Long userId, Long lessonId) {
         return updateProgress(userId, lessonId, 100);
+    }
+
+    /**
+     * Async update progress - for background processing to reduce DB load.
+     * Call this method when you don't need immediate result.
+     */
+    @Async("taskExecutor")
+    public void updateProgressAsync(Long userId, Long lessonId, Integer percentage) {
+        try {
+            updateProgress(userId, lessonId, percentage);
+            log.debug("Async progress updated for user {} lesson {}: {}%", userId, lessonId, percentage);
+        } catch (Exception e) {
+            log.error("Failed async progress update for user {} lesson {}: {}", userId, lessonId, e.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)

@@ -17,6 +17,9 @@ public interface ProgressRepository extends JpaRepository<Progress, Long> {
 
     List<Progress> findByUserId(Long userId);
 
+    @Query("SELECT p FROM Progress p JOIN FETCH p.lesson WHERE p.user.id = :userId")
+    List<Progress> findByUserIdWithLesson(@Param("userId") Long userId);
+
     Optional<Progress> findByUserIdAndLessonId(Long userId, Long lessonId);
 
     boolean existsByUserIdAndLessonId(Long userId, Long lessonId);

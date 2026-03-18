@@ -69,8 +69,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     /**
      * Lấy kết quả thi theo trường - dùng cho ROLE_SCHOOL
      */
-    @Query("SELECT er FROM ExamResult er WHERE er.exam.classRoom.school.id = :schoolId AND er.submittedAt IS NOT NULL")
-    Page<ExamResult> findBySchoolId(@Param("schoolId") Long schoolId, Pageable pageable);
+    @Query("SELECT er FROM ExamResult er JOIN FETCH er.exam e LEFT JOIN FETCH e.classRoom JOIN FETCH er.student WHERE er.exam.classRoom.school.id = :schoolId AND er.submittedAt IS NOT NULL")
+    Page<ExamResult> findBySchoolIdWithDetails(@Param("schoolId") Long schoolId, Pageable pageable);
 
     @Query("SELECT AVG(er.score) FROM ExamResult er WHERE er.submittedAt IS NOT NULL")
     Double averageScoreAll();

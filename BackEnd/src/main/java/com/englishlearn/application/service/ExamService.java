@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -635,6 +636,19 @@ public class ExamService {
 
         log.info("Anti-cheat event logged: type={}, examResultId={}, totalViolations={}",
                 dto.getEventType(), dto.getExamResultId(), examResult.getViolationCount());
+    }
+
+    /**
+     * Async log anti-cheat event - for background processing to reduce response time.
+     */
+    @Async("taskExecutor")
+    public void logAntiCheatEventAsync(AntiCheatEventDTO dto, Long userId) {
+        try {
+            logAntiCheatEvent(dto, userId);
+            log.debug("Async anti-cheat event logged for examResultId={}", dto.getExamResultId());
+        } catch (Exception e) {
+            log.error("Failed async anti-cheat event log for examResultId={}: {}", dto.getExamResultId(), e.getMessage());
+        }
     }
 
     /**
