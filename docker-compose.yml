@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: englishlearn-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: englishlearn
+      MYSQL_USER: englishlearn
+      MYSQL_PASSWORD: englishlearn123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - englishlearn-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and leaderboard
+  redis:
+    image: redis:7-alpine
+    container_name: englishlearn-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - englishlearn-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (Spring Boot)
+  backend:
+    build:
+      context: ./BackEnd
+      dockerfile: Dockerfile
+    container_name: englishlearn-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/englishlearn?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: englishlearn
+      SPRING_DATASOURCE_PASSWORD: englishlearn123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SERVER_PORT: 8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - englishlearn-network
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./FrontEnd
+      dockerfile: Dockerfile
+    container_name: englishlearn-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - englishlearn-network
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  englishlearn-network:
+    driver: bridge

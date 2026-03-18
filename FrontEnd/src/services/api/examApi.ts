@@ -3,12 +3,17 @@ import api from './axios'
 interface ApiResponse<T> { success: boolean; message: string; data: T }
 interface PageResponse<T> { content: T[]; totalElements: number; totalPages: number; size: number; number: number }
 
+/** Question in exam detail (from GET /exams/:id) */
+export interface ExamQuestionRef { id: number; [key: string]: unknown }
+
 export interface ExamResponse {
     id: number; title: string; status: string; classId?: number; className?: string;
     teacherId?: number; teacherName?: string; startTime?: string; endTime?: string;
     durationMinutes?: number; shuffleQuestions?: boolean; shuffleAnswers?: boolean;
     antiCheatEnabled?: boolean; questionCount?: number; totalPoints?: number;
     submittedCount?: number; averageScore?: number; scorePublished?: boolean; createdAt?: string;
+    /** Present when fetching exam by ID (for edit form). */
+    questions?: ExamQuestionRef[];
 }
 export interface ExamRequest {
     title: string; classId: number; startTime: string; endTime: string;

@@ -7,7 +7,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "EXAM")
+@Table(name = "EXAM", indexes = {
+    @Index(name = "idx_exam_class", columnList = "class_id"),
+    @Index(name = "idx_exam_teacher", columnList = "teacher_id"),
+    @Index(name = "idx_exam_status", columnList = "status"),
+    @Index(name = "idx_exam_time", columnList = "start_time, end_time")
+})
 @Getter
 @Setter
 @NoArgsConstructor

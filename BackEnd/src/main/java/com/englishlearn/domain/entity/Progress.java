@@ -7,6 +7,10 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "PROGRESS", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"user_id", "lesson_id"})
+}, indexes = {
+    @Index(name = "idx_progress_user", columnList = "user_id"),
+    @Index(name = "idx_progress_lesson", columnList = "lesson_id"),
+    @Index(name = "idx_progress_completed", columnList = "is_completed")
 })
 @Getter
 @Setter

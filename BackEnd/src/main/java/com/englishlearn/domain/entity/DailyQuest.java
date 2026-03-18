@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "DAILY_QUEST")
+@Table(name = "DAILY_QUEST", indexes = {
+    @Index(name = "idx_daily_quest_user_date", columnList = "user_id, quest_date"),
+    @Index(name = "idx_daily_quest_user", columnList = "user_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

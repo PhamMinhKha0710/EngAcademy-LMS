@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ExamRepository extends JpaRepository<Exam, Long> {
@@ -25,6 +26,12 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     Page<Exam> findByTeacherId(Long teacherId, Pageable pageable);
 
     Page<Exam> findByClassRoomId(Long classRoomId, Pageable pageable);
+
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.classRoom LEFT JOIN FETCH e.teacher WHERE e.id = :id")
+    Optional<Exam> findByIdWithDetails(@Param("id") Long id);
+
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.classRoom cr LEFT JOIN FETCH cr.school LEFT JOIN FETCH e.teacher WHERE e.id = :id")
+    Optional<Exam> findByIdWithFullDetails(@Param("id") Long id);
 
     @Query("SELECT e FROM Exam e WHERE e.classRoom.id = :classId AND e.status = 'PUBLISHED' AND e.startTime <= :now AND e.endTime >= :now")
     List<Exam> findActiveExamsByClassId(@Param("classId") Long classId, @Param("now") LocalDateTime now);

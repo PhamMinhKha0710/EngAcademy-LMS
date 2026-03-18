@@ -68,8 +68,14 @@ export default function LessonDetailPage() {
         vocabulary: false,
         practice: false,
     })
+    const [bannerImageFailed, setBannerImageFailed] = useState(false)
 
     const lessonId = id ? parseInt(id) : null
+
+    // Banner: use lesson cover image if available; fallback to default. When load fails, show gradient + icon placeholder.
+    const defaultBannerUrl = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800'
+    const bannerImageUrl = lesson?.coverImageUrl || defaultBannerUrl
+    const showBannerImage = !bannerImageFailed && bannerImageUrl
 
     useEffect(() => {
         if (!lessonId) return
@@ -114,6 +120,10 @@ export default function LessonDetailPage() {
     useEffect(() => {
         setVisitedTabs((prev) => ({ ...prev, [activeTab]: true }))
     }, [activeTab])
+
+    useEffect(() => {
+        setBannerImageFailed(false)
+    }, [lesson?.id])
 
     const handleSelectAnswer = useCallback(
         (questionId: number, optionIds: number[]) => {
@@ -328,11 +338,21 @@ export default function LessonDetailPage() {
                     <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-orange-400 rounded-xl blur opacity-20 group-hover:opacity-30 transition duration-500" />
                     <div className="relative flex flex-col lg:flex-row items-stretch bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-xl ring-1 ring-slate-200 dark:ring-slate-800">
                         <div className="lg:w-2/5 relative min-h-[200px] lg:min-h-[280px] bg-gradient-to-br from-orange-100 to-orange-50 dark:from-slate-800 dark:to-slate-800">
-                            <div
-                                className="absolute inset-0 bg-cover bg-center opacity-90"
-                                style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800)' }}
-                                aria-hidden
-                            />
+                            {showBannerImage ? (
+                                <img
+                                    src={bannerImageUrl}
+                                    alt=""
+                                    className="absolute inset-0 w-full h-full object-cover opacity-90"
+                                    onError={() => setBannerImageFailed(true)}
+                                    aria-hidden
+                                />
+                            ) : (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 dark:bg-slate-700/30">
+                                        <BookOpen className="h-10 w-10 text-orange-500/80 dark:text-orange-400/80" aria-hidden />
+                                    </div>
+                                </div>
+                            )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-4 lg:p-6">
                                 <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
                                     {completed ? t('lessons.completed') : t('lessons.active')}
@@ -441,6 +461,8 @@ export default function LessonDetailPage() {
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Main Content */}
                             {lesson.contentHtml ? (
                                 <div
                                     className="prose prose-sm md:prose-base max-w-none text-[var(--color-text)] leading-relaxed"
@@ -449,6 +471,36 @@ export default function LessonDetailPage() {
                             ) : (
                                 <p className="text-center py-12 text-[var(--color-text-secondary)]">{t('lessons.noContent')}</p>
                             )}
+
+                            {/* Grammar Section in Content Tab */}
+                            {hasGrammar && (
+                                <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
+                                    <div className="flex items-center gap-3 pb-4 mb-4 border-b border-blue-100 dark:border-slate-700/80">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
+                                            <FileText className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                                {t('lessons.grammarSectionHeading')}
+                                            </p>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                {t('lessons.grammarSubtitle')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div
+                                        className="prose prose-sm md:prose-base max-w-none text-[var(--color-text)] leading-relaxed"
+                                        dangerouslySetInnerHTML={{ __html: effectiveGrammarHtml }}
+                                    />
+                                    {/* Grammar Note Box */}
+                                    <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30">
+                                        <p className="text-sm text-blue-800 dark:text-blue-300">
+                                            💡 Hãy chắc chắn bạn hiểu kỹ ngữ pháp này trước khi tiếp tục.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {lesson.audioUrl && (
                                 <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
                                     <p className="text-sm font-medium mb-2 text-[var(--color-text)]">{t('lessons.audioLesson')}</p>
@@ -493,8 +545,8 @@ export default function LessonDetailPage() {
                             transition={{ duration: 0.2 }}
                             className="bg-white dark:bg-slate-900 rounded-2xl p-6 lg:p-8 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6"
                         >
-                            <div className="flex items-center gap-3 pb-4 border-b border-orange-100 dark:border-slate-700/80">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
+                            <div className="flex items-center gap-3 pb-4 border-b border-blue-100 dark:border-slate-700/80">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
                                     <FileText className="w-4 h-4" />
                                 </div>
                                 <div>
@@ -506,17 +558,51 @@ export default function LessonDetailPage() {
                                     </p>
                                 </div>
                             </div>
+
                             {hasGrammar ? (
                                 <div className="space-y-6">
+                                    {/* Grammar Header */}
+                                    <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800/30">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500 text-white">
+                                            <FileText className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 dark:text-white">{t('lessons.grammarSectionHeading')}</h3>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">{t('lessons.grammarSubtitle')}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Grammar Content */}
                                     <div
                                         className="prose prose-sm md:prose-base max-w-none text-[var(--color-text)] leading-relaxed"
                                         dangerouslySetInnerHTML={{ __html: effectiveGrammarHtml }}
                                     />
+
+                                    {/* Grammar Examples Box */}
+                                    <div className="mt-6 p-5 rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200/50 dark:border-amber-700/30">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="h-6 w-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                                <span className="text-amber-600 dark:text-amber-400 text-sm font-bold">💡</span>
+                                            </div>
+                                            <h4 className="font-semibold text-amber-900 dark:text-amber-200">Lưu ý quan trọng</h4>
+                                        </div>
+                                        <p className="text-sm text-amber-800 dark:text-amber-300">
+                                            Hãy chắc chắn bạn hiểu kỹ ngữ pháp này trước khi chuyển sang phần tiếp theo. Nếu chưa rõ, hãy xem lại nội dung hoặc hỏi giáo viên.
+                                        </p>
+                                    </div>
                                 </div>
                             ) : (
-                                <p className="text-center py-12 text-[var(--color-text-secondary)]">
-                                    {t('lessons.noContent')}
-                                </p>
+                                <div className="py-12 text-center">
+                                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
+                                        <FileText className="w-8 h-8 text-slate-400" />
+                                    </div>
+                                    <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
+                                        {t('lessons.noContent')}
+                                    </p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">
+                                        Bài học này chưa có nội dung ngữ pháp.
+                                    </p>
+                                </div>
                             )}
                             <div className="mt-8 pt-6 border-t border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3">
                                 <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -756,7 +842,7 @@ export default function LessonDetailPage() {
             </div>
 
             {(startedLearning || completionPercentage > 0) && (
-                <footer className="sticky bottom-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 px-4 py-3">
+                <footer className="fixed bottom-0 left-0 right-0 md:left-64 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.08)] px-4 py-3">
                     <div className="max-w-5xl mx-auto">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 px-4 py-3">
                             <div className="flex-1 min-w-0">
