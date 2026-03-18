@@ -1,5 +1,4 @@
-## 
-EngAcademy-LMS – Nền tảng web học tiếng Anh cho học sinh
+## EngAcademy-LMS – Nền tảng web học tiếng Anh cho học sinh
 
 EnglishLearn là một nền tảng học tiếng Anh hiện đại, gamified dành cho học sinh phổ thông. Dự án kết hợp **bài học tương tác**, **nhiệm vụ hằng ngày**, **bài thi online**, **bảng xếp hạng** và **huy hiệu thành tích** để biến việc học thành một hành trình thú vị, có động lực rõ ràng.
 
