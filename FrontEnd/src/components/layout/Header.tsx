@@ -39,7 +39,7 @@ const Header = ({ showMenuButton, onMenuClick }: HeaderProps) => {
                     <div className="size-8 text-primary-500 flex items-center justify-center">
                         <GraduationCap className="w-8 h-8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                     </div>
-                    <h2 className="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight hidden sm:block">EnglishLearn</h2>
+                    <h2 className="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight hidden sm:block">EngAcademy-LMS</h2>
                 </Link>
             </div>
 

@@ -9,7 +9,7 @@ const Footer = () => {
                         <div className="size-8 text-primary-500 flex items-center justify-center">
                             <GraduationCap className="w-7 h-7" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                         </div>
-                        <span className="text-slate-900 dark:text-white font-bold text-xl">EnglishLearn</span>
+                        <span className="text-slate-900 dark:text-white font-bold text-xl">EngAcademy-LMS</span>
                     </div>
 
                     <div className="flex flex-wrap justify-center gap-8">
@@ -56,7 +56,7 @@ const Footer = () => {
                 </div>
 
                 <div className="text-center pt-8 border-t border-slate-200 dark:border-slate-800">
-                    <p className="text-slate-500 text-sm">© 2026 EnglishLearn. Mọi quyền được bảo lưu.</p>
+                    <p className="text-slate-500 text-sm">© 2026 EngAcademy-LMS. Mọi quyền được bảo lưu.</p>
                 </div>
             </div>
         </footer>

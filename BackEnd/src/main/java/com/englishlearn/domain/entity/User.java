@@ -11,8 +11,7 @@ import java.util.Set;
 @Table(name = "USERS", indexes = {
     @Index(name = "idx_user_coins", columnList = "coins"),
     @Index(name = "idx_user_streak", columnList = "streak_days"),
-    @Index(name = "idx_user_school", columnList = "school_id"),
-    @Index(name = "idx_user_exp", columnList = "exp")
+    @Index(name = "idx_user_school", columnList = "school_id")
 })
 @Getter
 @Setter

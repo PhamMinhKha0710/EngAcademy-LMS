@@ -37,6 +37,24 @@ public class UserStudyStatsService {
      */
     @Transactional
     public UserStudyStats refreshStats(Long userId) {
+        try {
+            return doRefreshStats(userId);
+        } catch (Exception e) {
+            log.error("Error refreshing stats for user {}: {}", userId, e.getMessage(), e);
+            // Return a basic stats object to avoid 500 error
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                throw new ResourceNotFoundException("Người dùng", "id", userId);
+            }
+            UserStudyStats stats = userStudyStatsRepository.findByUserId(userId).orElse(null);
+            if (stats == null) {
+                stats = UserStudyStats.builder().user(user).build();
+            }
+            return stats;
+        }
+    }
+
+    private UserStudyStats doRefreshStats(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "id", userId));
 
