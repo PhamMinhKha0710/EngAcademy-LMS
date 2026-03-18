@@ -7,8 +7,10 @@ import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.application.dto.response.ClassStudentResponse;
 import com.englishlearn.application.service.ClassRoomService;
 import com.englishlearn.application.service.UserService;
+import com.englishlearn.application.service.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class ClassRoomController {
 
         private final ClassRoomService classRoomService;
         private final UserService userService;
+        private final AuditLogService auditLogService;
 
         @GetMapping
         @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
@@ -131,7 +134,8 @@ public class ClassRoomController {
         @Operation(summary = "Create a new classroom")
         public ResponseEntity<ApiResponse<ClassRoomResponse>> createClassRoom(
                         @Valid @RequestBody ClassRoomRequest request,
-                        @AuthenticationPrincipal UserDetails userDetails) {
+                        @AuthenticationPrincipal UserDetails userDetails,
+                        HttpServletRequest servletRequest) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
                 if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
@@ -144,6 +148,10 @@ public class ClassRoomController {
                 }
 
                 ClassRoomResponse classRoom = classRoomService.createClassRoom(request);
+                
+                auditLogService.log(currentUser.getId(), "CREATE_CLASSROOM", "Tạo lớp học: " + classRoom.getName(),
+                        servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
                 return ResponseEntity.status(HttpStatus.CREATED)
                                 .body(ApiResponse.success("Tạo lớp học thành công", classRoom));
         }
@@ -154,7 +162,8 @@ public class ClassRoomController {
         public ResponseEntity<ApiResponse<ClassRoomResponse>> updateClassRoom(
                         @PathVariable Long id,
                         @Valid @RequestBody ClassRoomRequest request,
-                        @AuthenticationPrincipal UserDetails userDetails) {
+                        @AuthenticationPrincipal UserDetails userDetails,
+                        HttpServletRequest servletRequest) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
                 ClassRoomResponse existing = classRoomService.getClassRoomById(id);
@@ -171,6 +180,10 @@ public class ClassRoomController {
                 }
 
                 ClassRoomResponse classRoom = classRoomService.updateClassRoom(id, request);
+                
+                auditLogService.log(currentUser.getId(), "UPDATE_CLASSROOM", "Cập nhật lớp học: " + classRoom.getName(),
+                        servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
                 return ResponseEntity.ok(ApiResponse.success("Cập nhật lớp học thành công", classRoom));
         }
 
@@ -180,11 +193,13 @@ public class ClassRoomController {
         public ResponseEntity<ApiResponse<Void>> assignTeacher(
                         @PathVariable Long classId,
                         @PathVariable Long teacherId,
-                        @AuthenticationPrincipal UserDetails userDetails) {
+                        @AuthenticationPrincipal UserDetails userDetails,
+                        HttpServletRequest servletRequest) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
+                ClassRoomResponse classRoom = null;
                 if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
-                        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+                        classRoom = classRoomService.getClassRoomById(classId);
                         UserResponse teacher = userService.getUserById(teacherId);
 
                         if (currentUser.getSchoolId() == null
@@ -194,9 +209,15 @@ public class ClassRoomController {
                                                 .body(ApiResponse.error(
                                                                 "Bạn không có quyền thực hiện thao tác này trên trường khác"));
                         }
+                } else {
+                        classRoom = classRoomService.getClassRoomById(classId);
                 }
 
                 classRoomService.assignTeacher(classId, teacherId);
+                
+                auditLogService.log(currentUser.getId(), "ASSIGN_TEACHER", "Phân công giáo viên ID " + teacherId + " cho lớp " + classRoom.getName(),
+                        servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
                 return ResponseEntity.ok(ApiResponse.success("Phân công giáo viên thành công", null));
         }
 
@@ -206,11 +227,13 @@ public class ClassRoomController {
         public ResponseEntity<ApiResponse<Void>> addStudentToClass(
                         @PathVariable Long classId,
                         @PathVariable Long studentId,
-                        @AuthenticationPrincipal UserDetails userDetails) {
+                        @AuthenticationPrincipal UserDetails userDetails,
+                        HttpServletRequest servletRequest) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
+                ClassRoomResponse classRoom = null;
                 if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
-                        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+                        classRoom = classRoomService.getClassRoomById(classId);
                         UserResponse student = userService.getUserById(studentId);
 
                         if (currentUser.getSchoolId() == null
@@ -220,9 +243,15 @@ public class ClassRoomController {
                                                 .body(ApiResponse.error(
                                                                 "Bạn không có quyền thực hiện thao tác này trên trường khác"));
                         }
+                } else {
+                        classRoom = classRoomService.getClassRoomById(classId);
                 }
 
                 classRoomService.addStudentToClass(classId, studentId);
+                
+                auditLogService.log(currentUser.getId(), "ADD_STUDENT", "Thêm học sinh ID " + studentId + " vào lớp " + classRoom.getName(),
+                        servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
                 return ResponseEntity.ok(ApiResponse.success("Thêm học sinh vào lớp thành công", null));
         }
 
@@ -232,12 +261,12 @@ public class ClassRoomController {
         public ResponseEntity<ApiResponse<Void>> removeStudentFromClass(
                         @PathVariable Long classId,
                         @PathVariable Long studentId,
-                        @AuthenticationPrincipal UserDetails userDetails) {
+                        @AuthenticationPrincipal UserDetails userDetails,
+                        HttpServletRequest servletRequest) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
+                ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
                 if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
-                        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
-
                         if (currentUser.getSchoolId() == null
                                         || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
                                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -247,6 +276,10 @@ public class ClassRoomController {
                 }
 
                 classRoomService.removeStudentFromClass(classId, studentId);
+                
+                auditLogService.log(currentUser.getId(), "REMOVE_STUDENT", "Xóa học sinh ID " + studentId + " khỏi lớp " + classRoom.getName(),
+                        servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
                 return ResponseEntity.ok(ApiResponse.success("Xóa học sinh khỏi lớp thành công", null));
         }
 
@@ -286,7 +319,8 @@ public class ClassRoomController {
         @Operation(summary = "Soft delete a classroom")
         public ResponseEntity<ApiResponse<Void>> deleteClassRoom(
                         @PathVariable Long id,
-                        @AuthenticationPrincipal UserDetails userDetails) {
+                        @AuthenticationPrincipal UserDetails userDetails,
+                        HttpServletRequest servletRequest) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
                 ClassRoomResponse existing = classRoomService.getClassRoomById(id);
@@ -300,6 +334,10 @@ public class ClassRoomController {
                 }
 
                 classRoomService.deleteClassRoom(id);
+                
+                auditLogService.log(currentUser.getId(), "DELETE_CLASSROOM", "Xóa lớp học: " + existing.getName(),
+                        servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
                 return ResponseEntity.ok(ApiResponse.success("Xóa lớp học thành công", null));
         }
 }

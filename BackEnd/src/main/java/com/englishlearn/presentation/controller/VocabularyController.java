@@ -4,6 +4,8 @@ import com.englishlearn.application.dto.request.VocabularyRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.VocabularyResponse;
 import com.englishlearn.application.service.VocabularyService;
+import com.englishlearn.application.service.UserService;
+import com.englishlearn.application.service.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -13,6 +15,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +30,8 @@ import java.util.Map;
 public class VocabularyController {
 
     private final VocabularyService vocabularyService;
+    private final UserService userService;
+    private final AuditLogService auditLogService;
 
     @GetMapping("/lesson/{lessonId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
@@ -84,8 +91,13 @@ public class VocabularyController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Tạo từ vựng mới")
     public ResponseEntity<ApiResponse<VocabularyResponse>> createVocabulary(
-            @RequestBody @Valid VocabularyRequest request) {
+            @RequestBody @Valid VocabularyRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         VocabularyResponse vocab = vocabularyService.createVocabulary(request);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "CREATE_VOCAB", "Tạo từ vựng: " + vocab.getWord(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo từ vựng thành công", vocab));
     }
@@ -95,16 +107,28 @@ public class VocabularyController {
     @Operation(summary = "Cập nhật từ vựng")
     public ResponseEntity<ApiResponse<VocabularyResponse>> updateVocabulary(
             @PathVariable Long id,
-            @RequestBody @Valid VocabularyRequest request) {
+            @RequestBody @Valid VocabularyRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         VocabularyResponse vocab = vocabularyService.updateVocabulary(id, request);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "UPDATE_VOCAB", "Cập nhật từ vựng: " + vocab.getWord(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.ok(ApiResponse.success("Cập nhật từ vựng thành công", vocab));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Xóa từ vựng")
-    public ResponseEntity<ApiResponse<Void>> deleteVocabulary(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteVocabulary(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
+        VocabularyResponse vocab = vocabularyService.getVocabularyById(id);
         vocabularyService.deleteVocabulary(id);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "DELETE_VOCAB", "Xóa từ vựng: " + vocab.getWord(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.ok(ApiResponse.success("Xóa từ vựng thành công"));
     }
 

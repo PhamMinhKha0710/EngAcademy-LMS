@@ -11,11 +11,13 @@ import com.englishlearn.application.dto.response.ExamResultResponse;
 import com.englishlearn.application.dto.response.ExamTakeDTO;
 import com.englishlearn.application.service.ExamService;
 import com.englishlearn.application.service.UserService;
+import com.englishlearn.application.service.AuditLogService;
 import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.domain.entity.AntiCheatEvent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -37,6 +39,7 @@ public class ExamController {
 
     private final ExamService examService;
     private final UserService userService;
+    private final AuditLogService auditLogService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
@@ -138,7 +141,8 @@ public class ExamController {
     public ResponseEntity<ApiResponse<ExamResponse>> createExam(
             @RequestParam Long teacherId,
             @Valid @RequestBody ExamRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
@@ -150,6 +154,11 @@ public class ExamController {
         }
 
         ExamResponse exam = examService.createExam(teacherId, request);
+        
+        // Log action
+        auditLogService.log(currentUser.getId(), "CREATE_EXAM", "Tạo bài thi: " + exam.getTitle(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo bài kiểm tra thành công", exam));
     }
@@ -160,7 +169,8 @@ public class ExamController {
     public ResponseEntity<ApiResponse<ExamResponse>> updateExam(
             @PathVariable Long id,
             @Valid @RequestBody ExamRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         ExamResponse existing = examService.getExamById(id);
@@ -173,6 +183,11 @@ public class ExamController {
         }
 
         ExamResponse exam = examService.updateExam(id, request);
+        
+        // Log action
+        auditLogService.log(currentUser.getId(), "UPDATE_EXAM", "Cập nhật bài thi: " + exam.getTitle(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Cập nhật bài kiểm tra thành công", exam));
     }
 
@@ -247,7 +262,8 @@ public class ExamController {
     @Operation(summary = "Delete an exam")
     public ResponseEntity<ApiResponse<Void>> deleteExam(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         ExamResponse existing = examService.getExamById(id);
@@ -260,6 +276,11 @@ public class ExamController {
         }
 
         examService.deleteExam(id);
+        
+        // Log action
+        auditLogService.log(currentUser.getId(), "DELETE_EXAM", "Xóa bài thi: " + existing.getTitle(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Xóa bài kiểm tra thành công", null));
     }
 

@@ -4,6 +4,8 @@ import com.englishlearn.application.dto.request.LessonRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.LessonResponse;
 import com.englishlearn.application.service.LessonService;
+import com.englishlearn.application.service.UserService;
+import com.englishlearn.application.service.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +33,8 @@ import java.util.List;
 public class LessonController {
 
     private final LessonService lessonService;
+    private final UserService userService;
+    private final AuditLogService auditLogService;
 
     /**
      * GET /api/v1/lessons/{id} - Lấy chi tiết một bài học
@@ -67,8 +74,13 @@ public class LessonController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
     @Operation(summary = "Tạo bài học mới")
     public ResponseEntity<ApiResponse<LessonResponse>> create(
-            @RequestBody @Valid LessonRequest request) {
+            @RequestBody @Valid LessonRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         LessonResponse lesson = lessonService.createLesson(request);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "CREATE_LESSON", "Tạo bài học: " + lesson.getTitle(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo bài học thành công", lesson));
     }
@@ -81,8 +93,13 @@ public class LessonController {
     @Operation(summary = "Cập nhật bài học")
     public ResponseEntity<ApiResponse<LessonResponse>> update(
             @PathVariable Long id,
-            @RequestBody @Valid LessonRequest request) {
+            @RequestBody @Valid LessonRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         LessonResponse lesson = lessonService.updateLesson(id, request);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "UPDATE_LESSON", "Cập nhật bài học: " + lesson.getTitle(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thành công", lesson));
     }
 
@@ -92,8 +109,15 @@ public class LessonController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Xóa bài học")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
+        LessonResponse lesson = lessonService.getLessonById(id);
         lessonService.deleteLesson(id);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "DELETE_LESSON", "Xóa bài học: " + lesson.getTitle(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.ok(ApiResponse.success("Xóa bài học thành công"));
     }
 }

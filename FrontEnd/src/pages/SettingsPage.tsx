@@ -8,9 +8,10 @@ import { AVATARS } from '../constants/avatars'
 import ThemeToggle from '../components/ui/ThemeToggle'
 import {
     Save, Camera, Volume2, Bell, Moon, Timer,
-    Check, Loader2, Palette, Lock, Eye, EyeOff, ShieldCheck
+    Check, Loader2, Palette, Lock, Eye, EyeOff, ShieldCheck, Activity, Clock
 } from 'lucide-react'
 import type { User } from '../store/authStore'
+import { auditLogApi, type AuditLogResponse } from '../services/api/auditLogApi'
 
 export default function SettingsPage() {
     const { t } = useTranslation()
@@ -45,6 +46,21 @@ export default function SettingsPage() {
     const timeLearningProgress = learningStats && learningStats.weeklyGoalMinutes > 0
         ? Math.min(100, Math.round((learningStats.weeklyStudyMinutes / learningStats.weeklyGoalMinutes) * 100))
         : 0
+
+    // ─── Teacher Activities state ─────────────────────────────────────────────
+    const [teacherTab, setTeacherTab] = useState<'interface' | 'activities'>('interface')
+    const [activities, setActivities] = useState<AuditLogResponse[]>([])
+    const [loadingActivities, setLoadingActivities] = useState(false)
+
+    useEffect(() => {
+        if (!isStudent && teacherTab === 'activities') {
+            setLoadingActivities(true)
+            auditLogApi.getRecentLogs()
+                .then(setActivities)
+                .catch(console.error)
+                .finally(() => setLoadingActivities(false))
+        }
+    }, [isStudent, teacherTab])
 
     useEffect(() => {
         if (!user) return
@@ -123,25 +139,74 @@ export default function SettingsPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     <div className="lg:w-56 shrink-0">
                         <nav className="flex lg:flex-col gap-1">
-                            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-primary-500/10 text-primary-500">
+                            <button
+                                onClick={() => setTeacherTab('interface')}
+                                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${teacherTab === 'interface'
+                                        ? 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
+                                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                                    }`}
+                            >
                                 <Palette className="w-4 h-4" />
                                 {t('settings.interface')}
-                            </div>
+                            </button>
+                            <button
+                                onClick={() => setTeacherTab('activities')}
+                                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${teacherTab === 'activities'
+                                        ? 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
+                                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                                    }`}
+                            >
+                                <Activity className="w-4 h-4" />
+                                Hoạt động gần đây
+                            </button>
                         </nav>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <h2 className="text-lg font-semibold mb-5 text-slate-900 dark:text-white">{t('settings.interface')}</h2>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium text-slate-900 dark:text-white">{t('settings.darkMode')}</p>
-                                    <p className="text-sm mt-0.5 text-slate-500 dark:text-slate-400">
-                                        {t(isDark ? 'settings.darkModeOn' : 'settings.darkModeOff')}
-                                    </p>
+                        {teacherTab === 'interface' && (
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <h2 className="text-lg font-semibold mb-5 text-slate-900 dark:text-white">{t('settings.interface')}</h2>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="font-medium text-slate-900 dark:text-white">{t('settings.darkMode')}</p>
+                                        <p className="text-sm mt-0.5 text-slate-500 dark:text-slate-400">
+                                            {t(isDark ? 'settings.darkModeOn' : 'settings.darkModeOff')}
+                                        </p>
+                                    </div>
+                                    <ThemeToggle />
                                 </div>
-                                <ThemeToggle />
                             </div>
-                        </div>
+                        )}
+
+                        {teacherTab === 'activities' && (
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <h2 className="text-lg font-semibold mb-5 text-slate-900 dark:text-white">Hoạt động gần đây</h2>
+                                {loadingActivities ? (
+                                    <div className="flex justify-center p-8">
+                                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                                    </div>
+                                ) : activities.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-500">Chưa có hoạt động nào được ghi nhận.</div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {activities.map((log) => (
+                                            <div key={log.id} className="flex gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+                                                <div className="mt-1 p-2 h-fit bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0">
+                                                    <Activity className="w-4 h-4" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-medium text-slate-900 dark:text-white">{log.action}</p>
+                                                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">{log.details}</p>
+                                                    <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500">
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                        {new Date(log.createdAt).toLocaleString('vi-VN')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -175,11 +240,10 @@ export default function SettingsPage() {
                 </div>
 
                 {message && (
-                    <div className={`p-4 rounded-xl border ${
-                        message.type === 'success'
+                    <div className={`p-4 rounded-xl border ${message.type === 'success'
                             ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                             : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
-                    }`}>
+                        }`}>
                         {message.text}
                     </div>
                 )}
@@ -247,11 +311,10 @@ export default function SettingsPage() {
                                         key={avatar.id}
                                         type="button"
                                         onClick={() => setSelectedAvatarUrl(avatar.url)}
-                                        className={`relative aspect-square rounded-xl overflow-hidden transition-all ${
-                                            selectedAvatarUrl === avatar.url
+                                        className={`relative aspect-square rounded-xl overflow-hidden transition-all ${selectedAvatarUrl === avatar.url
                                                 ? 'ring-4 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900'
                                                 : 'hover:ring-4 hover:ring-primary-500/50 hover:ring-offset-2 grayscale hover:grayscale-0'
-                                        }`}
+                                            }`}
                                     >
                                         <img
                                             src={avatar.url}
@@ -281,11 +344,10 @@ export default function SettingsPage() {
                             </div>
 
                             {pwdMessage && (
-                                <div className={`mb-4 p-3 rounded-xl border text-sm ${
-                                    pwdMessage.type === 'success'
+                                <div className={`mb-4 p-3 rounded-xl border text-sm ${pwdMessage.type === 'success'
                                         ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                                         : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
-                                }`}>
+                                    }`}>
                                     {pwdMessage.text}
                                 </div>
                             )}
@@ -332,13 +394,12 @@ export default function SettingsPage() {
                                             value={confirmPassword}
                                             onChange={e => setConfirmPassword(e.target.value)}
                                             required
-                                            className={`w-full bg-slate-50 dark:bg-slate-900/50 border-2 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none transition-colors pr-10 ${
-                                                confirmPassword && confirmPassword !== newPassword
+                                            className={`w-full bg-slate-50 dark:bg-slate-900/50 border-2 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none transition-colors pr-10 ${confirmPassword && confirmPassword !== newPassword
                                                     ? 'border-red-400 focus:border-red-400'
                                                     : confirmPassword && confirmPassword === newPassword
-                                                    ? 'border-emerald-400 focus:border-emerald-400'
-                                                    : 'border-slate-200 dark:border-slate-700 focus:border-primary-500'
-                                            }`}
+                                                        ? 'border-emerald-400 focus:border-emerald-400'
+                                                        : 'border-slate-200 dark:border-slate-700 focus:border-primary-500'
+                                                }`}
                                             placeholder={t('settings.confirmNewPassword')}
                                         />
                                         <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -386,13 +447,11 @@ export default function SettingsPage() {
                                     <button
                                         type="button"
                                         onClick={() => setSoundEffects(!soundEffects)}
-                                        className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                                            soundEffects ? 'bg-primary-500' : 'bg-slate-200 dark:bg-slate-700'
-                                        }`}
+                                        className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${soundEffects ? 'bg-primary-500' : 'bg-slate-200 dark:bg-slate-700'
+                                            }`}
                                     >
-                                        <span className={`inline-block size-6 transform rounded-full bg-white shadow-md transition-transform ${
-                                            soundEffects ? 'translate-x-7' : 'translate-x-1'
-                                        }`} />
+                                        <span className={`inline-block size-6 transform rounded-full bg-white shadow-md transition-transform ${soundEffects ? 'translate-x-7' : 'translate-x-1'
+                                            }`} />
                                     </button>
                                 </div>
                                 <div className="flex items-center justify-between cursor-pointer group">
@@ -408,13 +467,11 @@ export default function SettingsPage() {
                                     <button
                                         type="button"
                                         onClick={() => setDailyReminders(!dailyReminders)}
-                                        className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                                            dailyReminders ? 'bg-primary-500' : 'bg-slate-200 dark:bg-slate-700'
-                                        }`}
+                                        className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${dailyReminders ? 'bg-primary-500' : 'bg-slate-200 dark:bg-slate-700'
+                                            }`}
                                     >
-                                        <span className={`inline-block size-6 transform rounded-full bg-white shadow-md transition-transform ${
-                                            dailyReminders ? 'translate-x-7' : 'translate-x-1'
-                                        }`} />
+                                        <span className={`inline-block size-6 transform rounded-full bg-white shadow-md transition-transform ${dailyReminders ? 'translate-x-7' : 'translate-x-1'
+                                            }`} />
                                     </button>
                                 </div>
                                 <div className="flex items-center justify-between cursor-pointer group">

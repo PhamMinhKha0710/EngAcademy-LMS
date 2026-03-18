@@ -27,6 +27,7 @@ import TeacherLessonsPage from './pages/teacher/TeacherLessonsPage'
 import QuestionsPage from './pages/teacher/QuestionsPage'
 import TeacherVocabularyPage from './pages/teacher/TeacherVocabularyPage'
 import TeacherExamsPage from './pages/teacher/TeacherExamsPage'
+import ExamEditPage from './pages/teacher/ExamEditPage'
 import TeacherExamResultsPage from './pages/teacher/ExamResultsPage'
 import StudentProgressPage from './pages/teacher/StudentProgressPage'
 
@@ -72,6 +73,8 @@ function App() {
                     <Route path="teacher/questions" element={<QuestionsPage />} />
                     <Route path="teacher/vocabulary" element={<TeacherVocabularyPage />} />
                     <Route path="teacher/exams" element={<TeacherExamsPage />} />
+                    <Route path="teacher/exams/new" element={<ExamEditPage />} />
+                    <Route path="teacher/exams/:id/edit" element={<ExamEditPage />} />
                     <Route path="teacher/exams/:examId/results" element={<TeacherExamResultsPage />} />
                     <Route path="teacher/progress" element={<StudentProgressPage />} />
                 </Route>

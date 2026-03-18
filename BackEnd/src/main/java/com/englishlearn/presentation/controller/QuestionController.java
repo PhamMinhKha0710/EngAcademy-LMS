@@ -4,6 +4,8 @@ import com.englishlearn.application.dto.request.QuestionRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.QuestionResponse;
 import com.englishlearn.application.service.QuestionService;
+import com.englishlearn.application.service.UserService;
+import com.englishlearn.application.service.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -13,6 +15,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +29,8 @@ import java.util.List;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final UserService userService;
+    private final AuditLogService auditLogService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
@@ -63,8 +70,13 @@ public class QuestionController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Create a new question")
     public ResponseEntity<ApiResponse<QuestionResponse>> createQuestion(
-            @Valid @RequestBody QuestionRequest request) {
+            @Valid @RequestBody QuestionRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         QuestionResponse question = questionService.createQuestion(request);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "CREATE_QUESTION", "Tạo câu hỏi: " + question.getQuestionText(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo câu hỏi thành công", question));
     }
@@ -74,16 +86,28 @@ public class QuestionController {
     @Operation(summary = "Update a question")
     public ResponseEntity<ApiResponse<QuestionResponse>> updateQuestion(
             @PathVariable Long id,
-            @Valid @RequestBody QuestionRequest request) {
+            @Valid @RequestBody QuestionRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
         QuestionResponse question = questionService.updateQuestion(id, request);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "UPDATE_QUESTION", "Cập nhật câu hỏi: " + question.getQuestionText(),
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.ok(ApiResponse.success("Cập nhật câu hỏi thành công", question));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Delete a question")
-    public ResponseEntity<ApiResponse<Void>> deleteQuestion(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteQuestion(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
+        QuestionResponse question = questionService.getQuestionById(id);
         questionService.deleteQuestion(id);
+        var currentUser = userService.getUserByUsername(userDetails.getUsername());
+        auditLogService.log(currentUser.getId(), "DELETE_QUESTION", "Xóa câu hỏi ID " + id,
+             servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
         return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi thành công", null));
     }
 }
