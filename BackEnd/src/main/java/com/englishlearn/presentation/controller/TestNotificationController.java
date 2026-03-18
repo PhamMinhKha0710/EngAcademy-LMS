@@ -17,27 +17,27 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Test Notifications", description = "API để test thông báo real-time")
 public class TestNotificationController {
 
-    private final NotificationService notificationService;
-    private final UserRepository userRepository;
+        private final NotificationService notificationService;
+        private final UserRepository userRepository;
 
-    @PostMapping("/send/{username}")
-    @Operation(summary = "Gửi thông báo test cho user cụ thể")
-    public ResponseEntity<ApiResponse<String>> sendTest(
-            @PathVariable String username,
-            @RequestParam String title,
-            @RequestParam String message) {
+        @PostMapping("/send/{userId}")
+        @Operation(summary = "Gửi thông báo test cho user cụ thể")
+        public ResponseEntity<ApiResponse<String>> sendTest(
+                        @PathVariable Long userId,
+                        @RequestParam String title,
+                        @RequestParam String message) {
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        Notification notification = Notification.builder()
-                .user(user)
-                .title(title)
-                .message(message)
-                .isRead(false)
-                .build();
+                Notification notification = Notification.builder()
+                                .user(user)
+                                .title(title)
+                                .message(message)
+                                .isRead(false)
+                                .build();
 
-        notificationService.sendNotification(notification);
-        return ResponseEntity.ok(ApiResponse.success("Test notification sent to " + username));
-    }
+                notificationService.sendNotification(notification);
+                return ResponseEntity.ok(ApiResponse.success("Test notification sent to user " + userId));
+        }
 }

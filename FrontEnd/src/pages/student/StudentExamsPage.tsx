@@ -1,19 +1,35 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { FileText, Clock, HelpCircle, ChevronDown, Play, Loader2 } from 'lucide-react'
+import {
+    ArrowRight,
+    CalendarDays,
+    ChevronDown,
+    Clock,
+    FileText,
+    HelpCircle,
+    ListFilter,
+    Loader2,
+    Users,
+} from 'lucide-react'
 import { examApi, ExamResponse } from '../../services/api/examApi'
 import { classroomApi, ClassRoomResponse } from '../../services/api/classroomApi'
-import Badge from '../../components/ui/Badge'
+import { useAuthStore } from '../../store/authStore'
 import EmptyState from '../../components/ui/EmptyState'
 
+type ExamTab = 'all' | 'ongoing' | 'upcoming' | 'ended'
+
 export default function StudentExamsPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
+    const user = useAuthStore((s) => s.user)
     const [classes, setClasses] = useState<ClassRoomResponse[]>([])
     const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
     const [exams, setExams] = useState<ExamResponse[]>([])
     const [loadingClasses, setLoadingClasses] = useState(true)
     const [loadingExams, setLoadingExams] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [activeTab, setActiveTab] = useState<ExamTab>('all')
 
     // Fetch classes the student belongs to
     useEffect(() => {
@@ -21,20 +37,24 @@ export default function StudentExamsPage() {
             try {
                 setLoadingClasses(true)
                 setError(null)
-                const data = await classroomApi.getAll()
+                if (!user?.id) {
+                    setClasses([])
+                    return
+                }
+                const data = await classroomApi.getByStudent(user.id)
                 setClasses(data || [])
                 if (data && data.length > 0) {
                     setSelectedClassId(data[0].id)
                 }
             } catch (err) {
                 console.error('Failed to fetch classes:', err)
-                setError('Không thể tải danh sách lớp học')
+                setError(t('common.error'))
             } finally {
                 setLoadingClasses(false)
             }
         }
         fetchClasses()
-    }, [])
+    }, [user?.id, t])
 
     // Fetch active exams when class is selected
     useEffect(() => {
@@ -48,13 +68,13 @@ export default function StudentExamsPage() {
                 setExams(data || [])
             } catch (err) {
                 console.error('Failed to fetch exams:', err)
-                setError('Không thể tải danh sách bài thi')
+                setError(t('common.error'))
             } finally {
                 setLoadingExams(false)
             }
         }
         fetchExams()
-    }, [selectedClassId])
+    }, [selectedClassId, t])
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return '—'
@@ -73,12 +93,15 @@ export default function StudentExamsPage() {
         const end = exam.endTime ? new Date(exam.endTime) : null
 
         if (start && start > now) {
-            return { label: 'Sắp bắt đầu', variant: 'warning' as const }
+            return { key: 'upcoming' as const, label: t('exams.upcoming') }
         }
         if (start && end && start <= now && end >= now) {
-            return { label: 'Đang diễn ra', variant: 'info' as const }
+            return { key: 'ongoing' as const, label: t('exams.ongoing') }
         }
-        return { label: 'Đang mở', variant: 'info' as const }
+        if (end && end < now) {
+            return { key: 'ended' as const, label: t('exams.ended') }
+        }
+        return { key: 'ongoing' as const, label: t('exams.open') }
     }
 
     const canTakeExam = (exam: ExamResponse) => {
@@ -91,6 +114,18 @@ export default function StudentExamsPage() {
         return true
     }
 
+    const filteredExams = useMemo(() => {
+        if (activeTab === 'all') return exams
+        return exams.filter((exam) => getExamStatus(exam).key === activeTab)
+    }, [activeTab, exams])
+
+    const tabItems: { key: ExamTab; label: string }[] = [
+        { key: 'all', label: t('exams.allExams') },
+        { key: 'ongoing', label: t('exams.ongoing') },
+        { key: 'upcoming', label: t('exams.upcoming') },
+        { key: 'ended', label: t('exams.ended') },
+    ]
+
     if (loadingClasses) {
         return (
             <div className="flex items-center justify-center py-24">
@@ -102,39 +137,53 @@ export default function StudentExamsPage() {
     if (classes.length === 0) {
         return (
             <div className="max-w-4xl mx-auto px-4 py-8">
+                {error && (
+                    <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">
+                        {error}
+                    </div>
+                )}
                 <EmptyState
                     icon={<FileText className="w-8 h-8" />}
-                    title="Chưa tham gia lớp học nào"
-                    description="Bạn cần tham gia một lớp học để xem và làm bài thi."
+                    title={t('exams.noClassesJoined')}
+                    description={t('exams.needJoinClass')}
                 />
             </div>
         )
     }
 
     return (
-        <div className="max-w-5xl mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="mb-8">
-                <h1
-                    className="text-2xl md:text-3xl font-bold mb-2"
-                    style={{ color: 'var(--color-text)' }}
-                >
-                    Bài thi
-                </h1>
-                <p style={{ color: 'var(--color-text-secondary)' }}>
-                    Chọn lớp học và xem các bài thi đang diễn ra
-                </p>
+        <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+            <div className="card p-6 md:p-7">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                    <div>
+                        <h1
+                            className="text-[28px] font-extrabold leading-tight"
+                            style={{ color: 'var(--color-text)' }}
+                        >
+                            {t('exams.examList')}
+                        </h1>
+                        <p className="mt-1 text-sm md:text-base" style={{ color: 'var(--color-text-secondary)' }}>
+                            {t('exams.selectClass')}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start md:self-auto">
+                        <button className="btn-secondary text-sm gap-2">
+                            <ListFilter className="w-4 h-4" />
+                            {t('exams.filterExams')}
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            {/* Class selector */}
-            <div className="mb-6">
+            <div className="card p-5 md:p-6">
                 <label
-                    className="block text-sm font-medium mb-2"
+                    className="block text-sm font-medium mb-2.5"
                     style={{ color: 'var(--color-text-secondary)' }}
                 >
-                    Lớp học
+                    {t('exams.classroom')}
                 </label>
-                <div className="relative w-full max-w-xs">
+                <div className="relative w-full max-w-md">
                     <select
                         value={selectedClassId ?? ''}
                         onChange={(e) => setSelectedClassId(Number(e.target.value))}
@@ -151,95 +200,123 @@ export default function StudentExamsPage() {
                         style={{ color: 'var(--color-text-secondary)' }}
                     />
                 </div>
+
+                <div className="mt-5 flex flex-wrap gap-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                    {tabItems.map((tab) => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
+                                activeTab === tab.key ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-transparent'
+                            }`}
+                            style={{
+                                color: activeTab === tab.key ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                            }}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Error */}
             {error && (
-                <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">
                     {error}
                 </div>
             )}
 
-            {/* Loading exams */}
             {loadingExams && (
                 <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                 </div>
             )}
 
-            {/* Exams list */}
             {!loadingExams && exams.length === 0 && (
                 <EmptyState
                     icon={<FileText className="w-8 h-8" />}
-                    title="Không có bài thi nào"
-                    description="Hiện tại chưa có bài thi nào đang diễn ra trong lớp này."
+                    title={t('exams.noExams')}
+                    description={t('exams.noActiveExams')}
                 />
             )}
 
-            {!loadingExams && exams.length > 0 && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                    {exams.map((exam) => {
+            {!loadingExams && exams.length > 0 && filteredExams.length === 0 && (
+                <EmptyState
+                    icon={<FileText className="w-8 h-8" />}
+                    title={t('exams.noMatchingExams')}
+                    description={t('exams.tryDifferentTab')}
+                />
+            )}
+
+            {!loadingExams && filteredExams.length > 0 && (
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {filteredExams.map((exam) => {
                         const status = getExamStatus(exam)
                         const available = canTakeExam(exam)
+                        const statusStyles =
+                            status.key === 'ongoing'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : status.key === 'upcoming'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-slate-200 text-slate-700'
 
                         return (
                             <div
                                 key={exam.id}
-                                className="card p-6 flex flex-col gap-4"
+                                className="card overflow-hidden flex flex-col"
                             >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1 min-w-0">
-                                        <h3
-                                            className="text-lg font-semibold truncate"
-                                            style={{ color: 'var(--color-text)' }}
-                                        >
-                                            {exam.title}
-                                        </h3>
-                                        {exam.className && (
-                                            <p
-                                                className="text-sm mt-1"
-                                                style={{ color: 'var(--color-text-secondary)' }}
-                                            >
-                                                {exam.className}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <Badge variant={status.variant}>{status.label}</Badge>
-                                </div>
-
-                                <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                                    {exam.durationMinutes && (
-                                        <span className="flex items-center gap-1.5">
-                                            <Clock className="w-4 h-4" />
-                                            {exam.durationMinutes} phút
-                                        </span>
-                                    )}
-                                    {exam.questionCount != null && (
-                                        <span className="flex items-center gap-1.5">
-                                            <HelpCircle className="w-4 h-4" />
-                                            {exam.questionCount} câu hỏi
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="text-xs space-y-1" style={{ color: 'var(--color-text-secondary)' }}>
-                                    <p>Bắt đầu: {formatDate(exam.startTime)}</p>
-                                    <p>Kết thúc: {formatDate(exam.endTime)}</p>
-                                </div>
-
-                                <button
-                                    onClick={() => navigate(`/exams/${exam.id}/take`)}
-                                    disabled={!available}
-                                    className={`mt-auto flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-                                        available
-                                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/25'
-                                            : 'opacity-50 cursor-not-allowed'
-                                    }`}
-                                    style={!available ? { background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' } : undefined}
+                                <div
+                                    className="p-4 md:p-5 text-white"
+                                    style={{
+                                        background:
+                                            'linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 88%, #fff 12%), color-mix(in srgb, var(--color-primary) 62%, #1e3a8a 38%))',
+                                    }}
                                 >
-                                    <Play className="w-4 h-4" />
-                                    Vào thi
-                                </button>
+                                    <div className="inline-flex items-center gap-2 mb-3">
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusStyles}`}>
+                                            {status.label}
+                                        </span>
+                                    </div>
+                                    <h3 className="text-lg font-bold line-clamp-2 min-h-[3.5rem]">
+                                        {exam.title}
+                                    </h3>
+                                </div>
+
+                                <div className="p-5 flex flex-col gap-4 flex-1">
+                                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                        <Users className="w-4 h-4" />
+                                        <span className="font-medium truncate">{exam.className || t('exams.classroom')}</span>
+                                    </div>
+
+                                    <div className="space-y-2.5 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                        <p className="flex items-center gap-2">
+                                            <Clock className="w-4 h-4" />
+                                            <span>{t('exams.duration')}: {exam.durationMinutes ?? '—'} {t('exams.minutes')}</span>
+                                        </p>
+                                        <p className="flex items-center gap-2">
+                                            <HelpCircle className="w-4 h-4" />
+                                            <span>{t('exams.numberQuestions')}: {exam.questionCount ?? 0} {t('exams.questions')}</span>
+                                        </p>
+                                        <p className="flex items-start gap-2">
+                                            <CalendarDays className="w-4 h-4 mt-0.5" />
+                                            <span>
+                                                {t('exams.start')}: {formatDate(exam.startTime)}
+                                                <br />
+                                                {t('exams.end')}: {formatDate(exam.endTime)}
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        onClick={() => navigate(`/exams/${exam.id}/introduction`)}
+                                        disabled={!available}
+                                        className={`mt-auto w-full rounded-full px-4 py-3 text-sm font-semibold transition-all inline-flex items-center justify-center gap-2 ${
+                                            available ? 'btn-primary' : 'btn-secondary opacity-70 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {available ? t('exams.viewIntroStart') : t('exams.timeExpired')}
+                                        {available && <ArrowRight className="w-4 h-4" />}
+                                    </button>
+                                </div>
                             </div>
                         )
                     })}
@@ -248,3 +325,4 @@ export default function StudentExamsPage() {
         </div>
     )
 }
+

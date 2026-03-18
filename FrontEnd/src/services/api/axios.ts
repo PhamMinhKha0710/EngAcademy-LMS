@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useToastStore } from '../../store/toastStore'
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -37,21 +38,43 @@ api.interceptors.response.use(
         return response
     },
     (error) => {
+        const { addToast } = useToastStore.getState()
+
         // Handle 401 Unauthorized - Token expired or invalid
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
+            addToast({
+                type: 'error',
+                message: 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.',
+            })
             // Clear auth storage and redirect to login
             localStorage.removeItem('auth-storage')
             window.location.href = '/login'
         }
-
         // Handle 403 Forbidden
-        if (error.response?.status === 403) {
+        else if (error.response?.status === 403) {
+            addToast({
+                type: 'warning',
+                message: 'Bạn không có quyền truy cập chức năng này.',
+            })
             console.error('Access denied')
         }
-
         // Handle network errors
-        if (!error.response) {
+        else if (!error.response) {
+            addToast({
+                type: 'error',
+                message: 'Lỗi mạng - Vui lòng kiểm tra kết nối internet của bạn.',
+            })
             console.error('Network error - please check your connection')
+        }
+        // Other errors (400, 500, etc.) - skip toast for login so Login page shows in-line only
+        else {
+            const isLoginRequest = error.config?.url?.includes('/auth/login')
+            if (!isLoginRequest) {
+                addToast({
+                    type: 'error',
+                    message: error.response?.data?.message || 'Đã xảy ra lỗi hệ thống.',
+                })
+            }
         }
 
         return Promise.reject(error)

@@ -17,6 +17,7 @@ import java.util.List;
 public class QuestionRequest {
 
     private Long lessonId;
+    private Long vocabularyId;
 
     @NotBlank(message = "Loại câu hỏi không được để trống")
     @Size(max = 50, message = "Loại câu hỏi không được vượt quá 50 ký tự")

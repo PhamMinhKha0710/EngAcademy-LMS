@@ -20,6 +20,10 @@ public class Question {
     @JoinColumn(name = "lesson_id")
     private Lesson lesson;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vocabulary_id")
+    private Vocabulary vocabulary;
+
     @Column(name = "question_type", length = 50)
     private String questionType; // MULTIPLE_CHOICE, FILL_IN_BLANK, TRUE_FALSE, ESSAY
 

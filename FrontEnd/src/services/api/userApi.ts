@@ -29,6 +29,21 @@ export interface PageResponse<T> {
     number: number
 }
 
+export interface UserLearningStats {
+    totalStudyMinutes: number
+    weeklyStudyMinutes: number
+    weeklyGoalMinutes: number
+}
+
+export interface UserSettings {
+    soundEffectsEnabled: boolean | null
+    dailyRemindersEnabled: boolean | null
+    prefersDarkMode: boolean | null
+    totalStudyMinutes: number
+    weeklyStudyMinutes: number
+    weeklyGoalMinutes: number
+}
+
 // ===== User API Functions =====
 
 export const userApi = {
@@ -62,8 +77,12 @@ export const userApi = {
      * PATCH /api/v1/users/me - Update own profile
      */
     updateProfile: async (fullName?: string, avatarUrl?: string): Promise<User> => {
+        const params: any = {}
+        if (fullName) params.fullName = fullName
+        if (avatarUrl) params.avatarUrl = avatarUrl
+
         const response = await api.patch<ApiResponse<User>>('/users/me', null, {
-            params: { fullName, avatarUrl }
+            params
         })
         return response.data.data
     },
@@ -75,5 +94,28 @@ export const userApi = {
         await api.post(`/users/${userId}/coins`, null, {
             params: { amount }
         })
+    },
+
+    /**
+     * PATCH /api/v1/users/me/password - Đổi mật khẩu
+     */
+    changePassword: async (oldPassword: string, newPassword: string, confirmPassword: string): Promise<void> => {
+        await api.patch('/users/me/password', { oldPassword, newPassword, confirmPassword })
+    },
+
+    /**
+     * GET /api/v1/users/me/settings - Lấy cài đặt cá nhân + thống kê học tập
+     */
+    getSettings: async (): Promise<UserSettings> => {
+        const response = await api.get<ApiResponse<UserSettings>>('/users/me/settings')
+        return response.data.data
+    },
+
+    /**
+     * PUT /api/v1/users/me/settings - Cập nhật cài đặt cá nhân (preferences)
+     */
+    updateSettings: async (payload: Partial<Pick<UserSettings, 'soundEffectsEnabled' | 'dailyRemindersEnabled' | 'prefersDarkMode'>>): Promise<UserSettings> => {
+        const response = await api.put<ApiResponse<UserSettings>>('/users/me/settings', payload)
+        return response.data.data
     },
 }

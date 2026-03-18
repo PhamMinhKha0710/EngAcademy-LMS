@@ -18,12 +18,12 @@
     <description>Backend API for English Learning Platform</description>
     
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
         <jjwt.version>0.12.5</jjwt.version>
         <lombok.version>1.18.36</lombok.version>
         <start-class>com.englishlearn.EnglishLearnApplication</start-class>
     </properties>
-    
+
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
@@ -106,6 +106,12 @@
             <scope>test</scope>
         </dependency>
         
+        <!-- Spring Mail -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- WebSocket -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -118,6 +124,12 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.3.0</version>
         </dependency>
+        <!-- Google API Client -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            <version>1.35.0</version>
+        </dependency>
     </dependencies>
     
     <build>
@@ -125,7 +137,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
                 <configuration>
+                    <release>17</release>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

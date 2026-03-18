@@ -61,6 +61,7 @@ public class LessonService {
                 .title(request.getTitle())
                 .topic(topic)
                 .contentHtml(request.getContentHtml())
+                .grammarHtml(request.getGrammarHtml())
                 .audioUrl(request.getAudioUrl())
                 .videoUrl(request.getVideoUrl())
                 .difficultyLevel(request.getDifficultyLevel() != null ? request.getDifficultyLevel() : 1)
@@ -88,6 +89,8 @@ public class LessonService {
             lesson.setTitle(request.getTitle());
         if (request.getContentHtml() != null)
             lesson.setContentHtml(request.getContentHtml());
+        if (request.getGrammarHtml() != null)
+            lesson.setGrammarHtml(request.getGrammarHtml());
         if (request.getAudioUrl() != null)
             lesson.setAudioUrl(request.getAudioUrl());
         if (request.getVideoUrl() != null)
@@ -120,6 +123,7 @@ public class LessonService {
                 .topicId(lesson.getTopic() != null ? lesson.getTopic().getId() : null)
                 .topicName(lesson.getTopic() != null ? lesson.getTopic().getName() : null)
                 .contentHtml(lesson.getContentHtml())
+                .grammarHtml(lesson.getGrammarHtml())
                 .audioUrl(lesson.getAudioUrl())
                 .videoUrl(lesson.getVideoUrl())
                 .difficultyLevel(lesson.getDifficultyLevel())

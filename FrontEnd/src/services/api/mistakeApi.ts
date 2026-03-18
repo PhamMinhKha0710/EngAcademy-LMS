@@ -3,9 +3,9 @@ interface ApiResponse<T> { success: boolean; message: string; data: T }
 
 export interface MistakeNotebook {
     id: number; userId?: number; vocabularyId?: number; word?: string; meaning?: string;
-    mistakeCount?: number; lastMistakeAt?: string;
+    mistakeCount?: number; lastMistakeAt?: string; addedAt?: string;
 }
-export interface MistakeRequest { vocabularyId: number }
+export interface MistakeRequest { vocabularyId: number; userId?: number }
 
 export const mistakeApi = {
     getUserMistakes: async (userId: number) => {

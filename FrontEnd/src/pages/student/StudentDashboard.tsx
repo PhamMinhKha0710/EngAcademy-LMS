@@ -1,40 +1,52 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
-    Flame,
-    Coins,
+    ArrowRight,
     BookOpen,
-    Trophy,
-    Target,
-    ChevronRight,
-    Loader2,
-    Star,
+    CheckCircle2,
     Clock,
-    CheckCircle,
-    Circle,
+    Loader2,
+    PlayCircle,
+    Trophy,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { progressApi, ProgressResponse } from '../../services/api/progressApi'
-import { questApi, DailyQuestResponse } from '../../services/api/questApi'
 import { leaderboardApi, LeaderboardEntry } from '../../services/api/leaderboardApi'
-import StatCard from '../../components/ui/StatCard'
+import { DailyQuestResponse, questApi } from '../../services/api/questApi'
+import { vocabularyApi, VocabularyResponse } from '../../services/api/vocabularyApi'
 import ProgressBar from '../../components/ui/ProgressBar'
 
 interface ProgressStats {
     completedLessons: number
-    totalLessons: number
-    averageScore: number
-    totalTimeSpent: number
+    averageProgress: number
+    wordsLearned: number
 }
 
+const NEXT_LESSON_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuALCoX9kpHAXVTawTzYGjbLCOoXiJ5VtIDa_NUAyZsaopP3FSofE1OwwHkKqo_WHwSlMvrKI0Voq4udFZ0yRDE1TUesQbm8mWKH6LXMT4LeoWChjDbCLb6yfxY_s1arB4a3L_jLUY2YxhRpOOkwyqfy3K57e-q7Vc03dz6gVvyHN40dgmEwupUmLnNp26VS2Qn4d8-gVem_PDPnbpQq1y_T7MkHTdZO6RwjtzUb2y4P-M7ahfmftTJEdhjgDsSiGM9_xy_1QnDcxuWS'
+
 export default function StudentDashboard() {
+    const { t } = useTranslation()
     const user = useAuthStore((s) => s.user)
+    const navigate = useNavigate()
 
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState<ProgressStats | null>(null)
-    const [quest, setQuest] = useState<DailyQuestResponse | null>(null)
     const [inProgress, setInProgress] = useState<ProgressResponse[]>([])
     const [top5, setTop5] = useState<LeaderboardEntry[]>([])
+    const [dailyQuest, setDailyQuest] = useState<DailyQuestResponse | null>(null)
+    const [dailyWord, setDailyWord] = useState<VocabularyResponse | null>(null)
+
+    useEffect(() => {
+        const fetchWord = () => {
+            vocabularyApi.getRandomFlashcards(1)
+                .then((words) => { if (words.length > 0) setDailyWord(words[0]) })
+                .catch(() => {})
+        }
+        fetchWord()
+        const interval = setInterval(fetchWord, 5 * 60 * 1000)
+        return () => clearInterval(interval)
+    }, [])
 
     useEffect(() => {
         if (!user?.id) return
@@ -42,26 +54,25 @@ export default function StudentDashboard() {
         const fetchData = async () => {
             setLoading(true)
             try {
-                const [statsData, questData, inProgressData, leaderboardData] =
+                const [statsData, inProgressData, leaderboardData, dailyQuestData] =
                     await Promise.allSettled([
                         progressApi.getStats(user.id),
-                        questApi.getToday(),
                         progressApi.getInProgress(user.id),
                         leaderboardApi.getTop(5),
+                        questApi.getToday(),
                     ])
 
-                if (statsData.status === 'fulfilled') {
-                    setStats(statsData.value as unknown as ProgressStats)
+                if (statsData.status === 'fulfilled' && statsData.value) {
+                    const raw = statsData.value as Record<string, unknown>
+                    setStats({
+                        completedLessons: (raw.completedLessons as number) ?? 0,
+                        averageProgress: (raw.averageProgress as number) ?? 0,
+                        wordsLearned: (raw.wordsLearned as number) ?? 0,
+                    })
                 }
-                if (questData.status === 'fulfilled') {
-                    setQuest(questData.value)
-                }
-                if (inProgressData.status === 'fulfilled') {
-                    setInProgress((inProgressData.value as ProgressResponse[]).slice(0, 4))
-                }
-                if (leaderboardData.status === 'fulfilled') {
-                    setTop5(leaderboardData.value)
-                }
+                if (inProgressData.status === 'fulfilled') setInProgress((inProgressData.value as ProgressResponse[]).slice(0, 4))
+                if (leaderboardData.status === 'fulfilled') setTop5(leaderboardData.value)
+                if (dailyQuestData.status === 'fulfilled') setDailyQuest(dailyQuestData.value)
             } catch (err) {
                 console.error('Failed to load dashboard data:', err)
             } finally {
@@ -72,318 +83,254 @@ export default function StudentDashboard() {
         fetchData()
     }, [user?.id])
 
+    const handleContinueLearning = () => {
+        if (inProgress.length > 0) {
+            navigate(`/lessons/${inProgress[0].lessonId}`)
+        } else {
+            navigate('/lessons')
+        }
+    }
+
+    const nextLesson = inProgress[0]
+    const totalCoins = user?.coins ?? 0
+    const xpInLevel = totalCoins % 500
+    const xpNeeded = 500
+
+    const wordsMastered = stats?.wordsLearned ?? 0
+    const timeSpentMinutes = (stats?.completedLessons ?? 0) * 15
+    const timeSpentDisplay = timeSpentMinutes >= 60
+        ? `${Math.floor(timeSpentMinutes / 60)} ${t('dashboard.hours')} ${timeSpentMinutes % 60} ${t('dashboard.minutes')}`
+        : `${timeSpentMinutes} ${t('dashboard.minutes')}`
+    const questTasks = dailyQuest?.tasks ?? []
+    const questCompletedCount = questTasks.filter((task) => Boolean(task.completed ?? task.isCompleted)).length
+    const questTotalCount = questTasks.length
+    const primaryQuest = questTasks.find((task) => !(task.completed ?? task.isCompleted)) ?? questTasks[0]
+    const questOverallProgress = questTotalCount > 0
+        ? Math.round((questCompletedCount / questTotalCount) * 100)
+        : 0
+    const learningItems = inProgress.slice(0, 3)
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary-500" strokeWidth={2} />
             </div>
         )
     }
 
-    const completedQuestTasks = quest?.tasks?.filter((t) => t.completed).length ?? 0
-    const totalQuestTasks = quest?.tasks?.length ?? 0
-    const questProgress =
-        totalQuestTasks > 0 ? Math.round((completedQuestTasks / totalQuestTasks) * 100) : 0
-
-    const rankMedals = ['🥇', '🥈', '🥉']
-
     return (
-        <div className="p-6 lg:p-8 space-y-8">
-            {/* Welcome */}
-            <div>
-                <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
-                    Xin chào, {user?.fullName || 'Học sinh'}!
-                </h1>
-                <p className="mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                    Hãy tiếp tục hành trình học tập của bạn hôm nay.
-                </p>
-            </div>
-
-            {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <StatCard
-                    icon={<Flame className="w-6 h-6" />}
-                    label="Chuỗi ngày học"
-                    value={`${user?.streakDays ?? 0} ngày`}
-                    color="text-orange-500"
-                />
-                <StatCard
-                    icon={<Coins className="w-6 h-6" />}
-                    label="Xu tích lũy"
-                    value={(user?.coins ?? 0).toLocaleString()}
-                    color="text-yellow-500"
-                />
-                <StatCard
-                    icon={<BookOpen className="w-6 h-6" />}
-                    label="Bài học hoàn thành"
-                    value={stats?.completedLessons ?? 0}
-                    color="text-emerald-500"
-                />
-                <StatCard
-                    icon={<Star className="w-6 h-6" />}
-                    label="Điểm trung bình"
-                    value={stats?.averageScore != null ? `${Math.round(stats.averageScore)}%` : '--'}
-                    color="text-purple-500"
-                />
-            </div>
-
-            {/* Daily Quest + Continue Learning */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Daily Quest */}
-                <div className="card p-6">
-                    <div className="flex items-center justify-between mb-5">
-                        <h2
-                            className="text-lg font-semibold flex items-center gap-2"
-                            style={{ color: 'var(--color-text)' }}
-                        >
-                            <Target className="w-5 h-5 text-blue-500" />
-                            Nhiệm vụ hôm nay
-                        </h2>
-                        {quest?.isCompleted && (
-                            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-green-500/15 text-green-400">
-                                Hoàn thành!
-                            </span>
-                        )}
+        <div className="flex flex-col min-h-full bg-slate-50 dark:bg-slate-900">
+            <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                <div className="mx-auto max-w-7xl space-y-6">
+                    <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                        {t('dashboard.overview')}
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="card p-5">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('dashboard.dailyStreak')}</p>
+                            <p className="text-3xl font-black mt-2 text-slate-900 dark:text-white">{user?.streakDays ?? 0} <span className="text-lg font-semibold">{t('dashboard.days')}</span></p>
+                            <p className="text-xs mt-2 text-emerald-500 font-semibold">{t('dashboard.keepStreakHint')}</p>
+                        </div>
+                        <div className="card p-5">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('dashboard.totalXP')}</p>
+                            <p className="text-3xl font-black mt-2 text-slate-900 dark:text-white">{totalCoins.toLocaleString()} <span className="text-lg font-semibold">XP</span></p>
+                            <p className="text-xs mt-2 text-emerald-500 font-semibold">+{Math.max(0, xpNeeded - xpInLevel)} {t('dashboard.toLevelUp')}</p>
+                        </div>
+                        <div className="card p-5">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t('dashboard.wordsLearned')}</p>
+                            <p className="text-3xl font-black mt-2 text-slate-900 dark:text-white">{wordsMastered} <span className="text-lg font-semibold">{t('dashboard.words')}</span></p>
+                            <p className="text-xs mt-2 text-slate-500">{t('dashboard.timeSpent')}: {timeSpentDisplay}</p>
+                        </div>
                     </div>
 
-                    {quest && quest.tasks.length > 0 ? (
-                        <>
-                            <div className="space-y-3">
-                                {quest.tasks.map((task) => (
-                                    <div key={task.id} className="flex items-start gap-3">
-                                        {task.completed ? (
-                                            <CheckCircle className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
-                                        ) : (
-                                            <Circle
-                                                className="w-5 h-5 shrink-0 mt-0.5"
-                                                style={{ color: 'var(--color-text-secondary)' }}
-                                            />
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                            <p
-                                                className={`text-sm ${task.completed ? 'line-through opacity-60' : ''}`}
-                                                style={{ color: 'var(--color-text)' }}
-                                            >
-                                                {task.taskType}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <ProgressBar
-                                                    value={
-                                                        task.targetCount > 0
-                                                            ? (task.currentProgress /
-                                                                  task.targetCount) *
-                                                              100
-                                                            : 0
-                                                    }
-                                                    height="h-1.5"
-                                                />
-                                                <span
-                                                    className="text-xs shrink-0"
-                                                    style={{
-                                                        color: 'var(--color-text-secondary)',
-                                                    }}
-                                                >
-                                                    {task.currentProgress}/{task.targetCount}
-                                                </span>
-                                            </div>
-                                            <p className="text-xs mt-1 flex items-center gap-1 text-yellow-400">
-                                                <Coins className="w-3 h-3" />+{task.coins} xu
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span style={{ color: 'var(--color-text-secondary)' }}>
-                                        Tiến độ
-                                    </span>
-                                    <span style={{ color: 'var(--color-text)' }}>
-                                        {completedQuestTasks}/{totalQuestTasks}
-                                    </span>
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                        <div className="xl:col-span-8 space-y-6">
+                            <div className="card p-6 relative overflow-hidden">
+                                <div className="absolute right-6 top-6 text-slate-200 dark:text-slate-700">
+                                    <Trophy className="w-16 h-16" />
                                 </div>
-                                <ProgressBar
-                                    value={questProgress}
-                                    color="from-blue-500 to-emerald-500"
-                                />
+                                <p className="text-xs font-black tracking-wide text-primary-500 uppercase">{t('dashboard.dailyQuest')}</p>
+                                <h3 className="text-3xl font-black text-slate-900 dark:text-white mt-1">
+                                    {primaryQuest ? (primaryQuest.taskType || 'Master the quest').replace(/_/g, ' ') : t('dashboard.noQuestYet')}
+                                </h3>
+                                <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-2xl">
+                                    {t('dashboard.completeQuest')}
+                                </p>
+                                {questTotalCount > 0 && (
+                                    <div className="mt-3">
+                                        <ProgressBar
+                                            value={questOverallProgress}
+                                            height="h-3"
+                                            gradientStart="from-primary-500"
+                                            gradientEnd="to-amber-400"
+                                            variant="gradient"
+                                            showPercentage
+                                        />
+                                    </div>
+                                )}
+                                <div className="mt-4 flex items-center justify-between gap-3">
+                                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                                        {questCompletedCount} / {questTotalCount} {t('dashboard.dailyQuestsCompleted')}
+                                    </p>
+                                    <Link to="/quests" className="btn-primary inline-flex items-center gap-2">
+                                        {t('dashboard.continueQuest')}
+                                        <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                </div>
                             </div>
-                        </>
-                    ) : (
-                        <p
-                            className="text-sm py-8 text-center"
-                            style={{ color: 'var(--color-text-secondary)' }}
-                        >
-                            Không có nhiệm vụ nào hôm nay.
-                        </p>
-                    )}
-                </div>
 
-                {/* Continue Learning */}
-                <div className="card p-6 lg:col-span-2">
-                    <div className="flex items-center justify-between mb-5">
-                        <h2
-                            className="text-lg font-semibold flex items-center gap-2"
-                            style={{ color: 'var(--color-text)' }}
-                        >
-                            <BookOpen className="w-5 h-5 text-emerald-500" />
-                            Tiếp tục học
-                        </h2>
-                        <Link
-                            to="/lessons"
-                            className="text-sm text-blue-500 hover:text-blue-400 flex items-center gap-1"
-                        >
-                            Xem tất cả <ChevronRight className="w-4 h-4" />
-                        </Link>
-                    </div>
-
-                    {inProgress.length > 0 ? (
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            {inProgress.map((item) => (
+                            {nextLesson ? (
+                                <div className="card overflow-hidden flex flex-col md:flex-row">
+                                    <div className="md:w-[40%] min-h-[260px] bg-cover bg-center" style={{ backgroundImage: `url('${NEXT_LESSON_IMAGE}')` }} />
+                                    <div className="p-6 md:p-8 flex-1">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{t('lessons.intermediate')}</span>
+                                            <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold inline-flex items-center gap-1">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                15 {t('exams.minutes')}
+                                            </span>
+                                        </div>
+                                        <h3 className="text-4xl font-black leading-tight text-slate-900 dark:text-white">
+                                            {nextLesson.lessonTitle || `Lesson #${nextLesson.lessonId}`}
+                                        </h3>
+                                        <p className="mt-3 text-slate-500 dark:text-slate-400 text-lg">
+                                            {t('dashboard.learnWithExamples')}
+                                        </p>
+                                        <button
+                                            onClick={handleContinueLearning}
+                                            className="mt-6 rounded-full px-6 py-3 bg-black text-white font-bold inline-flex items-center gap-2 hover:bg-slate-800 transition-colors"
+                                        >
+                                            <PlayCircle className="w-5 h-5" />
+                                            {t('dashboard.studyNow')}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+                            {inProgress[1] ? (
                                 <Link
-                                    key={item.id}
-                                    to={`/lessons/${item.lessonId}`}
-                                    className="block p-4 rounded-xl transition-colors hover:opacity-80"
-                                    style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
+                                    to={`/lessons/${inProgress[1].lessonId}`}
+                                    className="card overflow-hidden flex flex-col md:flex-row hover:border-primary-500/30 block"
                                 >
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
-                                            <BookOpen className="w-5 h-5 text-blue-500" />
+                                    <div className="md:w-[40%] min-h-[260px] bg-cover bg-center" style={{ backgroundImage: `url('${NEXT_LESSON_IMAGE}')` }} />
+                                    <div className="p-6 md:p-8 flex-1">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <span className="px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-bold">{t('lessons.intermediate')}</span>
+                                            <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold inline-flex items-center gap-1">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                15 {t('exams.minutes')}
+                                            </span>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3
-                                                className="font-medium text-sm truncate"
-                                                style={{ color: 'var(--color-text)' }}
-                                            >
-                                                {item.lessonTitle || `Bài học #${item.lessonId}`}
-                                            </h3>
-                                            <div className="flex items-center gap-2 mt-1.5">
-                                                <Clock
-                                                    className="w-3.5 h-3.5"
-                                                    style={{
-                                                        color: 'var(--color-text-secondary)',
-                                                    }}
-                                                />
-                                                <span
-                                                    className="text-xs"
-                                                    style={{
-                                                        color: 'var(--color-text-secondary)',
-                                                    }}
-                                                >
-                                                    {item.lastAccessed
-                                                        ? new Date(
-                                                              item.lastAccessed
-                                                          ).toLocaleDateString('vi-VN')
-                                                        : 'Chưa truy cập'}
-                                                </span>
-                                            </div>
-                                            <div className="mt-2">
-                                                <ProgressBar
-                                                    value={item.completionPercentage ?? 0}
-                                                    height="h-1.5"
-                                                />
-                                                <p
-                                                    className="text-xs mt-1"
-                                                    style={{
-                                                        color: 'var(--color-text-secondary)',
-                                                    }}
-                                                >
-                                                    {item.completionPercentage ?? 0}% hoàn thành
-                                                </p>
-                                            </div>
-                                        </div>
+                                        <h3 className="text-4xl font-black leading-tight text-slate-900 dark:text-white">
+                                            {inProgress[1].lessonTitle || `Lesson #${inProgress[1].lessonId}`}
+                                        </h3>
+                                        <p className="mt-3 text-slate-500 dark:text-slate-400 text-lg">
+                                            {t('dashboard.learnWithExamples')}
+                                        </p>
+                                        <span className="mt-6 inline-flex items-center gap-2 rounded-full px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-bold">
+                                            <PlayCircle className="w-5 h-5" />
+                                            {t('dashboard.studyNow')}
+                                        </span>
                                     </div>
                                 </Link>
-                            ))}
+                            ) : null}
+                            {!nextLesson ? (
+                                <Link
+                                    to="/lessons"
+                                    className="card p-8 min-h-[280px] flex flex-col items-center justify-center text-center hover:border-primary-500/30"
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                        <BookOpen className="w-8 h-8 text-slate-400" />
+                                    </div>
+                                    <p className="mt-4 text-slate-500 dark:text-slate-400">
+                                        {t('dashboard.noLessonsInProgress')}
+                                    </p>
+                                </Link>
+                            ) : null}
                         </div>
-                    ) : (
-                        <p
-                            className="text-sm py-8 text-center"
-                            style={{ color: 'var(--color-text-secondary)' }}
-                        >
-                            Bạn chưa bắt đầu bài học nào.{' '}
-                            <Link to="/lessons" className="text-blue-500 hover:underline">
-                                Khám phá ngay!
-                            </Link>
-                        </p>
-                    )}
-                </div>
-            </div>
 
-            {/* Leaderboard Preview */}
-            <div className="card p-6">
-                <div className="flex items-center justify-between mb-5">
-                    <h2
-                        className="text-lg font-semibold flex items-center gap-2"
-                        style={{ color: 'var(--color-text)' }}
-                    >
-                        <Trophy className="w-5 h-5 text-yellow-500" />
-                        Bảng xếp hạng
-                    </h2>
-                    <Link
-                        to="/leaderboard"
-                        className="text-sm text-blue-500 hover:text-blue-400 flex items-center gap-1"
-                    >
-                        Xem tất cả <ChevronRight className="w-4 h-4" />
-                    </Link>
-                </div>
-
-                {top5.length > 0 ? (
-                    <div className="space-y-3">
-                        {top5.map((entry, index) => (
-                            <div
-                                key={entry.userId}
-                                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${
-                                    index === 0 ? 'bg-yellow-500/10' : ''
-                                }`}
-                                style={
-                                    index !== 0
-                                        ? { backgroundColor: 'var(--color-bg-tertiary)' }
-                                        : undefined
-                                }
-                            >
-                                <span className="text-xl w-8 text-center">
-                                    {index < 3 ? rankMedals[index] : `#${index + 1}`}
-                                </span>
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
-                                    {(entry.fullName || entry.username)?.[0]?.toUpperCase() || '?'}
+                        <div className="xl:col-span-4 space-y-6">
+                            <div className="card p-6">
+                                <div className="flex items-center justify-between mb-5">
+                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">{t('dashboard.leaderboard')}</h3>
+                                    <Link to="/leaderboard" className="text-sm font-bold text-primary-500">{t('dashboard.viewAll')}</Link>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <p
-                                        className="font-medium text-sm truncate"
-                                        style={{ color: 'var(--color-text)' }}
-                                    >
-                                        {entry.fullName || entry.username}
-                                    </p>
-                                    <p
-                                        className="text-xs"
-                                        style={{ color: 'var(--color-text-secondary)' }}
-                                    >
-                                        {entry.streakDays ?? 0} ngày streak
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-semibold text-sm text-yellow-400">
-                                        {(entry.totalCoins ?? 0).toLocaleString()}
-                                    </p>
-                                    <p
-                                        className="text-xs"
-                                        style={{ color: 'var(--color-text-secondary)' }}
-                                    >
-                                        xu
-                                    </p>
+                                <div className="space-y-3">
+                                    {top5.length > 0 ? top5.slice(0, 4).map((entry, index) => {
+                                        const isCurrentUser = entry.userId === user?.id
+                                        return (
+                                            <div key={entry.userId} className={`flex items-center gap-3 p-3 rounded-xl ${isCurrentUser ? 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-600/50' : 'bg-slate-50 dark:bg-slate-800/60'}`}>
+                                                <span className={`w-6 text-center font-black ${isCurrentUser ? 'text-orange-600' : 'text-slate-400'}`}>{index + 1}</span>
+                                                <div className="size-10 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-purple-500 text-white grid place-items-center font-bold">
+                                                    {entry.avatarUrl ? <img src={entry.avatarUrl} alt="" className="size-full object-cover" /> : ((entry.fullName || entry.username)?.[0] ?? '?')}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className={`font-bold truncate ${isCurrentUser ? 'text-orange-700 dark:text-orange-300' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                        {isCurrentUser ? t('dashboard.you') : (entry.fullName || entry.username)}
+                                                    </p>
+                                                    <p className={`text-xs ${isCurrentUser ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500 dark:text-slate-400'}`}>{(entry.totalCoins ?? 0).toLocaleString()} XP</p>
+                                                </div>
+                                            </div>
+                                        )
+                                    }) : <p className="text-sm text-slate-500">{t('dashboard.noLeaderboardData')}</p>}
                                 </div>
                             </div>
-                        ))}
+
+                            <div className="rounded-2xl p-6 bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white">
+                                <p className="text-xl font-black">{t('sidebar.protectStreak')}</p>
+                                <p className="mt-2 text-violet-100">{t('dashboard.protectStreakDesc')}</p>
+                                <Link to="/quests" className="mt-5 inline-flex items-center justify-center w-full rounded-full bg-white text-violet-700 font-bold py-2.5">
+                                    {t('sidebar.buyFor')} 200 Gems
+                                </Link>
+                            </div>
+
+                            <div className="card p-6">
+                                <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                                    <CheckCircle2 className="w-4 h-4 text-amber-500" />
+                                    {t('dashboard.vocabularyOfDay')}
+                                </div>
+                                {dailyWord ? (
+                                    <>
+                                        <p className="text-3xl font-black mt-2 text-slate-900 dark:text-white">{dailyWord.word}</p>
+                                        {dailyWord.pronunciation && (
+                                            <p className="mt-1 text-primary-500 italic">{dailyWord.pronunciation}</p>
+                                        )}
+                                        <p className="mt-3 text-slate-500 dark:text-slate-400">
+                                            {dailyWord.meaning}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm mt-2 text-slate-400">{t('dashboard.noLeaderboardData')}</p>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                ) : (
-                    <p
-                        className="text-sm py-6 text-center"
-                        style={{ color: 'var(--color-text-secondary)' }}
-                    >
-                        Chưa có dữ liệu xếp hạng.
-                    </p>
-                )}
+
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white">{t('dashboard.continueLearning')}</h2>
+                            <Link to="/lessons" className="text-primary-500 font-bold">{t('dashboard.viewAll')}</Link>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {learningItems.length > 0 ? (
+                                learningItems.map((item, idx) => (
+                                    <Link key={`${item.id}-${idx}`} to={item.lessonId ? `/lessons/${item.lessonId}` : '/lessons'} className="card p-5 hover:border-primary-500/30">
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{item.lessonTitle || `Lesson #${item.lessonId}`}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{item.completionPercentage ?? 0}% {t('dashboard.completed')}</p>
+                                        <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                            <div className="h-full bg-primary-500" style={{ width: `${item.completionPercentage ?? 0}%` }} />
+                                        </div>
+                                    </Link>
+                                ))
+                            ) : (
+                                <div className="card p-5 md:col-span-3 text-center text-sm text-slate-500 dark:text-slate-400">
+                                    {t('dashboard.noProgressToShow')}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     )
 }
+

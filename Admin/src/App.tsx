@@ -1,56 +1,63 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { Toaster } from 'sonner'
 import { store } from '@/app/store'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import AdminLayout from '@/components/layout/AdminLayout'
+import RoleBasedRedirect from '@/components/RoleBasedRedirect'
 import LoginPage from '@/features/auth/LoginPage'
-import DashboardPage from '@/features/dashboard/DashboardPage'
 import UsersPage from '@/features/users/UsersPage'
 import SchoolsPage from '@/features/schools/SchoolsPage'
-import LessonsPage from '@/features/lessons/LessonsPage'
-import ExamsPage from '@/features/exams/ExamsPage'
-import ExamResultsPage from '@/features/exams/ExamResultsPage'
-import QuestionsPage from '@/features/questions/QuestionsPage'
-import VocabularyPage from '@/features/vocabulary/VocabularyPage'
 import ClassRoomsPage from '@/features/classrooms/ClassRoomsPage'
 import NotificationsPage from '@/features/notifications/NotificationsPage'
 import BadgesPage from '@/features/badges/BadgesPage'
 import LeaderboardPage from '@/features/leaderboard/LeaderboardPage'
+import TeachersPage from '@/features/teachers/TeachersPage'
+import StudentsPage from '@/features/students/StudentsPage'
+import GradesPage from '@/features/grades/GradesPage'
+import UnauthorizedPage from '@/features/error/UnauthorizedPage'
+import SettingsPage from '@/features/settings/SettingsPage'
+import NotificationDetailPage from '@/features/notifications/NotificationDetailPage'
 
 function AppRoutes() {
     return (
         <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-            {/* Shared routes: ADMIN + SCHOOL */}
-            <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_SCHOOL']} />}>
+            {/* Routes for ADMIN, SCHOOL and TEACHER */}
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_SCHOOL', 'ROLE_TEACHER']} />}>
                 <Route element={<AdminLayout />}>
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/schools" element={<SchoolsPage />} />
-                    <Route path="/classrooms" element={<ClassRoomsPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/leaderboard" element={<LeaderboardPage />} />
+                    <Route path="/notifications/:id" element={<NotificationDetailPage />} />
                 </Route>
             </Route>
 
-            {/* Admin-only routes */}
+            {/* SCHOOL role routes - only 4 pages: Students, Classes, Teachers, Grades */}
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_SCHOOL']} />}>
+                <Route element={<AdminLayout />}>
+                    <Route path="/students" element={<StudentsPage />} />
+                    <Route path="/classrooms" element={<ClassRoomsPage />} />
+                    <Route path="/teachers" element={<TeachersPage />} />
+                    <Route path="/grades" element={<GradesPage />} />
+                </Route>
+            </Route>
+
+            {/* ADMIN role routes - only 5 pages: Schools, Users, Notifications, Leaderboard, Badges */}
             <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN']} />}>
                 <Route element={<AdminLayout />}>
+                    <Route path="/schools" element={<SchoolsPage />} />
                     <Route path="/users" element={<UsersPage />} />
-                    <Route path="/lessons" element={<LessonsPage />} />
-                    <Route path="/exams" element={<ExamsPage />} />
-                    <Route path="/exams/:examId/results" element={<ExamResultsPage />} />
-                    <Route path="/questions" element={<QuestionsPage />} />
-                    <Route path="/vocabulary" element={<VocabularyPage />} />
                     <Route path="/notifications" element={<NotificationsPage />} />
                     <Route path="/badges" element={<BadgesPage />} />
-                    <Route path="/leaderboard" element={<LeaderboardPage />} />
                 </Route>
             </Route>
 
-            {/* Redirects */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            {/* Redirects - smart redirect based on role */}
+            <Route path="/" element={<RoleBasedRedirect />} />
+            <Route path="*" element={<RoleBasedRedirect />} />
         </Routes>
     )
 }

@@ -27,47 +27,47 @@ public class LeaderboardService {
     /**
      * Get global leaderboard ranked by total coins
      */
-    public Page<LeaderboardResponse> getLeaderboardByCoins(Pageable pageable) {
-        Page<User> users = userRepository.findLeaderboard(pageable);
-        
+    public Page<LeaderboardResponse> getLeaderboardByCoins(Long schoolId, Pageable pageable) {
+        Page<User> users = userRepository.findLeaderboardBySchool(schoolId, pageable);
+
         List<LeaderboardResponse> leaderboard = new ArrayList<>();
         int rank = pageable.getPageNumber() * pageable.getPageSize() + 1;
-        
+
         for (User user : users) {
             leaderboard.add(mapToLeaderboardResponse(user, rank++));
         }
-        
-        log.info("Retrieved leaderboard by coins - Page: {}, Size: {}", 
-                pageable.getPageNumber(), pageable.getPageSize());
-        
-        return new PageImpl<>(leaderboard, pageable, countTotalUsers());
+
+        log.info("Retrieved leaderboard by coins - School: {}, Page: {}, Size: {}",
+                schoolId, pageable.getPageNumber(), pageable.getPageSize());
+
+        return new PageImpl<>(leaderboard, pageable, countTotalUsersBySchool(schoolId));
     }
 
     /**
      * Get top users by coins
      */
-    public List<LeaderboardResponse> getTopUsersByCoins(int limit) {
-        List<User> topUsers = userRepository.findTopUsersByCoins(limit);
-        
+    public List<LeaderboardResponse> getTopUsersByCoins(Long schoolId, int limit) {
+        List<User> topUsers = userRepository.findTopUsersByCoinsBySchool(schoolId, limit);
+
         List<LeaderboardResponse> leaderboard = new ArrayList<>();
         for (int i = 0; i < topUsers.size(); i++) {
             leaderboard.add(mapToLeaderboardResponse(topUsers.get(i), i + 1));
         }
-        
-        log.info("Retrieved top {} users by coins", limit);
+
+        log.info("Retrieved top {} users by coins for school {}", limit, schoolId);
         return leaderboard;
     }
 
     /**
      * Get user's rank by coins - Only ROLE_STUDENT users
      */
-    public LeaderboardResponse getUserRank(Long userId) {
+    public LeaderboardResponse getUserRank(Long userId, Long schoolId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
 
         // Get all ROLE_STUDENT users sorted by coins and streakDays
-        List<User> allUsers = userRepository.findAllStudents();
-        
+        List<User> allUsers = userRepository.findAllStudentsBySchool(schoolId);
+
         int rank = 1;
         for (User u : allUsers) {
             if (u.getId().equals(userId)) {
@@ -75,19 +75,20 @@ public class LeaderboardService {
             }
             rank++;
         }
-        
+
         return mapToLeaderboardResponse(user, rank);
     }
 
     /**
      * Get leaderboard by streak days - Only ROLE_STUDENT users
      */
-    public List<LeaderboardResponse> getLeaderboardByStreak(int limit) {
-        return userRepository.findAllStudents().stream()
+    public List<LeaderboardResponse> getLeaderboardByStreak(Long schoolId, int limit) {
+        List<User> students = userRepository.findAllStudentsBySchool(schoolId);
+        return students.stream()
                 .sorted((u1, u2) -> u2.getStreakDays().compareTo(u1.getStreakDays()))
                 .limit(limit)
                 .map((user) -> {
-                    int rank = userRepository.findAllStudents().stream()
+                    int rank = students.stream()
                             .filter(u -> u.getStreakDays() > user.getStreakDays())
                             .collect(Collectors.toList()).size() + 1;
                     return mapToLeaderboardResponse(user, rank);
@@ -96,10 +97,12 @@ public class LeaderboardService {
     }
 
     /**
-     * Get global leaderboard with combined scores (coins + streak bonus) - Only ROLE_STUDENT users
+     * Get global leaderboard with combined scores (coins + streak bonus) - Only
+     * ROLE_STUDENT users
      */
-    public List<LeaderboardResponse> getGlobalLeaderboard(int limit) {
-        return userRepository.findAllStudents().stream()
+    public List<LeaderboardResponse> getGlobalLeaderboard(Long schoolId, int limit) {
+        List<User> students = userRepository.findAllStudentsBySchool(schoolId);
+        return students.stream()
                 .map(user -> {
                     // Calculate combined score: coins + (streak * 10)
                     int combinedScore = user.getCoins() + (user.getStreakDays() * 10);
@@ -108,7 +111,7 @@ public class LeaderboardService {
                 .sorted((u1, u2) -> u2.score.compareTo(u1.score))
                 .limit(limit)
                 .map((wrapper) -> {
-                    int rank = userRepository.findAllStudents().stream()
+                    int rank = students.stream()
                             .map(u -> u.getCoins() + (u.getStreakDays() * 10))
                             .filter(score -> score > wrapper.score)
                             .collect(Collectors.toList()).size() + 1;
@@ -118,16 +121,14 @@ public class LeaderboardService {
     }
 
     /**
-     * Get leaderboard around a specific user (user's rank ± 5) - Only ROLE_STUDENT users
+     * Get leaderboard around a specific user (user's rank ± 5) - Only ROLE_STUDENT
+     * users
      */
-    public List<LeaderboardResponse> getLeaderboardAroundUser(Long userId, int rangeSize) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
-
-        LeaderboardResponse userRank = getUserRank(userId);
+    public List<LeaderboardResponse> getLeaderboardAroundUser(Long userId, Long schoolId, int rangeSize) {
+        LeaderboardResponse userRank = getUserRank(userId, schoolId);
         int startRank = Math.max(1, userRank.getRank() - rangeSize / 2);
-        
-        List<User> allUsers = userRepository.findAllStudents().stream()
+
+        List<User> allUsers = userRepository.findAllStudentsBySchool(schoolId).stream()
                 .sorted((u1, u2) -> {
                     int coinsCompare = u2.getCoins().compareTo(u1.getCoins());
                     return coinsCompare != 0 ? coinsCompare : u2.getStreakDays().compareTo(u1.getStreakDays());
@@ -138,24 +139,24 @@ public class LeaderboardService {
         for (int i = startRank - 1; i < Math.min(startRank - 1 + rangeSize, allUsers.size()); i++) {
             result.add(mapToLeaderboardResponse(allUsers.get(i), i + 1));
         }
-        
+
         return result;
     }
 
     /**
      * Get user comparison (multiple users)
      */
-    public List<LeaderboardResponse> compareUsers(List<Long> userIds) {
+    public List<LeaderboardResponse> compareUsers(List<Long> userIds, Long schoolId) {
         List<LeaderboardResponse> comparison = new ArrayList<>();
-        
+
         for (Long userId : userIds) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng: " + userId));
-            
-            LeaderboardResponse response = getUserRank(userId);
+
+            LeaderboardResponse response = getUserRank(userId, schoolId);
             comparison.add(response);
         }
-        
+
         return comparison.stream()
                 .sorted((u1, u2) -> u1.getRank().compareTo(u2.getRank()))
                 .collect(Collectors.toList());
@@ -172,8 +173,8 @@ public class LeaderboardService {
     /**
      * Count total ROLE_STUDENT users
      */
-    private long countTotalUsers() {
-        return userRepository.countStudents();
+    private long countTotalUsersBySchool(Long schoolId) {
+        return userRepository.countStudentsBySchool(schoolId);
     }
 
     /**

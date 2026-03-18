@@ -21,4 +21,9 @@ public class UserResponse {
     private Integer streakDays;
     private Boolean isActive;
     private List<String> roles;
+    private Long schoolId;
+    private String schoolName;
+    private Long classId;
+    private String className;
+    private java.time.LocalDateTime createdAt;
 }

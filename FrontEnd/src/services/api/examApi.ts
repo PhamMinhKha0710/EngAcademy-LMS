@@ -8,7 +8,7 @@ export interface ExamResponse {
     teacherId?: number; teacherName?: string; startTime?: string; endTime?: string;
     durationMinutes?: number; shuffleQuestions?: boolean; shuffleAnswers?: boolean;
     antiCheatEnabled?: boolean; questionCount?: number; totalPoints?: number;
-    submittedCount?: number; averageScore?: number; createdAt?: string;
+    submittedCount?: number; averageScore?: number; scorePublished?: boolean; createdAt?: string;
 }
 export interface ExamRequest {
     title: string; classId: number; startTime: string; endTime: string;
@@ -21,7 +21,10 @@ export interface ExamResultResponse {
     submittedAt?: string; violationCount?: number; grade?: string; status?: string;
 }
 export interface ExamTakeDTO { id: number; examResultId: number; [key: string]: unknown; }
-export interface SubmitExamRequest { examResultId: number; answers: { questionId: number; selectedOptionIds: number[] }[] }
+export interface SubmitExamRequest {
+    examResultId: number;
+    answers: { questionId: number; selectedOptionId?: number; selectedOptionIds?: number[]; textAnswer?: string }[];
+}
 export interface AntiCheatEventDTO { examResultId: number; eventType: string; details?: string }
 export interface AntiCheatEvent { id: number; examResultId?: number; eventType: string; timestamp?: string; details?: string }
 
@@ -62,6 +65,10 @@ export const examApi = {
         const r = await api.post<ApiResponse<ExamResponse>>(`/exams/${id}/close`)
         return r.data.data
     },
+    publishScores: async (id: number) => {
+        const r = await api.post<ApiResponse<ExamResponse>>(`/exams/${id}/publish-scores`)
+        return r.data.data
+    },
     delete: async (id: number) => { await api.delete(`/exams/${id}`) },
     startExam: async (examId: number, studentId: number) => {
         const r = await api.post<ApiResponse<ExamTakeDTO>>(`/exams/${examId}/start?studentId=${studentId}`)
@@ -76,6 +83,10 @@ export const examApi = {
     },
     getResults: async (examId: number) => {
         const r = await api.get<ApiResponse<ExamResultResponse[]>>(`/exams/${examId}/results`)
+        return r.data.data
+    },
+    getMyResult: async (examId: number) => {
+        const r = await api.get<ApiResponse<ExamResultResponse>>(`/exams/${examId}/my-result`)
         return r.data.data
     },
     getAntiCheatEvents: async (examResultId: number) => {

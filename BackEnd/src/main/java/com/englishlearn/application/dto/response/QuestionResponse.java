@@ -22,6 +22,8 @@ public class QuestionResponse {
     // Lesson info
     private Long lessonId;
     private String lessonTitle;
+    private Long vocabularyId;
+    private String vocabularyWord;
 
     // Options for multiple choice
     private List<QuestionOptionResponse> options;

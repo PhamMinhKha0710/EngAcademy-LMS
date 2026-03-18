@@ -5,9 +5,11 @@ import com.englishlearn.domain.entity.Lesson;
 import com.englishlearn.domain.entity.Progress;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
+import com.englishlearn.domain.entity.VocabStatus;
 import com.englishlearn.infrastructure.persistence.LessonRepository;
 import com.englishlearn.infrastructure.persistence.ProgressRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
+import com.englishlearn.infrastructure.persistence.UserVocabularyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ public class ProgressService {
     private final ProgressRepository progressRepository;
     private final UserRepository userRepository;
     private final LessonRepository lessonRepository;
+    private final UserVocabularyRepository userVocabularyRepository;
+    private final DailyQuestService dailyQuestService;
 
     @Transactional(readOnly = true)
     public List<ProgressResponse> getProgressByUser(Long userId) {
@@ -48,9 +52,14 @@ public class ProgressService {
 
     @Transactional(readOnly = true)
     public ProgressResponse getProgressForLesson(Long userId, Long lessonId) {
-        Progress progress = progressRepository.findByUserIdAndLessonId(userId, lessonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tiến độ", "bài học", lessonId));
-        return mapToResponse(progress);
+        return progressRepository.findByUserIdAndLessonId(userId, lessonId)
+                .map(this::mapToResponse)
+                .orElseGet(() -> ProgressResponse.builder()
+                        .userId(userId)
+                        .lessonId(lessonId)
+                        .completionPercentage(0)
+                        .isCompleted(false)
+                        .build());
     }
 
     @Transactional
@@ -69,14 +78,27 @@ public class ProgressService {
                         .isCompleted(false)
                         .build());
 
+        boolean wasCompleted = Boolean.TRUE.equals(progress.getIsCompleted());
+        boolean questTaskCompleted = false;
         progress.setCompletionPercentage(percentage);
         if (percentage >= 100) {
             progress.setIsCompleted(true);
             log.info("User {} completed lesson: {}", user.getFullName(), lesson.getTitle());
+            if (!wasCompleted) {
+                try {
+                    questTaskCompleted = dailyQuestService.incrementProgressForTaskType(userId, "COMPLETE_LESSON", 1);
+                } catch (Exception e) {
+                    log.debug("Could not update quest for COMPLETE_LESSON: {}", e.getMessage());
+                }
+            }
         }
 
         Progress savedProgress = progressRepository.save(progress);
-        return mapToResponse(savedProgress);
+        ProgressResponse response = mapToResponse(savedProgress);
+        if (questTaskCompleted) {
+            response.setQuestTaskCompleted(true);
+        }
+        return response;
     }
 
     @Transactional
@@ -93,6 +115,16 @@ public class ProgressService {
     public Double getAverageProgress(Long userId) {
         Double avg = progressRepository.averageCompletionByUserId(userId);
         return avg != null ? avg : 0.0;
+    }
+
+    @Transactional(readOnly = true)
+    public Long getTotalLessonsCount() {
+        return lessonRepository.count();
+    }
+
+    @Transactional(readOnly = true)
+    public Long getWordsLearnedCount(Long userId) {
+        return userVocabularyRepository.countByUserIdAndStatus(userId, VocabStatus.MASTERED);
     }
 
     private ProgressResponse mapToResponse(Progress progress) {

@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Users, Search, ChevronLeft, ChevronRight, Coins, Eye, Flame } from 'lucide-react'
+import { Users, Search, ChevronLeft, ChevronRight, Coins, Eye, Flame, UserPlus, EyeOff, Trash2, CheckCircle, Edit } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import api from '@/lib/api'
 import type { ApiResponse, Page, User } from '@/types/api'
+import { useRole } from '@/app/useRole'
 
 const ROLE_OPTIONS = [
-    { value: '', label: 'Tất cả' },
-    { value: 'ROLE_ADMIN', label: 'Admin' },
-    { value: 'ROLE_SCHOOL', label: 'Trường' },
-    { value: 'ROLE_TEACHER', label: 'Giáo viên' },
-    { value: 'ROLE_STUDENT', label: 'Học sinh' },
+    { label: 'Tất cả vai trò', value: '' },
+    { label: 'Admin', value: 'ROLE_ADMIN' },
+    { label: 'Học sinh', value: 'ROLE_STUDENT' },
+    { label: 'Giáo viên', value: 'ROLE_TEACHER' },
+    { label: 'Trường học', value: 'ROLE_SCHOOL' },
 ]
 
 export default function UsersPage() {
@@ -27,15 +29,42 @@ export default function UsersPage() {
     const [page, setPage] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
+    const [userStats, setUserStats] = useState({
+        totalUsers: 0,
+        activeUsers: 0,
+        teacherCount: 0,
+        studentCount: 0,
+        totalCoins: 0
+    })
 
-    // Coins dialog
-    const [coinsDialogOpen, setCoinsDialogOpen] = useState(false)
+    // Edit user dialog
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<User | null>(null)
-    const [coinsAmount, setCoinsAmount] = useState('')
+    const [editForm, setEditForm] = useState({
+        fullName: '',
+        email: '',
+        roles: [] as string[],
+        isActive: true,
+        coins: 0
+    })
 
     // Detail dialog
     const [detailOpen, setDetailOpen] = useState(false)
     const [detailUser, setDetailUser] = useState<User | null>(null)
+
+    // Create user dialog
+    const [createDialogOpen, setCreateDialogOpen] = useState(false)
+    const [newUser, setNewUser] = useState({
+        username: '',
+        email: '',
+        password: '',
+        fullName: '',
+        roles: [] as string[]
+    })
+    const [showPassword, setShowPassword] = useState(false)
+
+    // Role-based permissions
+    const { canCreateUser, canDeleteUser } = useRole()
 
     const fetchUsers = async () => {
         setLoading(true)
@@ -52,30 +81,119 @@ export default function UsersPage() {
         }
     }
 
-    useEffect(() => { fetchUsers() }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handleAddCoins = async () => {
-        if (!selectedUser || !coinsAmount) return
+    const fetchStats = async () => {
         try {
-            await api.post(`/users/${selectedUser.id}/coins?amount=${coinsAmount}`)
-            toast.success(`Đã thêm ${coinsAmount} xu cho ${selectedUser.fullName}`)
-            fetchUsers()
-        } catch {
-            toast.error('Thêm xu thất bại')
+            const response = await api.get<ApiResponse<any>>('/users/stats')
+            if (response.data.success) {
+                setUserStats(response.data.data)
+            }
+        } catch (error) {
+            console.error('Error fetching user stats:', error)
         }
-        setCoinsDialogOpen(false)
-        setCoinsAmount('')
+    }
+
+    useEffect(() => {
+        fetchUsers()
+        fetchStats()
+    }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleUpdateUser = async () => {
+        if (!selectedUser) return
+        try {
+            // Assuming standard update endpoint
+            await api.put(`/users/${selectedUser.id}`, editForm)
+            toast.success(`Đã cập nhật thông tin cho ${selectedUser.username}`)
+            fetchUsers()
+            setEditDialogOpen(false)
+        } catch (error: unknown) {
+            const msg = error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : null
+            toast.error(msg || 'Cập nhật thất bại')
+        }
+    }
+
+    const openEdit = (user: User) => {
+        setSelectedUser(user)
+        setEditForm({
+            fullName: user.fullName || '',
+            email: user.email || '',
+            roles: [...user.roles],
+            isActive: user.isActive !== false,
+            coins: user.coins || 0
+        })
+        setEditDialogOpen(true)
+    }
+
+    const toggleEditRole = (role: string) => {
+        setEditForm(prev => ({
+            ...prev,
+            roles: prev.roles.includes(role)
+                ? prev.roles.filter(r => r !== role)
+                : [...prev.roles, role]
+        }))
+    }
+
+    const handleCreateUser = async () => {
+        // Validation
+        if (!newUser.username || !newUser.email || !newUser.password || !newUser.fullName) {
+            toast.error('Vui lòng điền đầy đủ thông tin')
+            return
+        }
+        if (newUser.roles.length === 0) {
+            toast.error('Vui lòng chọn ít nhất một vai trò')
+            return
+        }
+
+        try {
+            await api.post('/users', newUser)
+            toast.success(`Đã tạo người dùng ${newUser.username}`)
+            setCreateDialogOpen(false)
+            setNewUser({ username: '', email: '', password: '', fullName: '', roles: [] })
+            fetchUsers()
+        } catch (error: unknown) {
+            const msg = error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : null
+            toast.error(msg || 'Tạo người dùng thất bại')
+        }
+    }
+
+    const toggleRole = (role: string) => {
+        setNewUser(prev => ({
+            ...prev,
+            roles: prev.roles.includes(role)
+                ? prev.roles.filter(r => r !== role)
+                : [...prev.roles, role]
+        }))
+    }
+
+    const handleDeleteUser = async (userId: number, username: string) => {
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa người dùng "${username}"?`)) {
+            return
+        }
+
+        try {
+            await api.delete(`/users/${userId}`)
+            toast.success(`Đã xóa người dùng ${username}`)
+            fetchUsers()
+        } catch (error: unknown) {
+            const msg = error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : null
+            toast.error(msg || 'Xóa người dùng thất bại')
+        }
     }
 
     const getRoleBadge = (role: string) => {
-        const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-            ROLE_ADMIN: { label: 'Admin', variant: 'destructive' },
-            ROLE_SCHOOL: { label: 'Trường', variant: 'default' },
-            ROLE_TEACHER: { label: 'Giáo viên', variant: 'secondary' },
-            ROLE_STUDENT: { label: 'Học sinh', variant: 'outline' },
+        const config: Record<string, { label: string; bg: string; text: string }> = {
+            ROLE_ADMIN: { label: 'ADMIN', bg: 'bg-red-500/10 dark:bg-red-500/20', text: 'text-red-600 dark:text-red-400' },
+            ROLE_SCHOOL: { label: 'TRƯỜNG', bg: 'bg-blue-500/10 dark:bg-blue-500/20', text: 'text-blue-600 dark:text-blue-400' },
+            ROLE_TEACHER: { label: 'GIÁO VIÊN', bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400' },
+            ROLE_STUDENT: { label: 'HỌC SINH', bg: 'bg-indigo-500/10 dark:bg-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400' },
         }
-        const c = config[role] || { label: role, variant: 'outline' as const }
-        return <Badge variant={c.variant}>{c.label}</Badge>
+        const c = config[role] || { label: role, bg: 'bg-muted', text: 'text-muted-foreground' }
+        return <span className={cn("px-2 py-1 rounded-md text-[10px] font-black tracking-wider uppercase", c.bg, c.text)}>{c.label}</span>
     }
 
     // Apply client-side filters
@@ -88,193 +206,335 @@ export default function UsersPage() {
         return matchSearch && matchRole
     })
 
+    const stats = [
+        { title: 'Tổng người dùng', value: userStats.totalUsers.toLocaleString(), icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
+        { title: 'Đang hoạt động', value: userStats.activeUsers.toLocaleString(), icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { title: 'Giáo viên', value: userStats.teacherCount.toLocaleString(), icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+        { title: 'Tổng xu hệ thống', value: userStats.totalCoins.toLocaleString(), icon: Coins, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    ]
+
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-8 pb-10">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Quản lý người dùng</h1>
-                    <p className="text-muted-foreground mt-1">Tổng cộng {totalElements} người dùng</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground">Quản lý người dùng</h1>
+                    <p className="text-muted-foreground mt-2 font-medium">Quản lý và theo dõi thông tin học sinh, giáo viên trong hệ thống.</p>
                 </div>
+                {canCreateUser && (
+                    <Button onClick={() => setCreateDialogOpen(true)} className="h-12 px-6 rounded-xl gap-2 font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] bg-primary">
+                        <UserPlus className="h-5 w-5" /> Tạo người dùng mới
+                    </Button>
+                )}
             </div>
 
-            <Card>
-                <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                        <CardTitle className="flex items-center gap-2">
-                            <Users className="h-5 w-5 text-primary" />
-                            Danh sách người dùng
-                        </CardTitle>
-                        <div className="flex items-center gap-3">
-                            {/* Role filter */}
-                            <select
-                                className="flex h-9 rounded-md border border-input bg-background px-3 text-sm"
-                                value={roleFilter}
-                                onChange={(e) => setRoleFilter(e.target.value)}
-                            >
-                                {ROLE_OPTIONS.map((opt) => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                            {/* Search */}
-                            <div className="relative w-64">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {stats.map((stat) => (
+                    <Card key={stat.title} className="premium-card border-none shadow-xl dark:shadow-none overflow-hidden">
+                        <CardContent className="p-7">
+                            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center mb-5", stat.bg)}>
+                                <stat.icon className={cn("h-6 w-6", stat.color)} />
                             </div>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">{stat.title}</p>
+                            <p className="text-3xl font-black text-foreground tracking-tight">{stat.value}</p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Main Content Area */}
+            <Card className="premium-card border-none shadow-xl dark:shadow-none bg-card overflow-hidden">
+                <CardHeader className="p-8 pb-3">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                         <div className="flex items-center gap-2">
+                              <div className="flex bg-muted/30 p-1.5 rounded-2xl border border-border/50">
+                                 {ROLE_OPTIONS.map((opt) => (
+                                     <button
+                                         key={opt.value}
+                                         onClick={() => setRoleFilter(opt.value)}
+                                         className={cn(
+                                             "px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all",
+                                             roleFilter === opt.value 
+                                                 ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                                                 : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
+                                         )}
+                                     >
+                                         {opt.label}
+                                     </button>
+                                 ))}
+                              </div>
+                         </div>
+                        <div className="relative group">
+                            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input 
+                                placeholder="Tìm kiếm..." 
+                                value={search} 
+                                onChange={(e) => setSearch(e.target.value)} 
+                                className="pl-11 pr-4 h-11 w-80 bg-muted/30 border-border/50 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 transition-all font-medium" 
+                            />
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-8 pt-5">
                     {loading ? (
-                        <div className="flex items-center justify-center h-40">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                        <div className="flex flex-col items-center justify-center h-80 gap-4">
+                            <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                            <p className="font-bold text-muted-foreground">Đang tải dữ liệu...</p>
                         </div>
                     ) : (
-                        <>
+                        <div className="rounded-2xl border border-border overflow-hidden">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-12">ID</TableHead>
-                                        <TableHead>Username</TableHead>
-                                        <TableHead>Họ tên</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Vai trò</TableHead>
-                                        <TableHead className="text-center">Xu</TableHead>
-                                        <TableHead className="text-center">Streak</TableHead>
-                                        <TableHead>Trạng thái</TableHead>
-                                        <TableHead className="text-right">Thao tác</TableHead>
+                                    <TableRow className="hover:bg-transparent border-border/50 bg-muted/30">
+                                        <TableHead className="h-14 font-black text-muted-foreground uppercase text-[10px] tracking-widest pl-8">Người dùng</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-center">Vai trò</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-center">Thống kê</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-center">Trạng thái</TableHead>
+                                        <TableHead className="font-black text-muted-foreground uppercase text-[10px] tracking-widest text-right pr-8">Thao tác</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filtered.length === 0 ? (
-                                        <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Không có người dùng</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-20 font-bold">Không có người dùng nào được tìm thấy</TableCell></TableRow>
                                     ) : filtered.map((user) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell className="font-medium">{user.id}</TableCell>
-                                            <TableCell className="font-medium">{user.username}</TableCell>
-                                            <TableCell>{user.fullName}</TableCell>
-                                            <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                                            <TableCell>
-                                                <div className="flex gap-1 flex-wrap">{user.roles.map((r) => <span key={r}>{getRoleBadge(r)}</span>)}</div>
+                                        <TableRow key={user.id} className="hover:bg-muted/10 border-border/40 transition-colors h-24 group">
+                                            <TableCell className="pl-8">
+                                                <div className="flex items-center gap-4">
+                                                    <Avatar className="h-12 w-12 border-none shadow-xl dark:shadow-none ring-1 ring-border/50 group-hover:ring-primary/30 transition-all">
+                                                        <AvatarImage src={user.avatarUrl} alt={user.fullName} />
+                                                        <AvatarFallback className="bg-muted text-primary text-[10px] font-black">
+                                                            {user.username.substring(0, 2).toUpperCase()}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-black text-foreground leading-tight">{user.fullName}</span>
+                                                        <span className="text-[10px] font-black text-muted-foreground/30 mt-1 uppercase tracking-tight truncate max-w-[200px]">@{user.username} · {user.email}</span>
+                                                    </div>
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="text-center font-medium text-amber-600">{user.coins ?? 0}</TableCell>
                                             <TableCell className="text-center">
-                                                <span className="flex items-center justify-center gap-1 text-orange-500">
-                                                    <Flame className="h-3.5 w-3.5" /> {user.streakDays ?? 0}
-                                                </span>
+                                                <div className="flex justify-center gap-1.5 flex-wrap">
+                                                    {user.roles.map((r) => <div key={r}>{getRoleBadge(r)}</div>)}
+                                                </div>
                                             </TableCell>
-                                            <TableCell>
-                                                <Badge variant={user.isActive !== false ? 'default' : 'secondary'}>
-                                                    {user.isActive !== false ? 'Hoạt động' : 'Bị khóa'}
-                                                </Badge>
+                                            <TableCell className="text-center">
+                                                <div className="flex flex-col items-center gap-1.5">
+                                                    <div className="flex items-center gap-1.5 font-black text-sm text-foreground">
+                                                        <Coins className="h-4 w-4 text-amber-500" /> {user.coins?.toLocaleString() ?? 0}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 font-bold text-xs text-orange-500">
+                                                        <Flame className="h-3.5 w-3.5" /> {user.streakDays ?? 0}
+                                                    </div>
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Xem chi tiết" onClick={() => { setDetailUser(user); setDetailOpen(true) }}>
-                                                        <Eye className="h-4 w-4" />
+                                            <TableCell className="text-center">
+                                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-muted/30 border border-border/50">
+                                                    <div className={cn("h-1.5 w-1.5 rounded-full", user.isActive !== false ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30')} />
+                                                    <span className={user.isActive !== false ? 'text-emerald-500' : 'text-muted-foreground/30'}>
+                                                        {user.isActive !== false ? 'Hoạt động' : 'Bị khóa'}
+                                                    </span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-8">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all" onClick={() => { setDetailUser(user); setDetailOpen(true) }}>
+                                                        <Eye className="h-4.5 w-4.5" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Thêm xu" onClick={() => { setSelectedUser(user); setCoinsDialogOpen(true) }}>
-                                                        <Coins className="h-4 w-4 text-amber-500" />
-                                                    </Button>
+                                                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-blue-500/10 text-muted-foreground hover:text-blue-500 transition-all" onClick={() => openEdit(user)}>
+                                                         <Edit className="h-4.5 w-4.5" />
+                                                     </Button>
+                                                    {canDeleteUser && (
+                                                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-all" onClick={() => handleDeleteUser(user.id, user.username)}>
+                                                            <Trash2 className="h-4.5 w-4.5" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
-
-                            {/* Pagination */}
-                            <div className="flex items-center justify-between mt-4">
-                                <p className="text-sm text-muted-foreground">
-                                    Trang {page + 1} / {Math.max(totalPages, 1)}
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
-                                        <ChevronLeft className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page >= totalPages - 1}>
-                                        <ChevronRight className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </>
+                        </div>
                     )}
+
+                    {/* Pagination */}
+                    <div className="flex items-center justify-between mt-8 px-2">
+                        <p className="text-xs font-black text-muted-foreground/30 uppercase tracking-widest">
+                            Hiển thị {page * 10 + 1}-{Math.min((page + 1) * 10, totalElements)} / {totalElements}
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border/50 text-muted-foreground/40 bg-background hover:bg-muted" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button className="h-10 w-10 rounded-xl font-black bg-primary shadow-lg shadow-primary/20">{page+1}</Button>
+                            {page + 1 < totalPages && <Button variant="ghost" className="h-10 w-10 rounded-xl font-black text-muted-foreground/40 hover:bg-muted" onClick={() => setPage(page + 1)}>{page + 2}</Button>}
+                            {page + 2 < totalPages && <Button variant="ghost" className="h-10 w-10 rounded-xl font-bold text-muted-foreground" onClick={() => setPage(page + 2)}>{page + 3}</Button>}
+                            {totalPages > 4 && <span className="px-1 text-muted-foreground/30">...</span>}
+                            {totalPages > 1 && page < totalPages - 3 && <Button variant="ghost" className="h-10 w-10 rounded-xl font-bold text-muted-foreground" onClick={() => setPage(totalPages - 1)}>{totalPages}</Button>}
+                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-border text-muted-foreground" onClick={() => setPage(page + 1)} disabled={page >= totalPages - 1}>
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
-            {/* User Detail Dialog */}
-            <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-                <DialogContent>
+            {/* Create User Dialog */}
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                <DialogContent className="sm:max-w-[500px] rounded-2xl">
                     <DialogHeader>
-                        <DialogTitle>Chi tiết người dùng</DialogTitle>
-                        <DialogDescription>Thông tin đầy đủ của {detailUser?.fullName}</DialogDescription>
+                        <DialogTitle className="text-xl font-bold">Tạo người dùng mới</DialogTitle>
+                        <DialogDescription>Nhập thông tin chi tiết cho người dùng mới trong hệ thống.</DialogDescription>
                     </DialogHeader>
-                    {detailUser && (
-                        <div className="space-y-3 py-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label className="text-muted-foreground text-xs">ID</Label>
-                                    <p className="font-medium">{detailUser.id}</p>
-                                </div>
-                                <div>
-                                    <Label className="text-muted-foreground text-xs">Username</Label>
-                                    <p className="font-medium">{detailUser.username}</p>
-                                </div>
-                                <div>
-                                    <Label className="text-muted-foreground text-xs">Họ tên</Label>
-                                    <p className="font-medium">{detailUser.fullName}</p>
-                                </div>
-                                <div>
-                                    <Label className="text-muted-foreground text-xs">Email</Label>
-                                    <p className="font-medium">{detailUser.email}</p>
-                                </div>
-                                <div>
-                                    <Label className="text-muted-foreground text-xs">Vai trò</Label>
-                                    <div className="flex gap-1 mt-1">{detailUser.roles.map((r) => <span key={r}>{getRoleBadge(r)}</span>)}</div>
-                                </div>
-                                <div>
-                                    <Label className="text-muted-foreground text-xs">Trạng thái</Label>
-                                    <p>
-                                        <Badge variant={detailUser.isActive !== false ? 'default' : 'secondary'}>
-                                            {detailUser.isActive !== false ? 'Hoạt động' : 'Bị khóa'}
-                                        </Badge>
-                                    </p>
-                                </div>
-                                <div>
-                                    <Label className="text-muted-foreground text-xs">Xu</Label>
-                                    <p className="font-bold text-amber-600">{detailUser.coins ?? 0}</p>
-                                </div>
-                                <div>
-                                    <Label className="text-muted-foreground text-xs">Chuỗi ngày</Label>
-                                    <p className="font-bold text-orange-500 flex items-center gap-1"><Flame className="h-4 w-4" />{detailUser.streakDays ?? 0} ngày</p>
-                                </div>
+                    <div className="grid gap-6 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="fullName" className="font-bold">Họ và tên</Label>
+                            <Input id="fullName" value={newUser.fullName} onChange={(e) => setNewUser({...newUser, fullName: e.target.value})} className="rounded-xl h-11" placeholder="VD: Nguyễn Văn A" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="username" className="font-bold">Username</Label>
+                            <Input id="username" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} className="rounded-xl h-11" placeholder="VD: langmaster01" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="email" className="font-bold">Email</Label>
+                            <Input id="email" type="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} className="rounded-xl h-11" placeholder="VD: user@example.com" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="password" className="font-bold">Mật khẩu</Label>
+                            <div className="relative">
+                                <Input id="password" type={showPassword ? "text" : "password"} value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="rounded-xl h-11 pr-10" placeholder="••••••••" />
+                                <Button size="sm" variant="ghost" className="absolute right-0 top-0 h-full px-3 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
                             </div>
                         </div>
-                    )}
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Add Coins Dialog */}
-            <Dialog open={coinsDialogOpen} onOpenChange={setCoinsDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Thêm xu cho {selectedUser?.fullName}</DialogTitle>
-                        <DialogDescription>Nhập số xu muốn thêm cho người dùng</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="coins">Số xu</Label>
-                            <Input id="coins" type="number" placeholder="Nhập số xu" value={coinsAmount} onChange={(e) => setCoinsAmount(e.target.value)} />
+                    <div className="grid gap-2">
+                        <Label className="font-bold">Vai trò</Label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                            {ROLE_OPTIONS.filter(o => o.value).map(opt => (
+                                <Button key={opt.value} variant={newUser.roles.includes(opt.value) ? 'default' : 'outline'} className="rounded-xl h-10 px-4" onClick={() => toggleRole(opt.value)}>
+                                    {opt.label}
+                                </Button>
+                            ))}
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setCoinsDialogOpen(false)}>Hủy</Button>
-                        <Button onClick={handleAddCoins}>Thêm xu</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
-    )
+                </div>
+                <DialogFooter className="gap-2 sm:gap-0">
+                    <Button variant="ghost" onClick={() => setCreateDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold">Hủy</Button>
+                    <Button onClick={handleCreateUser} className="rounded-xl h-11 px-8 font-bold">Xác nhận tạo</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* User Detail Dialog */}
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+            <DialogContent className="sm:max-w-md rounded-2xl">
+                <DialogHeader>
+                    <DialogTitle className="text-xl font-bold">Chi tiết người dùng</DialogTitle>
+                </DialogHeader>
+                {detailUser && (
+                    <div className="space-y-6 py-2">
+                        <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-2xl border border-border">
+                            <Avatar className="h-16 w-16 border-2 border-background shadow-md">
+                                <AvatarImage src={detailUser.avatarUrl} />
+                                <AvatarFallback>{detailUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <h3 className="font-black text-foreground text-lg">{detailUser.fullName}</h3>
+                                <p className="text-sm font-bold text-muted-foreground">@{detailUser.username}</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider">Email</p>
+                                <p className="text-sm font-bold text-foreground truncate">{detailUser.email}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider">Trạng thái</p>
+                                <p className="text-sm font-bold text-emerald-600">Đang hoạt động</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider">Tổng xu</p>
+                                <p className="text-sm font-bold text-amber-600 flex items-center gap-1"><Coins className="h-4 w-4" /> {detailUser.coins ?? 0}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider">Chuỗi streak</p>
+                                <p className="text-sm font-bold text-orange-500 flex items-center gap-1"><Flame className="h-4 w-4" /> {detailUser.streakDays ?? 0} ngày</p>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-wider">Vai trò hệ thống</p>
+                            <div className="flex gap-2 mt-2">
+                                {detailUser.roles.map(r => getRoleBadge(r))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                <DialogFooter>
+                    <Button onClick={() => setDetailOpen(false)} variant="outline" className="w-full h-11 rounded-xl font-bold">Đóng</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Edit User Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                <DialogHeader>
+                    <DialogTitle className="text-xl font-bold">Chỉnh sửa thông tin</DialogTitle>
+                    <DialogDescription>Cập nhật thông tin cho người dùng {selectedUser?.username}</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-5 py-4">
+                    <div className="grid gap-2">
+                        <Label className="font-bold">Họ và tên</Label>
+                        <Input value={editForm.fullName} onChange={(e) => setEditForm({...editForm, fullName: e.target.value})} className="rounded-xl h-11" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label className="font-bold">Email</Label>
+                        <Input value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} className="rounded-xl h-11" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label className="font-bold">Số lượng xu</Label>
+                            <Input type="number" value={editForm.coins} onChange={(e) => setEditForm({...editForm, coins: parseInt(e.target.value) || 0})} className="rounded-xl h-11" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="font-bold">Trạng thái tài khoản</Label>
+                            <div className="flex items-center h-11 px-3 bg-muted/30 rounded-xl border border-border/50">
+                                <label className="flex items-center gap-2 cursor-pointer w-full">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={editForm.isActive} 
+                                        onChange={(e) => setEditForm({...editForm, isActive: e.target.checked})}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <span className="text-sm font-bold">{editForm.isActive ? 'Đang hoạt động' : 'Đang bị khóa'}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label className="font-bold">Vai trò hệ thống</Label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                            {ROLE_OPTIONS.filter(o => o.value).map(opt => (
+                                <Button 
+                                    key={opt.value} 
+                                    variant={editForm.roles.includes(opt.value) ? 'default' : 'outline'} 
+                                    className="rounded-xl h-9 px-3 text-[11px] font-bold" 
+                                    onClick={() => toggleEditRole(opt.value)}
+                                >
+                                    {opt.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter className="gap-2 sm:gap-0 mt-2">
+                    <Button variant="ghost" onClick={() => setEditDialogOpen(false)} className="rounded-xl h-11 px-6 font-bold">Hủy</Button>
+                    <Button onClick={handleUpdateUser} className="rounded-xl h-11 px-8 font-bold bg-primary shadow-lg shadow-primary/20">Lưu thay đổi</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    </div>
+)
 }

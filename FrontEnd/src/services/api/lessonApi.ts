@@ -8,6 +8,7 @@ export interface Lesson {
     topicId?: number
     topicName?: string
     contentHtml?: string
+    grammarHtml?: string
     audioUrl?: string
     videoUrl?: string
     difficultyLevel?: number
@@ -21,6 +22,7 @@ export interface LessonRequest {
     title: string
     topicId?: number
     contentHtml?: string
+    grammarHtml?: string
     audioUrl?: string
     videoUrl?: string
     difficultyLevel?: number

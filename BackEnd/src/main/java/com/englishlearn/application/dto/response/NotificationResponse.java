@@ -15,6 +15,7 @@ public class NotificationResponse {
     private Long id;
     private String title;
     private String message;
+    private String imageUrl;
     private Boolean isRead;
     private LocalDateTime createdAt;
 }

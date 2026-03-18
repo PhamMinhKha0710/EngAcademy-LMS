@@ -49,6 +49,10 @@ public class MistakeNotebookService {
      */
     @Transactional
     public MistakeNotebookDTO addMistake(MistakeNotebookRequest request) {
+        if (request.getUserId() == null) {
+            throw new IllegalArgumentException("Thiếu userId để ghi nhận lỗi sai");
+        }
+
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "id", request.getUserId()));
 
@@ -144,6 +148,7 @@ public class MistakeNotebookService {
                 .mistakeCount(mistake.getMistakeCount())
                 .userRecordingUrl(mistake.getUserRecordingUrl())
                 .addedAt(mistake.getAddedAt())
+                .lastMistakeAt(mistake.getAddedAt())
                 .build();
     }
 }

@@ -9,6 +9,10 @@ export interface ClassRoomResponse {
 export interface ClassRoomRequest {
     name: string; schoolId?: number; teacherId?: number; academicYear?: string; isActive?: boolean;
 }
+export interface ClassStudentResponse {
+    id: number; username: string; fullName?: string; email?: string; avatarUrl?: string;
+    status?: string; joinedAt?: string;
+}
 
 export const classroomApi = {
     getAll: async () => {
@@ -19,8 +23,22 @@ export const classroomApi = {
         const r = await api.get<ApiResponse<ClassRoomResponse[]>>(`/classes/teacher/${teacherId}`)
         return r.data.data
     },
+    getByStudent: async (studentId: number) => {
+        const r = await api.get<ApiResponse<ClassRoomResponse[]>>(`/classes/student/${studentId}`)
+        return r.data.data
+    },
     getById: async (id: number) => {
         const r = await api.get<ApiResponse<ClassRoomResponse>>(`/classes/${id}`)
+        return r.data.data
+    },
+    getStudents: async (classId: number) => {
+        const r = await api.get<ApiResponse<ClassStudentResponse[]>>(`/classes/${classId}/students`)
+        return r.data.data
+    },
+    searchStudents: async (classId: number, keyword: string) => {
+        const r = await api.get<ApiResponse<ClassStudentResponse[]>>(
+            `/classes/${classId}/students/search?keyword=${encodeURIComponent(keyword)}`
+        )
         return r.data.data
     },
     create: async (data: ClassRoomRequest) => {

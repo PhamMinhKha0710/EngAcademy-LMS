@@ -5,10 +5,12 @@ import com.englishlearn.application.dto.response.QuestionResponse;
 import com.englishlearn.domain.entity.Lesson;
 import com.englishlearn.domain.entity.Question;
 import com.englishlearn.domain.entity.QuestionOption;
+import com.englishlearn.domain.entity.Vocabulary;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
 import com.englishlearn.infrastructure.persistence.LessonRepository;
 import com.englishlearn.infrastructure.persistence.QuestionOptionRepository;
 import com.englishlearn.infrastructure.persistence.QuestionRepository;
+import com.englishlearn.infrastructure.persistence.VocabularyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ public class QuestionService {
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
     private final LessonRepository lessonRepository;
+    private final VocabularyRepository vocabularyRepository;
 
     @Transactional(readOnly = true)
     public List<QuestionResponse> getAllQuestions() {
@@ -62,9 +65,15 @@ public class QuestionService {
             lesson = lessonRepository.findById(request.getLessonId())
                     .orElseThrow(() -> new ResourceNotFoundException("Bài học", "id", request.getLessonId()));
         }
+        Vocabulary vocabulary = null;
+        if (request.getVocabularyId() != null) {
+            vocabulary = vocabularyRepository.findById(request.getVocabularyId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Từ vựng", "id", request.getVocabularyId()));
+        }
 
         Question question = Question.builder()
                 .lesson(lesson)
+                .vocabulary(vocabulary)
                 .questionType(request.getQuestionType())
                 .questionText(request.getQuestionText())
                 .points(request.getPoints())
@@ -98,6 +107,11 @@ public class QuestionService {
             Lesson lesson = lessonRepository.findById(request.getLessonId())
                     .orElseThrow(() -> new ResourceNotFoundException("Bài học", "id", request.getLessonId()));
             question.setLesson(lesson);
+        }
+        if (request.getVocabularyId() != null) {
+            Vocabulary vocabulary = vocabularyRepository.findById(request.getVocabularyId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Từ vựng", "id", request.getVocabularyId()));
+            question.setVocabulary(vocabulary);
         }
 
         question.setQuestionType(request.getQuestionType());
@@ -153,6 +167,8 @@ public class QuestionService {
                 .explanation(question.getExplanation())
                 .lessonId(question.getLesson() != null ? question.getLesson().getId() : null)
                 .lessonTitle(question.getLesson() != null ? question.getLesson().getTitle() : null)
+                .vocabularyId(question.getVocabulary() != null ? question.getVocabulary().getId() : null)
+                .vocabularyWord(question.getVocabulary() != null ? question.getVocabulary().getWord() : null)
                 .options(optionResponses)
                 .build();
     }

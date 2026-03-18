@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, CheckCheck } from "lucide-react";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "../../store/authStore";
+import api from "../../services/api/axios";
 
 interface Notification {
   id: number;
@@ -13,6 +15,7 @@ interface Notification {
 }
 
 const NotificationComponent = ({ userId }: { userId: number }) => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -31,10 +34,10 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
       webSocketFactory: () => socket,
       onConnect: (frame) => {
         console.log('Connected to STOMP broker:', frame);
-        
+
         const destination = `/topic/notifications/${user?.username}`;
         console.log('Subscribing to:', destination);
-        
+
         stompClient.subscribe(destination, (message) => {
           console.log('Received notification message:', message.body);
           const newNotification = JSON.parse(message.body);
@@ -75,10 +78,9 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch(`/api/v1/notifications/user/${userId}`);
-      const data = await response.json();
-      if (data.status === "success") {
-        setNotifications(data.data);
+      const response = await api.get(`/notifications/user/${userId}`);
+      if (response.data.success) {
+        setNotifications(response.data.data);
       }
     } catch (error) {
       console.error("Failed to fetch notifications", error);
@@ -87,12 +89,9 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await fetch(
-        `/api/v1/notifications/user/${userId}/unread-count`,
-      );
-      const data = await response.json();
-      if (data.status === "success") {
-        setUnreadCount(data.data);
+      const response = await api.get(`/notifications/user/${userId}/unread-count`);
+      if (response.data.success) {
+        setUnreadCount(response.data.data);
       }
     } catch (error) {
       console.error("Failed to fetch unread count", error);
@@ -101,13 +100,25 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
 
   const markAsRead = async (id: number) => {
     try {
-      await fetch(`/api/v1/notifications/${id}/read`, { method: "PUT" });
+      await api.put(`/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
       console.error("Failed to mark notification as read", error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.put(`/notifications/user/${userId}/read-all`);
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, isRead: true })),
+      );
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Failed to mark all notifications as read", error);
     }
   };
 
@@ -129,9 +140,20 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center">
             <h3 className="font-semibold text-gray-800">Thông báo</h3>
-            <span className="text-xs text-gray-500">
-              {unreadCount} chưa đọc
-            </span>
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1"
+                >
+                  <CheckCheck className="w-3 h-3" />
+                  Đọc tất cả
+                </button>
+              )}
+              <span className="text-xs text-gray-500">
+                {unreadCount} chưa đọc
+              </span>
+            </div>
           </div>
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
@@ -142,18 +164,22 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${
-                    !notification.isRead ? "bg-blue-50/30" : ""
-                  }`}
+                  onClick={() => {
+                    markAsRead(notification.id);
+                    setIsOpen(false);
+                    navigate(`/notifications/${notification.id}`);
+                  }}
+                  className={`p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 cursor-pointer ${!notification.isRead ? "bg-blue-50/30" : ""
+                    }`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <p
-                        className={`text-sm ${!notification.isRead ? "font-bold" : "font-medium"} text-gray-900`}
+                        className={`text-sm ${!notification.isRead ? "font-bold" : "font-medium"} text-gray-900 line-clamp-1`}
                       >
                         {notification.title}
                       </p>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-1">
                         {notification.message}
                       </p>
                       <p className="text-[10px] text-gray-400 mt-2">
@@ -163,13 +189,7 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
                       </p>
                     </div>
                     {!notification.isRead && (
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="p-1 text-blue-500 hover:bg-blue-100 rounded-full"
-                        title="Đánh dấu đã đọc"
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
+                      <div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5 shrink-0" />
                     )}
                   </div>
                 </div>

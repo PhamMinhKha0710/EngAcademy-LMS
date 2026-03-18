@@ -15,6 +15,7 @@ public class LessonResponse {
     private Long topicId;
     private String topicName;
     private String contentHtml;
+    private String grammarHtml;
     private String audioUrl;
     private String videoUrl;
     private Integer difficultyLevel;

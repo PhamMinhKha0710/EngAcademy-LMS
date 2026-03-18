@@ -55,6 +55,10 @@ public class Exam {
     @Builder.Default
     private String status = "DRAFT"; // DRAFT, PUBLISHED, CLOSED
 
+    @Column(name = "score_published", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean scorePublished = false;
+
     @ManyToMany
     @JoinTable(name = "EXAM_QUESTION", joinColumns = @JoinColumn(name = "exam_id"), inverseJoinColumns = @JoinColumn(name = "question_id"))
     @Builder.Default

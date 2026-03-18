@@ -2,26 +2,38 @@ package com.englishlearn.application.service;
 
 import com.englishlearn.application.dto.request.SchoolRequest;
 import com.englishlearn.application.dto.response.SchoolResponse;
+import com.englishlearn.domain.entity.Role;
 import com.englishlearn.domain.entity.School;
+import com.englishlearn.domain.entity.User;
+import com.englishlearn.domain.exception.ApiException;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
+import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.SchoolRepository;
+import com.englishlearn.infrastructure.persistence.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class SchoolService {
 
     private final SchoolRepository schoolRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public List<SchoolResponse> getAllSchools() {
@@ -52,11 +64,25 @@ public class SchoolService {
 
     @Transactional
     public SchoolResponse createSchool(SchoolRequest request) {
-        // Check duplicate email
+        // Check duplicate email for school
         if (request.getEmail() != null && schoolRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Trường học", "email", request.getEmail());
         }
 
+        // Validate manager account details
+        if (request.getManagerUsername() == null || request.getManagerUsername().trim().length() < 3) {
+            throw ApiException.badRequest("Tên đăng nhập quản lý phải có ít nhất 3 ký tự");
+        }
+        if (request.getManagerPassword() == null || request.getManagerPassword().length() < 6) {
+            throw ApiException.badRequest("Mật khẩu quản lý phải có ít nhất 6 ký tự");
+        }
+
+        // Check duplicate username for manager account
+        if (userRepository.existsByUsername(request.getManagerUsername())) {
+            throw new DuplicateResourceException("Tài khoản quản lý", "username", request.getManagerUsername());
+        }
+
+        // 1. Create and save the school
         School school = School.builder()
                 .name(request.getName())
                 .address(request.getAddress())
@@ -68,6 +94,28 @@ public class SchoolService {
 
         School savedSchool = schoolRepository.save(school);
         log.info("Created new school: {} (ID: {})", savedSchool.getName(), savedSchool.getId());
+
+        // 2. Create the school manager account (ROLE_SCHOOL)
+        Role schoolRole = roleRepository.findByName("ROLE_SCHOOL")
+                .orElseThrow(() -> ApiException.notFound("Không tìm thấy vai trò ROLE_SCHOOL"));
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(schoolRole);
+
+        User manager = User.builder()
+                .username(request.getManagerUsername())
+                .passwordHash(passwordEncoder.encode(request.getManagerPassword()))
+                .email(request.getEmail()) // Use school email as manager email too
+                .fullName("Quản lý " + request.getName())
+                .isActive(true)
+                .school(savedSchool)
+                .roles(roles)
+                .coins(0)
+                .streakDays(0)
+                .build();
+
+        userRepository.save(manager);
+        log.info("Created manager account '{}' for school '{}'", manager.getUsername(), savedSchool.getName());
 
         return mapToResponse(savedSchool);
     }

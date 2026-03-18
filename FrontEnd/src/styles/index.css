@@ -2,16 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light theme (default) */
+/* ============================================
+   UX for 11-12 year olds: Typography, Spacing, Accessibility
+   See docs/UX-KIDS.md for guidelines
+   ============================================ */
+
+/* Typography scale (rem - user can zoom) */
 :root {
-  --color-bg: #f8fafc;
-  --color-bg-secondary: #ffffff;
-  --color-bg-tertiary: #f1f5f9;
-  --color-text: #1e293b;
-  --color-text-secondary: #64748b;
+  --text-display: 2.5rem;
+  --text-h1: 2rem;
+  --text-h2: 1.5rem;
+  --text-h3: 1.25rem;
+  --text-body-lg: 1.125rem; /* 18px - preferred for 11-12yo */
+  --text-body: 1rem;
+  --text-caption: 0.875rem;
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6; /* preferred for body */
+}
+
+/* Spacing scale (consistent 4px base) */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+}
+
+/* Minimum touch target for kids (WCAG AAA) */
+:root {
+  --touch-target-min: 44px;
+}
+
+/* Light theme (default) - EnglishFun style, WCAG AA contrast */
+:root {
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f8f7f5;
+  --color-bg-tertiary: #e5e7eb;
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
   --color-border: #e2e8f0;
   --color-card: #ffffff;
-  --color-card-hover: #f8fafc;
+  --color-card-hover: #f8f7f5;
+  --color-primary: #f49d25;
+  --color-success: #10b981;
+  --color-amber: #f59e0b;
+  --color-violet: #8b5cf6;
+  --transition-duration: 250ms;
 }
 
 /* Dark theme */
@@ -22,18 +64,46 @@
   --color-text: #f8fafc;
   --color-text-secondary: #94a3b8;
   --color-border: #334155;
-  --color-card: rgba(30, 41, 59, 0.5);
-  --color-card-hover: rgba(30, 41, 59, 0.8);
+  --color-card: rgba(30, 41, 59, 0.6);
+  --color-card-hover: rgba(51, 65, 85, 0.6);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+  font-size: 16px; /* base for rem */
+}
+
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Spline Sans', system-ui, sans-serif;
+  font-size: var(--text-body-lg);
+  line-height: var(--line-height-relaxed);
   background: var(--color-bg);
   color: var(--color-text);
   min-height: 100vh;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color var(--transition-duration), color var(--transition-duration);
+}
+
+/* Typography utility classes - visual hierarchy */
+.text-display { font-size: var(--text-display); line-height: var(--line-height-tight); }
+.text-h1 { font-size: var(--text-h1); line-height: var(--line-height-snug); }
+.text-h2 { font-size: var(--text-h2); line-height: var(--line-height-snug); }
+.text-h3 { font-size: var(--text-h3); line-height: var(--line-height-normal); }
+.text-body-lg { font-size: var(--text-body-lg); line-height: var(--line-height-relaxed); }
+.text-body { font-size: var(--text-body); line-height: var(--line-height-relaxed); }
+.text-caption { font-size: var(--text-caption); line-height: var(--line-height-normal); }
+
+/* Accessibility: visible focus states */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* Scrollbar */
@@ -42,40 +112,79 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
 
-/* Utilities */
-.gradient-text {
-  @apply bg-gradient-to-r from-blue-500 to-emerald-500 bg-clip-text text-transparent;
-}
-.card {
-  background: var(--color-card);
-  @apply backdrop-blur-sm rounded-xl border transition-colors;
-  border-color: var(--color-border);
-}
-.card:hover {
-  background: var(--color-card-hover);
-}
+/* Flat buttons - min 44px touch target for 11-12yo */
 .btn-primary {
-  @apply px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg shadow-blue-500/25;
+  @apply text-white font-medium rounded-xl transition-all duration-[250ms];
+  padding: var(--space-3) var(--space-6);
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
+.btn-primary:hover {
+  @apply scale-[1.02];
+  filter: brightness(1.05);
+}
+.btn-primary:active {
+  @apply scale-[0.98];
+}
+
 .btn-secondary {
-  @apply px-6 py-3 font-medium rounded-lg transition-all duration-200;
+  @apply font-medium rounded-xl transition-all duration-[250ms];
+  padding: var(--space-3) var(--space-6);
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--color-bg-tertiary);
   color: var(--color-text);
 }
 .btn-secondary:hover {
-  opacity: 0.8;
+  opacity: 0.9;
 }
+.btn-secondary:active {
+  @apply scale-[0.98];
+}
+
+/* Flat card - shadow nhẹ, rounded */
+.card {
+  background: var(--color-card);
+  @apply rounded-xl border transition-all duration-[250ms];
+  border-color: var(--color-border);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+}
+.card:hover {
+  background: var(--color-card-hover);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+}
+
 .input-field {
-  @apply w-full px-4 py-3 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500;
+  @apply w-full rounded-xl transition-all duration-[250ms];
+  padding: var(--space-3) var(--space-4);
+  min-height: var(--touch-target-min);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   color: var(--color-text);
+}
+.input-field:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary);
+  border-color: var(--color-primary);
 }
 .input-field::placeholder {
   color: var(--color-text-secondary);
 }
 
-/* Dialog animations */
+/* Accent text - flat primary color */
+.text-accent {
+  color: var(--color-primary);
+}
+
+/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -84,10 +193,26 @@ body {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.96);
+    transform: translateY(16px) scale(0.98);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary) 0%,
+    var(--color-bg-secondary) 50%,
+    var(--color-bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }

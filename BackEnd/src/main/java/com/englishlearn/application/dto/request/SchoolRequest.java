@@ -33,4 +33,7 @@ public class SchoolRequest {
     private LocalDate trialEndDate;
 
     private Boolean isActive;
+
+    private String managerUsername;
+    private String managerPassword;
 }

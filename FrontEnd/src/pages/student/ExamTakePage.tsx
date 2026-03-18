@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Send, Loader2, ShieldAlert } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { examApi, ExamTakeDTO, SubmitExamRequest } from '../../services/api/examApi'
+import { triggerQuestRefresh } from '../../utils/questRefresh'
 import Timer from '../../components/ui/Timer'
 import QuizQuestion from '../../components/ui/QuizQuestion'
 import Dialog from '../../components/ui/Dialog'
+import Breadcrumb from '../../components/ui/Breadcrumb'
 
 interface ExamQuestion {
     id: number
@@ -15,6 +18,7 @@ interface ExamQuestion {
 }
 
 export default function ExamTakePage() {
+    const { t } = useTranslation()
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const { user } = useAuthStore()
@@ -30,6 +34,8 @@ export default function ExamTakePage() {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false)
     const [tabSwitchCount, setTabSwitchCount] = useState(0)
     const submittedRef = useRef(false)
+    const examContainerRef = useRef<HTMLDivElement>(null)
+    const pointerLockRequestedRef = useRef(false)
 
     const examResultId = examData?.examResultId
 
@@ -45,7 +51,8 @@ export default function ExamTakePage() {
                 setExamData(data)
 
                 // Store examResultId for result page
-                sessionStorage.setItem(`exam_result_${examId}`, String(data.examResultId))
+                sessionStorage.removeItem(`exam_result_${examId}`)
+                sessionStorage.setItem(`exam_result_${user.id}_${examId}`, String(data.examResultId))
 
                 // Extract questions and duration from exam data
                 const examQuestions = (data as any).questions || []
@@ -55,7 +62,16 @@ export default function ExamTakePage() {
                 setDurationSeconds(duration * 60)
             } catch (err: any) {
                 console.error('Failed to start exam:', err)
-                setError(err.response?.data?.message || 'Không thể bắt đầu bài thi. Có thể bạn đã làm bài thi này rồi.')
+                const message = err.response?.data?.message || ''
+                if (typeof message === 'string') {
+                    const vn = 'Bạn đã hoàn thành bài thi này'
+                    const en = t('exams.alreadyCompleted')
+                    if (message.includes(vn) || message.includes(en)) {
+                        navigate(`/exams/${examId}/result`, { replace: true })
+                        return
+                    }
+                }
+                setError(message || t('exams.cannotStart'))
             } finally {
                 setLoading(false)
             }
@@ -79,6 +95,76 @@ export default function ExamTakePage() {
         return () => document.removeEventListener('visibilitychange', handler)
     }, [examId, examResultId])
 
+    // Anti-cheat: block copy, cut, paste, context menu, text selection
+    useEffect(() => {
+        if (!examResultId) return
+
+        const prevent = (e: Event) => {
+            if (submittedRef.current) return
+            e.preventDefault()
+        }
+        const preventAndLog = (e: Event, eventType: string, details: string) => {
+            if (submittedRef.current) return
+            e.preventDefault()
+            examApi.logAntiCheatEvent(examId, { examResultId, eventType, details })
+        }
+
+        const handleCopy = (e: ClipboardEvent) => preventAndLog(e, 'COPY_ATTEMPT', 'Copy attempted')
+        const handleCut = (e: ClipboardEvent) => preventAndLog(e, 'CUT_ATTEMPT', 'Cut attempted')
+        const handlePaste = (e: ClipboardEvent) => preventAndLog(e, 'PASTE_ATTEMPT', 'Paste attempted')
+        const handleContextMenu = (e: MouseEvent) => preventAndLog(e, 'CONTEXT_MENU', 'Right-click menu opened')
+        const handleSelectStart = (e: Event) => prevent(e)
+
+        document.addEventListener('copy', handleCopy, true)
+        document.addEventListener('cut', handleCut, true)
+        document.addEventListener('paste', handlePaste, true)
+        document.addEventListener('contextmenu', handleContextMenu, true)
+        document.addEventListener('selectstart', handleSelectStart, true)
+        return () => {
+            document.removeEventListener('copy', handleCopy, true)
+            document.removeEventListener('cut', handleCut, true)
+            document.removeEventListener('paste', handlePaste, true)
+            document.removeEventListener('contextmenu', handleContextMenu, true)
+            document.removeEventListener('selectstart', handleSelectStart, true)
+        }
+    }, [examId, examResultId])
+
+    // Anti-cheat: pointer lock so mouse stays in tab; log when user escapes lock
+    useEffect(() => {
+        if (!examResultId || !examContainerRef.current) return
+
+        const el = examContainerRef.current
+        const handlePointerLockChange = () => {
+            if (submittedRef.current) return
+            if (!document.pointerLockElement && pointerLockRequestedRef.current) {
+                examApi.logAntiCheatEvent(examId, {
+                    examResultId,
+                    eventType: 'POINTER_LOCK_ESCAPE',
+                    details: 'Student exited pointer lock (mouse left exam area)',
+                })
+                pointerLockRequestedRef.current = false
+                // Re-request lock after a short delay; next user click will lock again if browser requires gesture
+                setTimeout(() => el.requestPointerLock?.(), 100)
+            }
+        }
+        const requestLock = () => {
+            if (submittedRef.current || pointerLockRequestedRef.current) return
+            pointerLockRequestedRef.current = true
+            el.requestPointerLock?.()
+        }
+
+        document.addEventListener('pointerlockchange', handlePointerLockChange)
+        el.addEventListener('click', requestLock, { once: true })
+        el.addEventListener('keydown', requestLock, { once: true })
+
+        return () => {
+            document.removeEventListener('pointerlockchange', handlePointerLockChange)
+            el.removeEventListener('click', requestLock)
+            el.removeEventListener('keydown', requestLock)
+            if (document.pointerLockElement === el) document.exitPointerLock()
+        }
+    }, [examId, examResultId])
+
     // Handle answer selection
     const handleSelect = useCallback((questionId: number, optionIds: number[]) => {
         setAnswers((prev) => {
@@ -99,7 +185,11 @@ export default function ExamTakePage() {
 
             const answerPayload: SubmitExamRequest['answers'] = []
             answers.forEach((selectedOptionIds, questionId) => {
-                answerPayload.push({ questionId, selectedOptionIds })
+                answerPayload.push({
+                    questionId,
+                    selectedOptionId: selectedOptionIds?.[0],
+                    selectedOptionIds,
+                })
             })
 
             await examApi.submitExam(examId, {
@@ -107,14 +197,18 @@ export default function ExamTakePage() {
                 answers: answerPayload,
             })
 
+            triggerQuestRefresh()
+
+            sessionStorage.removeItem(`exam_submit_success_${examId}`)
+            sessionStorage.setItem(`exam_submit_success_${user?.id}_${examId}`, '1')
             navigate(`/exams/${examId}/result`, { replace: true })
         } catch (err: any) {
             console.error('Failed to submit exam:', err)
-            setError(err.response?.data?.message || 'Không thể nộp bài. Vui lòng thử lại.')
+            setError(err.response?.data?.message || t('exams.submitError'))
             submittedRef.current = false
             setSubmitting(false)
         }
-    }, [examId, examResultId, answers, navigate])
+    }, [examId, examResultId, answers, navigate, user?.id])
 
     // Handle time up
     const handleTimeUp = useCallback(() => {
@@ -125,12 +219,13 @@ export default function ExamTakePage() {
 
     const answeredCount = answers.size
     const totalCount = questions.length
+    const examTitle = (examData as any)?.title as string | undefined
 
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-                <p style={{ color: 'var(--color-text-secondary)' }}>Đang tải bài thi...</p>
+                <p style={{ color: 'var(--color-text-secondary)' }}>{t('exams.sessionInitializing')}</p>
             </div>
         )
     }
@@ -145,7 +240,7 @@ export default function ExamTakePage() {
                         <AlertTriangle className="w-8 h-8 text-red-400" />
                     </div>
                     <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text)' }}>
-                        Không thể bắt đầu bài thi
+                        {t('exams.cannotStart')}
                     </h2>
                     <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                         {error}
@@ -154,7 +249,7 @@ export default function ExamTakePage() {
                         onClick={() => navigate('/exams')}
                         className="btn-secondary mt-2"
                     >
-                        Quay về danh sách
+                        {t('exams.backToList')}
                     </button>
                 </div>
             </div>
@@ -162,7 +257,16 @@ export default function ExamTakePage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div
+            ref={examContainerRef}
+            className="max-w-4xl mx-auto px-4 py-6 select-none"
+            style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+        >
+            <Breadcrumb items={[
+                { label: t('sidebar.exams'), path: '/exams' },
+                { label: String((examData as any)?.examTitle || t('exams.sessionInitializing')) }
+            ]} />
+
             {/* Sticky header with timer */}
             <div
                 className="sticky top-0 z-40 -mx-4 px-4 py-4 backdrop-blur-md border-b mb-6"
@@ -173,6 +277,11 @@ export default function ExamTakePage() {
             >
                 <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-4">
+                        {examTitle && (
+                            <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                                {examTitle}
+                            </span>
+                        )}
                         {durationSeconds > 0 && (
                             <Timer
                                 durationSeconds={durationSeconds}
@@ -184,15 +293,19 @@ export default function ExamTakePage() {
                             className="text-sm font-medium"
                             style={{ color: 'var(--color-text-secondary)' }}
                         >
-                            {answeredCount}/{totalCount} câu đã trả lời
+                            {answeredCount}/{totalCount} {t('exams.questionsAnswered')}
                         </span>
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }} title={t('exams.anticheatCopyAndPointerLock')}>
+                            <ShieldAlert className="w-3.5 h-3.5 inline-block align-middle mr-1" />
+                            {t('exams.anticheatNotice')}
+                        </span>
                         {tabSwitchCount > 0 && (
                             <span className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/25">
                                 <ShieldAlert className="w-3.5 h-3.5" />
-                                {tabSwitchCount} lần rời tab
+                                {t('exams.tabSwitches', { count: tabSwitchCount })}
                             </span>
                         )}
                         <button
@@ -205,7 +318,7 @@ export default function ExamTakePage() {
                             ) : (
                                 <Send className="w-4 h-4" />
                             )}
-                            Nộp bài
+                            {t('exams.submitExamButton')}
                         </button>
                     </div>
                 </div>
@@ -243,7 +356,7 @@ export default function ExamTakePage() {
                             </span>
                             {answers.has(question.id) && (
                                 <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/25">
-                                    Đã trả lời
+                                    {t('exams.questionsAnswered')}
                                 </span>
                             )}
                         </div>
@@ -270,7 +383,7 @@ export default function ExamTakePage() {
                         ) : (
                             <Send className="w-5 h-5" />
                         )}
-                        Nộp bài thi
+                        {t('exams.submitExamButton')}
                     </button>
                 </div>
             )}
@@ -279,37 +392,37 @@ export default function ExamTakePage() {
             <Dialog
                 open={showConfirmDialog}
                 onClose={() => setShowConfirmDialog(false)}
-                title="Xác nhận nộp bài"
+                title={t('exams.confirmSubmitTitle')}
                 footer={
                     <>
                         <button
                             onClick={() => setShowConfirmDialog(false)}
                             className="btn-secondary !py-2 !px-4 text-sm"
                         >
-                            Hủy
+                            {t('common.cancel')}
                         </button>
                         <button
                             onClick={handleSubmit}
                             className="btn-primary !py-2 !px-4 text-sm"
                         >
-                            Xác nhận nộp bài
+                            {t('exams.confirmSubmitTitle')}
                         </button>
                     </>
                 }
             >
                 <div className="space-y-3">
-                    <p>Bạn có chắc chắn muốn nộp bài?</p>
+                    <p>{t('exams.confirmSubmitMessage')}</p>
                     <div
                         className="p-3 rounded-lg text-sm"
                         style={{ backgroundColor: 'var(--color-bg-secondary)' }}
                     >
                         <p>
-                            Đã trả lời: <strong className="text-blue-500">{answeredCount}</strong> / {totalCount} câu
+                            {t('answeredCount', { answered: answeredCount, total: totalCount })}
                         </p>
                         {answeredCount < totalCount && (
                             <p className="text-yellow-400 mt-1 flex items-center gap-1.5">
                                 <AlertTriangle className="w-4 h-4" />
-                                Còn {totalCount - answeredCount} câu chưa trả lời
+                                {t('exams.remainingQuestions', { count: totalCount - answeredCount })}
                             </p>
                         )}
                     </div>

@@ -58,6 +58,10 @@ export interface User {
     isActive?: boolean
     createdAt?: string
     updatedAt?: string
+    schoolId?: number
+    schoolName?: string
+    classId?: number
+    className?: string
 }
 
 // ==================== School ====================
@@ -82,6 +86,8 @@ export interface SchoolRequest {
     email?: string
     trialEndDate?: string
     isActive?: boolean
+    managerUsername?: string
+    managerPassword?: string
 }
 
 // ==================== Lesson ====================
@@ -130,8 +136,9 @@ export interface Exam {
     questionCount?: number
     totalPoints?: number
     submittedCount?: number
-    averageScore?: number
-    createdAt?: string
+    averageScore?: number;
+    questions?: Question[];
+    createdAt?: string;
 }
 
 export interface ExamRequest {
@@ -280,6 +287,7 @@ export interface Notification {
     id: number
     title: string
     message: string
+    imageUrl?: string
     isRead: boolean
     createdAt?: string
 }
