@@ -27,7 +27,7 @@ const navItems = [
     { title: 'Trường học', href: '/schools', icon: School, roles: [ROLES.ADMIN] },
     { title: 'Tất cả người dùng', href: '/users', icon: Users, roles: [ROLES.ADMIN] },
     { title: 'Thông báo', href: '/notifications', icon: Bell, roles: [ROLES.ADMIN] },
-    { title: 'Xếp hạng', href: '/leaderboard', icon: Trophy, roles: [ROLES.ADMIN] },
+    { title: 'Xếp hạng', href: '/leaderboard', icon: Trophy, roles: [ROLES.ADMIN, ROLES.SCHOOL] },
     { title: 'Huy hiệu', href: '/badges', icon: Award, roles: [ROLES.ADMIN] },
 
     // SCHOOL only pages - ordered from largest to smallest scope

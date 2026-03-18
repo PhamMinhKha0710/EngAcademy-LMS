@@ -36,4 +36,5 @@ public class CreateUserRequest {
     private List<String> roles;
 
     private Long schoolId;
+    private Long classId;
 }

@@ -16,9 +16,13 @@ export default function AdminLayout() {
             <div className="flex flex-1 flex-col overflow-hidden">
                 <Header />
                 <main className="flex-1 overflow-y-auto p-4 md:p-6">
-                    <Outlet />
+                    <div className="flex flex-col min-h-full">
+                        <div className="flex-1">
+                            <Outlet />
+                        </div>
+                        <Footer />
+                    </div>
                 </main>
-                <Footer />
             </div>
         </div>
     )

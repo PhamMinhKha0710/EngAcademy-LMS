@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { GraduationCap, Search, Trash2, UserX, Loader2, TrendingUp, CheckCircle, ChevronLeft, ChevronRight, Mail, Calendar, Plus, Edit } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import api from '@/lib/api'
 import { toast } from 'sonner'
 import type { ApiResponse, User } from '@/types/api'
@@ -233,7 +233,7 @@ export default function TeachersPage() {
                                                         {teacher.email || '—'}
                                                     </div>
                                                     <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/30 uppercase tracking-tight">
-                                                        <Calendar className="h-3 w-3" /> Ngày tạo: 01/01/2024
+                                                        <Calendar className="h-3 w-3" /> Ngày tạo: {formatDate(teacher.createdAt)}
                                                     </div>
                                                 </div>
                                             </TableCell>

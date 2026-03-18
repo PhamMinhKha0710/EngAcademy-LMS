@@ -150,15 +150,13 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(users));
     }
 
-    /**
-     * POST /api/v1/users - Tạo người dùng mới (Admin and School)
-     */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Tạo người dùng mới")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @RequestBody @Valid CreateUserRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
 
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
 
@@ -172,6 +170,11 @@ public class UserController {
         }
 
         UserResponse user = userService.createUser(request);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "CREATE_USER", "Tạo người dùng mới: " + user.getUsername(),
+                servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo người dùng thành công", user));
     }
@@ -182,21 +185,38 @@ public class UserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Xóa người dùng")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteUser(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
+
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        UserResponse targetUser = userService.getUserById(id);
+
+        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(targetUser.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xóa người dùng này", null));
+            }
+        }
+
         userService.deleteUser(id);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "DELETE_USER", "Xóa người dùng: " + targetUser.getUsername(),
+                servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Đã xóa người dùng"));
     }
 
-    /**
-     * PUT /api/v1/users/{id} - Cập nhật người dùng (Admin and School)
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SCHOOL')")
     @Operation(summary = "Cập nhật người dùng theo ID")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long id,
             @RequestBody @Valid UpdateUserRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest servletRequest) {
 
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         UserResponse targetUser = userService.getUserById(id);
@@ -210,6 +230,11 @@ public class UserController {
         }
 
         UserResponse user = userService.updateUser(id, request);
+
+        // Log action
+        auditLogService.log(currentUser.getId(), "UPDATE_USER", "Cập nhật người dùng: " + user.getUsername(),
+                servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+
         return ResponseEntity.ok(ApiResponse.success("Cập nhật người dùng thành công", user));
     }
 

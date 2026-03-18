@@ -11,7 +11,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Moon, Sun, Bell, Search, MessageSquare, Clock } from 'lucide-react'
+import { Moon, Sun, Bell, Search, MessageSquare, Clock, CheckCheck } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useState, useEffect } from 'react'
 import api from '@/lib/api'
@@ -55,19 +55,28 @@ export default function Header() {
 
     useEffect(() => {
         fetchNotifications()
-        const interval = setInterval(fetchNotifications, 60000) // Polling every minute
+        const interval = setInterval(fetchNotifications, 10000) // Polling every 10 seconds
         return () => clearInterval(interval)
     }, [user?.id])
 
     const markAsRead = async (id: number) => {
         try {
             await api.put(`/notifications/${id}/read`)
-            setNotifications(prev => 
-                prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-            )
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
             setUnreadCount(prev => Math.max(0, prev - 1))
         } catch (error) {
             console.error('Failed to mark notification as read', error)
+        }
+    }
+
+    const markAllAsRead = async () => {
+        if (!user?.id) return
+        try {
+            await api.put(`/notifications/user/${user.id}/read-all`)
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+            setUnreadCount(0)
+        } catch (error) {
+            console.error('Failed to mark all notifications as read', error)
         }
     }
 
@@ -122,11 +131,24 @@ export default function Header() {
                                 <Bell className="h-4 w-4 text-primary" />
                                 Thông báo
                             </h3>
-                            {unreadCount > 0 && (
-                                <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                    {unreadCount} mới
-                                </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                                {unreadCount > 0 && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={markAllAsRead}
+                                        className="h-7 px-2 text-[10px] font-bold text-primary hover:bg-primary/5 rounded-lg flex items-center gap-1"
+                                    >
+                                        <CheckCheck className="h-3 w-3" />
+                                        Đọc tất cả
+                                    </Button>
+                                )}
+                                {unreadCount > 0 && (
+                                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                        {unreadCount} mới
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         <ScrollArea className="h-[400px]">
                             {notifications.length > 0 ? (
@@ -135,7 +157,10 @@ export default function Header() {
                                         <div 
                                             key={notif.id} 
                                             className={`p-4 hover:bg-muted/50 transition-colors cursor-pointer group relative ${!notif.isRead ? 'bg-primary/[0.02]' : ''}`}
-                                            onClick={() => !notif.isRead && markAsRead(notif.id)}
+                                            onClick={() => {
+                                                markAsRead(notif.id)
+                                                navigate(`/notifications/${notif.id}`)
+                                            }}
                                         >
                                             <div className="flex gap-3">
                                                 <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${!notif.isRead ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
@@ -150,7 +175,7 @@ export default function Header() {
                                                             <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
                                                         )}
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground line-clamp-2 leading-normal">
+                                                     <p className="text-xs text-muted-foreground line-clamp-1 leading-normal overflow-hidden whitespace-nowrap overflow-ellipsis">
                                                         {notif.message}
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-2">
@@ -208,7 +233,7 @@ export default function Header() {
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator className="bg-border" />
                         <div className="p-1">
-                            <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-xl h-10 font-medium cursor-pointer">
+                            <DropdownMenuItem onClick={() => navigate('/settings')} className="rounded-xl h-10 font-medium cursor-pointer">
                                 Hồ sơ cá nhân
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => navigate('/settings')} className="rounded-xl h-10 font-medium cursor-pointer">

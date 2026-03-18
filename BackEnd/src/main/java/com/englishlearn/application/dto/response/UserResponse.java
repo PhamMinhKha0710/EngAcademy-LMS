@@ -23,4 +23,7 @@ public class UserResponse {
     private List<String> roles;
     private Long schoolId;
     private String schoolName;
+    private Long classId;
+    private String className;
+    private java.time.LocalDateTime createdAt;
 }

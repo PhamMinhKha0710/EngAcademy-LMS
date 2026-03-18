@@ -16,6 +16,7 @@
     "axios": "^1.6.2",
     "canvas-confetti": "^1.9.4",
     "ckeditor5": "42.0.2",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.34.0",
     "global": "^4.4.0",
     "i18next": "^25.8.17",

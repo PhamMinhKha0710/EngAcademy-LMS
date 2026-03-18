@@ -73,6 +73,7 @@ public class AuthService {
         return buildAuthResponse(savedUser);
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -90,6 +91,7 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
+    @Transactional
     public AuthResponse refreshToken(String refreshToken) {
         String username = jwtService.extractUsername(refreshToken);
         var user = userRepository.findByUsername(username)
@@ -247,9 +249,21 @@ public class AuthService {
     }
 
     private org.springframework.security.core.userdetails.User buildUserDetails(User user) {
+        // Tài khoản bị khóa nếu:
+        // 1. User.isActive = false
+        // 2. User thuộc về 1 trường và School.isActive = false
+        boolean enabled = Boolean.TRUE.equals(user.getIsActive());
+        if (enabled && user.getSchool() != null) {
+            enabled = Boolean.TRUE.equals(user.getSchool().getIsActive());
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPasswordHash(),
+                enabled,
+                true,
+                true,
+                true,
                 user.getRoles().stream()
                         .map(role -> new SimpleGrantedAuthority(role.getName()))
                         .collect(Collectors.toList()));

@@ -94,24 +94,6 @@ export default function ProgressBar({
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer rounded-full" />
         )}
       </div>
-      <style jsx>{`
-        @keyframes glow {
-          0% { box-shadow: 0 0 5px currentColor; }
-          100% { box-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
-        }
-        .shadow-glow {
-          animation: glow 0.6s ease-in-out;
-          box-shadow: 0 0 20px var(--color-primary-glow);
-        }
-        .animate-shimmer {
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-      `}</style>
     </div>
   )
 }

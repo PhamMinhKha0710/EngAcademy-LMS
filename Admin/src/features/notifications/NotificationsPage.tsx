@@ -21,7 +21,8 @@ export default function NotificationsPage() {
     const [mode, setMode] = useState<'direct' | 'broadcast'>('direct')
     
     // Broadcast state
-    const [broadcastScope, setBroadcastScope] = useState<'ALL' | 'ROLE' | 'SCHOOL' | 'CLASS'>('ALL')
+    // Broadcast state
+    const [broadcastScope, setBroadcastScope] = useState<'ALL' | 'ROLE' | 'SCHOOL' | 'CLASS' | 'SYSTEM'>('ALL')
     const [targetRole, setTargetRole] = useState('')
     const [targetSchoolId, setTargetSchoolId] = useState<number | null>(null)
     const [targetClassId, setTargetClassId] = useState<number | null>(null)
@@ -86,10 +87,13 @@ export default function NotificationsPage() {
         }
         setSending(true)
         try {
-            const params: Record<string, string> = { title: sendTitle, message: sendMessage }
-            if (sendImageUrl.trim()) params.imageUrl = sendImageUrl
-            
-            await api.post(`/test-notifications/send/${sendUserId}`, null, { params })
+            await api.post(`/notifications/send/${sendUserId}`, null, {
+                params: { 
+                    title: sendTitle, 
+                    message: sendMessage,
+                    imageUrl: sendImageUrl.trim() || undefined
+                }
+            })
             toast.success('Gửi thông báo thành công!')
             resetForm()
             if (viewUserId === sendUserId) fetchNotifications()
@@ -145,27 +149,16 @@ export default function NotificationsPage() {
             toast.error('Vui lòng chọn người dùng')
             return
         }
+        setHasLoaded(true)
         setLoadingNotifications(true)
         try {
             const response = await api.get<ApiResponse<Notification[]>>(`/notifications/user/${targetId}`)
             setNotifications(response.data.data)
-            setHasLoaded(true)
         } catch (error: unknown) {
             toast.error(getErrorMessage(error, 'Không thể tải thông báo'))
             setNotifications([])
-            setHasLoaded(true)
         } finally {
             setLoadingNotifications(false)
-        }
-    }
-
-    const markAsRead = async (id: number) => {
-        try {
-            await api.put(`/notifications/${id}/read`)
-            setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)))
-            toast.success('Đã đánh dấu đã đọc')
-        } catch (error: unknown) {
-            toast.error(getErrorMessage(error, 'Thao tác thất bại'))
         }
     }
 
@@ -243,9 +236,10 @@ export default function NotificationsPage() {
                                             onChange={(e) => setBroadcastScope(e.target.value as any)}
                                         >
                                             <option value="ALL">Toàn bộ hệ thống</option>
+                                            <option value="SYSTEM">Cụm hệ thống (Tất cả trường)</option>
                                             <option value="ROLE">Theo vai trò người dùng</option>
-                                            <option value="SCHOOL">Theo trường học</option>
-                                            <option value="CLASS">Theo lớp học</option>
+                                            <option value="SCHOOL">Cụm trường học (GV & HS của trường)</option>
+                                            <option value="CLASS">Cụm lớp học (GV & HS của lớp)</option>
                                         </select>
                                     </div>
                                     
@@ -332,7 +326,7 @@ export default function NotificationsPage() {
                                         className="w-48 h-10 text-xs shadow-none border-border/50"
                                     />
                                     <Button size="sm" onClick={() => fetchNotifications()} disabled={loadingNotifications} className="rounded-xl h-10 px-4 font-bold bg-primary/5 text-primary hover:bg-primary hover:text-white border border-primary/10 transition-all">
-                                        <Search className="h-4 w-4" />
+                                        <Bell className="h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>
@@ -360,12 +354,11 @@ export default function NotificationsPage() {
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="flex gap-4">
                                                     <div className={cn("h-11 w-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm", n.isRead ? "bg-muted text-muted-foreground/40" : "bg-primary text-white")}>
-                                                        {n.isRead ? <CheckCircle className="h-6 w-6" /> : <Bell className="h-6 w-6" />}
+                                                        <Bell className="h-6 w-6" />
                                                     </div>
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-2">
                                                             <h4 className="font-black text-foreground">{n.title}</h4>
-                                                            {!n.isRead && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                                                         </div>
                                                         <p className="text-sm font-medium text-muted-foreground leading-snug">{n.message}</p>
                                                         {n.imageUrl && (
@@ -382,11 +375,6 @@ export default function NotificationsPage() {
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col gap-1">
-                                                    {!n.isRead && (
-                                                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-emerald-500 hover:bg-emerald-500/10" onClick={() => markAsRead(n.id)}>
-                                                            <CheckCircle className="h-4.5 w-4.5" />
-                                                        </Button>
-                                                    )}
                                                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all font-bold" onClick={() => deleteNotification(n.id)}>
                                                         <Trash className="h-4.5 w-4.5" />
                                                     </Button>

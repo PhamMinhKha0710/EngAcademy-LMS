@@ -17,6 +17,7 @@ import StudentsPage from '@/features/students/StudentsPage'
 import GradesPage from '@/features/grades/GradesPage'
 import UnauthorizedPage from '@/features/error/UnauthorizedPage'
 import SettingsPage from '@/features/settings/SettingsPage'
+import NotificationDetailPage from '@/features/notifications/NotificationDetailPage'
 
 function AppRoutes() {
     return (
@@ -25,10 +26,12 @@ function AppRoutes() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-            {/* Routes for both ADMIN and SCHOOL */}
-            <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_SCHOOL']} />}>
+            {/* Routes for ADMIN, SCHOOL and TEACHER */}
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_SCHOOL', 'ROLE_TEACHER']} />}>
                 <Route element={<AdminLayout />}>
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/leaderboard" element={<LeaderboardPage />} />
+                    <Route path="/notifications/:id" element={<NotificationDetailPage />} />
                 </Route>
             </Route>
 
@@ -48,7 +51,6 @@ function AppRoutes() {
                     <Route path="/schools" element={<SchoolsPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/notifications" element={<NotificationsPage />} />
-                    <Route path="/leaderboard" element={<LeaderboardPage />} />
                     <Route path="/badges" element={<BadgesPage />} />
                 </Route>
             </Route>

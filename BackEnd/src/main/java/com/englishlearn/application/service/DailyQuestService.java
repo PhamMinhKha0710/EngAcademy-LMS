@@ -28,6 +28,7 @@ public class DailyQuestService {
     private final DailyQuestRepository dailyQuestRepository;
     private final DailyQuestTaskRepository dailyQuestTaskRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     /**
      * Get or create today's daily quest for a user
@@ -194,6 +195,9 @@ public class DailyQuestService {
         // Increase streak
         user.setStreakDays(user.getStreakDays() + 1);
         userRepository.save(user);
+
+        // Send notification
+        notificationService.sendNotification(userId, "Nhiệm vụ hoàn tất!", "Well done! Bạn đã hoàn thành nhiệm vụ của ngày hôm nay", null);
 
         log.info("Completed daily quest for user: {}", userId);
         return mapToResponse(quest);

@@ -43,13 +43,13 @@ public class ClassRoomService {
 
     @Transactional(readOnly = true)
     public Page<ClassRoomResponse> getClassRoomsBySchool(Long schoolId, Pageable pageable) {
-        return classRoomRepository.findBySchoolIdAndIsActiveTrue(schoolId, pageable)
+        return classRoomRepository.findBySchoolId(schoolId, pageable)
                 .map(this::mapToResponse);
     }
 
     @Transactional(readOnly = true)
     public List<ClassRoomResponse> getClassRoomsBySchool(Long schoolId) {
-        return classRoomRepository.findBySchoolIdAndIsActiveTrue(schoolId, Pageable.unpaged())
+        return classRoomRepository.findBySchoolId(schoolId, Pageable.unpaged())
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -87,13 +87,17 @@ public class ClassRoomService {
 
     @Transactional
     public ClassRoomResponse createClassRoom(ClassRoomRequest request) {
+        if (request.getSchoolId() == null) {
+            throw com.englishlearn.domain.exception.ApiException.badRequest("Trường học không được để trống");
+        }
+        
         School school = schoolRepository.findById(request.getSchoolId())
                 .orElseThrow(() -> new ResourceNotFoundException("Trường học", "id", request.getSchoolId()));
 
         // Check duplicate name in same school
-        if (classRoomRepository.existsByNameAndSchoolId(request.getName(), request.getSchoolId())) {
-            throw new DuplicateResourceException("Lớp học", "tên", request.getName());
-        }
+        // if (classRoomRepository.existsByNameAndSchoolId(request.getName(), request.getSchoolId())) {
+        //     throw new DuplicateResourceException("Lớp học", "tên", request.getName());
+        // }
 
         User teacher = null;
         if (request.getTeacherId() != null) {
@@ -153,6 +157,8 @@ public class ClassRoomService {
         ClassRoom classRoom = classRoomRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", classId));
 
+        validateClassRoomActive(classRoom);
+
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Giáo viên", "id", teacherId));
 
@@ -165,6 +171,8 @@ public class ClassRoomService {
     public void addStudentToClass(Long classId, Long studentId) {
         ClassRoom classRoom = classRoomRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", classId));
+
+        validateClassRoomActive(classRoom);
 
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Học sinh", "id", studentId));
@@ -188,6 +196,8 @@ public class ClassRoomService {
     public void removeStudentFromClass(Long classId, Long studentId) {
         ClassRoom classRoom = classRoomRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", classId));
+
+        validateClassRoomActive(classRoom);
 
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Học sinh", "id", studentId));
@@ -255,6 +265,15 @@ public class ClassRoomService {
         log.info("Soft deleted class: {} (ID: {})", classRoom.getName(), classRoom.getId());
     }
 
+    private void validateClassRoomActive(ClassRoom classRoom) {
+        if (classRoom.getSchool() != null && !Boolean.TRUE.equals(classRoom.getSchool().getIsActive())) {
+            throw new RuntimeException("Trường học của lớp này đã ngừng hoạt động. Không thể thực hiện thao tác.");
+        }
+        if (!Boolean.TRUE.equals(classRoom.getIsActive())) {
+            throw new RuntimeException("Lớp học đã bị khóa hoặc ngừng hoạt động. Không thể thực hiện thao tác.");
+        }
+    }
+
     private ClassRoomResponse mapToResponse(ClassRoom classRoom) {
         Long studentCount = classRoomRepository.countStudentsByClassId(classRoom.getId());
 
@@ -268,6 +287,7 @@ public class ClassRoomService {
                 .teacherId(classRoom.getTeacher() != null ? classRoom.getTeacher().getId() : null)
                 .teacherName(classRoom.getTeacher() != null ? classRoom.getTeacher().getFullName() : null)
                 .studentCount(studentCount != null ? studentCount : 0L)
+                .createdAt(classRoom.getCreatedAt())
                 .build();
     }
 }

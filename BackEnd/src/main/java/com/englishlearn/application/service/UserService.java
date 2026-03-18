@@ -5,12 +5,16 @@ import com.englishlearn.application.dto.request.CreateUserRequest;
 import com.englishlearn.application.dto.request.UpdateUserRequest;
 import com.englishlearn.application.dto.response.AdminUserStatsResponse;
 import com.englishlearn.application.dto.response.UserResponse;
+import com.englishlearn.domain.entity.ClassRoom;
 import com.englishlearn.domain.entity.Role;
+import com.englishlearn.domain.entity.StudentClass;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.exception.ApiException;
 import com.englishlearn.domain.exception.DuplicateResourceException;
+import com.englishlearn.infrastructure.persistence.ClassRoomRepository;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.SchoolRepository;
+import com.englishlearn.infrastructure.persistence.StudentClassRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +30,14 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final SchoolRepository schoolRepository;
+    private final ClassRoomRepository classRoomRepository;
+    private final StudentClassRepository studentClassRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserResponse getUserById(Long id) {
@@ -91,6 +98,20 @@ public class UserService {
         User savedUser = userRepository.save(user);
         log.info("Created new user: {} with roles: {}", savedUser.getUsername(), request.getRoles());
 
+        // Assign to class if student and classId provided
+        if (request.getRoles().contains(Role.STUDENT) && request.getClassId() != null) {
+            ClassRoom classRoom = classRoomRepository.findById(request.getClassId())
+                    .orElseThrow(() -> ApiException.notFound("Không tìm thấy lớp học với ID: " + request.getClassId()));
+            
+            StudentClass studentClass = StudentClass.builder()
+                    .student(savedUser)
+                    .classRoom(classRoom)
+                    .status("ACTIVE")
+                    .build();
+            studentClassRepository.save(studentClass);
+            log.info("Assigned student {} to class {}", savedUser.getUsername(), classRoom.getName());
+        }
+
         return mapToResponse(savedUser);
     }
 
@@ -141,6 +162,26 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
         log.info("Admin updated user: {}", userId);
+
+        // Update class assignment if student and classId provided
+        if (user.getRoles().stream().anyMatch(r -> r.getName().equals(Role.STUDENT)) && request.getClassId() != null) {
+            ClassRoom classRoom = classRoomRepository.findById(request.getClassId())
+                    .orElseThrow(() -> ApiException.notFound("Không tìm thấy lớp học với ID: " + request.getClassId()));
+            
+            // Check if already in this class
+            if (!studentClassRepository.existsByStudentAndClassRoom(user, classRoom)) {
+                // For simplicity, we just add to the new class. 
+                // In a more complex system, we might want to deactivate old class enrollments.
+                StudentClass studentClass = StudentClass.builder()
+                        .student(user)
+                        .classRoom(classRoom)
+                        .status("ACTIVE")
+                        .build();
+                studentClassRepository.save(studentClass);
+                log.info("Assigned student {} to new class {}", user.getUsername(), classRoom.getName());
+            }
+        }
+
         return mapToResponse(savedUser);
     }
 
@@ -228,6 +269,17 @@ public class UserService {
                 .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
                 .schoolId(user.getSchool() != null ? user.getSchool().getId() : null)
                 .schoolName(user.getSchool() != null ? user.getSchool().getName() : null)
+                .classId(studentClassRepository.findByStudent(user).stream()
+                        .filter(sc -> "ACTIVE".equals(sc.getStatus()))
+                        .findFirst()
+                        .map(sc -> sc.getClassRoom().getId())
+                        .orElse(null))
+                .className(studentClassRepository.findByStudent(user).stream()
+                        .filter(sc -> "ACTIVE".equals(sc.getStatus()))
+                        .findFirst()
+                        .map(sc -> sc.getClassRoom().getName())
+                        .orElse(null))
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 }
