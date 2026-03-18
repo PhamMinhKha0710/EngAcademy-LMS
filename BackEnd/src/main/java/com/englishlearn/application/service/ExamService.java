@@ -45,6 +45,8 @@ public class ExamService {
     private final VocabularyRepository vocabularyRepository;
     private final SchoolRepository schoolRepository;
     private final DailyQuestService dailyQuestService;
+    private final NotificationService notificationService;
+    private final StudentClassRepository studentClassRepository;
 
     @Transactional(readOnly = true)
     public Page<ExamResponse> getAllExams(Pageable pageable) {
@@ -190,6 +192,21 @@ public class ExamService {
         Exam publishedExam = examRepository.save(exam);
         log.info("Published exam: {} (ID: {})", publishedExam.getTitle(), publishedExam.getId());
 
+        // Notify students in the class
+        try {
+            List<StudentClass> students = studentClassRepository.findActiveStudentsByClassId(exam.getClassRoom().getId());
+            for (StudentClass sc : students) {
+                notificationService.sendNotification(
+                    sc.getStudent().getId(),
+                    "Bài thi mới: " + exam.getTitle(),
+                    "Giáo viên " + exam.getTeacher().getFullName() + " vừa công bố bài thi mới. Hãy kiểm tra và làm bài đúng hạn nhé!",
+                    null
+                );
+            }
+        } catch (Exception e) {
+            log.error("Failed to send notifications for new exam: {}", e.getMessage());
+        }
+
         return mapToResponse(publishedExam);
     }
 
@@ -217,6 +234,21 @@ public class ExamService {
         exam.setScorePublished(true);
         Exam publishedScoresExam = examRepository.save(exam);
         log.info("Published scores for exam: {} (ID: {})", publishedScoresExam.getTitle(), publishedScoresExam.getId());
+
+        // Notify students who took the exam
+        try {
+            List<StudentClass> students = studentClassRepository.findActiveStudentsByClassId(exam.getClassRoom().getId());
+            for (StudentClass sc : students) {
+                notificationService.sendNotification(
+                    sc.getStudent().getId(),
+                    "Công bố điểm: " + exam.getTitle(),
+                    "Điểm bài thi " + exam.getTitle() + " đã được công bố. Bạn có thể vào xem kết quả của mình ngay bây giờ.",
+                    null
+                );
+            }
+        } catch (Exception e) {
+            log.error("Failed to send notifications for published scores: {}", e.getMessage());
+        }
 
         return mapToResponse(publishedScoresExam);
     }
