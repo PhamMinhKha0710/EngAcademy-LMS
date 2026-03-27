@@ -147,6 +147,10 @@ coverage/
 
 # Test results
 TestResults.xml
+/e2e/Reports/
+/e2e/Screenshots/
+/reports/
+/screenshots/
 
 # Secrets & credentials
 *.pem
