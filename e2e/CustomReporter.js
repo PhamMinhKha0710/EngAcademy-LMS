@@ -39,37 +39,17 @@ function escHtml(s) {
 
 /**
  * Very simple server-side syntax highlighter.
- * Returns an HTML string with line numbers and coloured spans.
  */
 function highlight(code) {
-    const KW = /\b(const|let|var|async|await|return|if|else|true|false|null|undefined|new|function|import|require|expect|describe|test|beforeAll|beforeEach|afterAll|afterEach)\b/g;
-    const NUM = /\b(\d+)\b/g;
-    const CMT = /(\/\/[^\n]*)/g;
-    const STR = /('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)/g;
-
     return code.split('\n').map((raw, idx) => {
         let line = escHtml(raw);
-
-        // Order matters: comments first (they can contain anything), then strings, keywords, numbers
-        // We'll build a simple tokeniser: collect ranges to highlight
-        // For simplicity do sequential replacements but mark already-highlighted spans to avoid double-replacing.
-        // Strategy: replace with a placeholder, then restore.
-
-        // 1. Comments (// to EOL)
         line = line.replace(/\/\/([^\n]*)/g, '<span class="cmt">//$1</span>');
-
-        // 2. Strings – single & double-quoted (escaped chars already html-escaped; just match quotes)
         line = line.replace(/(&quot;(?:[^&]|&(?!quot;))*?&quot;|&#039;(?:[^&]|&(?!#039;))*?&#039;|'[^']*')/g,
             m => '<span class="str">' + m + '</span>');
-
-        // 3. Keywords (word-boundary safe after HTML escape – no < > issues with keywords)
         line = line.replace(/\b(const|let|var|async|await|return|if|else|true|false|null|undefined|new|function|import|require|expect|describe|test|beforeAll|beforeEach|afterAll|afterEach)\b/g,
             '<span class="kw">$1</span>');
-
-        // 4. Numbers
         line = line.replace(/(?<![a-zA-Z_$])(\d+)(?![a-zA-Z_$])/g,
             '<span class="num">$1</span>');
-
         const lineNum = `<span class="ln">${String(idx + 1).padStart(3, ' ')}</span>`;
         return lineNum + line;
     }).join('\n');
@@ -83,8 +63,9 @@ class CustomReporter {
 
     onRunComplete(testContexts, results) {
         const testFilePath = path.join(__dirname, 'Tests', 'main.e2e.test.js');
+        const screenshotDir = path.join(__dirname, 'Screenshots');
 
-        // ── Build row data ────────────────────────────────────────────────────
+        // ── Build row data & Rename Screenshots ───────────────────────────────
         const rows = [];
         results.testResults.forEach(suite => {
             suite.testResults.forEach(test => {
@@ -94,26 +75,51 @@ class CustomReporter {
 
                 let id = 'TC-E2E';
                 let description = test.title;
-                const m1 = test.title.match(/^([^:]+):\s*(.*)$/);
-                const m2 = test.title.match(/^(\d+)\.\s*(.*)$/);
-                if (m1) { id = m1[1]; description = m1[2]; }
-                else if (m2) { id = `TC-${m2[1].padStart(2, '0')}`; description = m2[2]; }
+                const m1 = test.title.match(/\b(TC-[A-Z0-9-]+)\b/);
+                const m2 = test.title.match(/\b(\d+)\.\s*/);
+
+                if (m1) { id = m1[1]; description = test.title.replace(m1[0], '').replace(/^:\s*/, '').trim(); }
+                else if (m2) { id = `TC-${m2[1].padStart(2, '0')}`; description = test.title.replace(m2[0], '').trim(); }
 
                 const execTime = test.duration ? test.duration + ' ms' : '< 1 ms';
                 const isPassed = test.status === 'passed';
+                const statusStr = isPassed ? 'passed' : 'failed';
 
+                // Vietnamese Expected Output
                 let expectedOutput = isPassed
-                    ? 'Passes all assertions without throwing exceptions.'
-                    : 'Process completed successfully.';
-                if (description.toLowerCase().includes('đăng nhập thành công'))
-                    expectedOutput = 'Redirect to dashboard, name displayed.';
-                else if (description.toLowerCase().includes('sai mật khẩu'))
-                    expectedOutput = 'Display error message, stay on login.';
+                    ? 'Hệ thống xử lý mượt mà, không gặp lỗi kịch bản.'
+                    : 'Các bước thực hiện thành công, dữ liệu được ghi nhận.';
+
+                const descLower = description.toLowerCase();
+                if (descLower.includes('đăng nhập thành công') || descLower.includes('luồng người dùng'))
+                    expectedOutput = 'Chuyển hướng thành công, hiển thị thông tin người dùng.';
+                else if (descLower.includes('sai mật khẩu'))
+                    expectedOutput = 'Hiển thị thông báo lỗi, giữ nguyên trang đăng nhập.';
+                else if (descLower.includes('thiếu username') || descLower.includes('thiếu password'))
+                    expectedOutput = 'Trình duyệt ngăn chặn submit, báo lỗi trường trống.';
+                else if (descLower.includes('đăng xuất'))
+                    expectedOutput = 'Xóa session/token, quay về trang chủ hoặc login.';
+                else if (descLower.includes('từ khóa hợp lệ'))
+                    expectedOutput = 'Danh sách kết quả hiển thị khớp với từ khóa.';
+                else if (descLower.includes('không có kết quả') || descLower.includes('ký tự đặc biệt'))
+                    expectedOutput = 'Hiển thị giao diện "Empty State" (không tìm thấy).';
+                else if (descLower.includes('từ khóa trống'))
+                    expectedOutput = 'Hiển thị toàn bộ danh sách hoặc giữ nguyên trạng thái.';
 
                 const rawCode = extractTestCode(testFilePath, test.title) || '// Source code not found';
                 const highlightedCode = highlight(rawCode);
 
-                rows.push({ id, item: item.replace(/KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN.*/, 'Toàn bộ E2E'), subItem, description, execTime, expectedOutput, isPassed, highlightedCode });
+                // Rename screenshot file: ID.png -> ID_status.png
+                try {
+                    const oldPath = path.join(screenshotDir, `${id}.png`);
+                    const newPath = path.join(screenshotDir, `${id}_${statusStr}.png`);
+                    if (fs.existsSync(oldPath)) {
+                        if (fs.existsSync(newPath)) fs.unlinkSync(newPath);
+                        fs.renameSync(oldPath, newPath);
+                    }
+                } catch (e) { }
+
+                rows.push({ id, statusStr, item: item.replace(/KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN.*/, 'Toàn bộ E2E'), subItem, description, execTime, expectedOutput, isPassed, highlightedCode });
             });
         });
 
@@ -121,8 +127,8 @@ class CustomReporter {
         let tableRows = '';
         rows.forEach((r, idx) => {
             const statusHtml = r.isPassed
-                ? '<span class="badge badge-passed">Passed</span>'
-                : '<span class="badge badge-failed">Failed</span>';
+                ? '<span class="badge badge-passed">Đạt</span>'
+                : '<span class="badge badge-failed">Lỗi</span>';
             tableRows += `
                     <tr>
                         <td><span class="id-badge">${escHtml(r.id)}</span></td>
@@ -132,12 +138,10 @@ class CustomReporter {
                         <td style="font-family:monospace;font-size:13px">${r.execTime}</td>
                         <td class="expected-col">${r.expectedOutput}</td>
                         <td>${statusHtml}</td>
-                        <td><button class="action-btn" onclick="openCode(${idx})">&#128269; View Code</button></td>
+                        <td><button class="action-btn" onclick="openCode(${idx})">&#128269; Mã Test</button></td>
                     </tr>`;
         });
 
-        // ── Embed highlighted code as JSON array of HTML strings ──────────────
-        // Use a data attribute approach: store everything in a JS array
         const codeArrayJson = JSON.stringify(
             rows.map(r => ({ id: r.id, desc: r.description, hl: r.highlightedCode }))
         );
@@ -148,7 +152,7 @@ class CustomReporter {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>E2E Test Report</title>
+    <title>Báo cáo Kiểm thử E2E</title>
     <style>
         :root{--primary:#4f46e5;--success:#10b981;--danger:#ef4444;--bg:#f3f4f6;--border:#e5e7eb;--main:#1f2937;--muted:#6b7280}
         *{box-sizing:border-box;margin:0;padding:0}
@@ -190,25 +194,25 @@ class CustomReporter {
 <body>
 <div class="container">
     <div class="header">
-        <h1>Automated E2E Test Report</h1>
-        <div style="font-size:14px;opacity:.8">Generated by Custom Jest Reporter</div>
+        <h1>Báo cáo Kiểm thử Tự động E2E</h1>
+        <div style="font-size:14px;opacity:.8">Dự án: English Learning System</div>
     </div>
     <div class="summary-cards">
-        <div class="card c-total"><div class="card-value">${results.numTotalTests}</div><div class="card-label">Total Tests</div></div>
-        <div class="card c-pass"><div class="card-value">${results.numPassedTests}</div><div class="card-label">Passed</div></div>
-        <div class="card c-fail"><div class="card-value">${results.numFailedTests}</div><div class="card-label">Failed</div></div>
+        <div class="card c-total"><div class="card-value">${results.numTotalTests}</div><div class="card-label">Tổng Case</div></div>
+        <div class="card c-pass"><div class="card-value">${results.numPassedTests}</div><div class="card-label">Thành công</div></div>
+        <div class="card c-fail"><div class="card-value">${results.numFailedTests}</div><div class="card-label">Thất bại</div></div>
     </div>
     <div class="table-wrapper">
         <table>
             <thead><tr>
-                <th width="8%">ID</th>
-                <th width="12%">Items</th>
-                <th width="15%">Sub-items</th>
-                <th width="22%">Description</th>
-                <th width="8%">Exec time</th>
-                <th width="15%">Expected Output</th>
-                <th width="10%">Status</th>
-                <th width="10%">Action</th>
+                <th width="8%">Mã TC</th>
+                <th width="12%">Module</th>
+                <th width="15%">Phân hệ</th>
+                <th width="22%">Nội dung kiểm thử</th>
+                <th width="8%">Thời gian</th>
+                <th width="15%">Kết quả mong đợi</th>
+                <th width="10%">Kết quả</th>
+                <th width="10%">Hành động</th>
             </tr></thead>
             <tbody>${tableRows}</tbody>
         </table>

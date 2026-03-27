@@ -34,11 +34,14 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
         if (page) {
             try {
                 const fullName = expect.getState().currentTestName;
-                // Ưu tiên lấy ID kiểu "TC-LOGIN-01", "TC-SEARCH-02", …
-                const idMatch = fullName.match(/\b(TC-[A-Z0-9-]+|\d+\.\s*)/);
-                const fileId = idMatch
-                    ? idMatch[1].trim().replace(/\./g, '').replace(/\s+/g, '')
-                    : fullName.replace(/[^a-zA-Z0-9]/g, '_');
+                let fileId = 'TC-E2E';
+                const m1 = fullName.match(/\b(TC-[A-Z0-9-]+)\b/);
+                const m2 = fullName.match(/\b(\d+)\.\s*/); // Match "1." or "2." anywhere (usually at the end)
+
+                if (m1) { fileId = m1[1]; }
+                else if (m2) { fileId = `TC-${m2[1].padStart(2, '0')}`; }
+                else { fileId = fullName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30); }
+
                 const imageBuffer = await page.screenshot({ path: `./e2e/Screenshots/${fileId}.png`, fullPage: true });
                 await addAttach({
                     attach: imageBuffer,
@@ -212,7 +215,7 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
         });
 
         test('TC-SEARCH-01: Từ khóa hợp lệ', async () => {
-            await page.type('input[type="text"]', 'Unit');
+            await page.type('input[type="text"]', 'Unit 2');
             await delay(1500);
             const lessonCards = await page.$$('.card.relative.p-5');
             expect(lessonCards.length).toBeGreaterThan(0);
