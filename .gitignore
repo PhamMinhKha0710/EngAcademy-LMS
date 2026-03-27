@@ -157,3 +157,4 @@ TestResults.xml
 *.key
 secrets.json
 credentials.json
+BackEnd/db_debug.txt
