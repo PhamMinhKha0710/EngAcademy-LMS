@@ -1,4 +1,4 @@
-=== DIAGNOSTIC REPORT - 2026-03-27T19:17:36.802337500 ===
+=== DIAGNOSTIC REPORT - 2026-03-27T23:16:23.073551 ===
 
 --- ROLES ---
 ID: 1, Name: ROLE_ADMIN
@@ -7,44 +7,8 @@ ID: 3, Name: ROLE_TEACHER
 ID: 4, Name: ROLE_STUDENT
 
 --- SCHOOLS ---
-ID: 1, Name: Trường THCS Nguyễn Du
+WARNING: No schools found. Creating default school.
 
 --- USERS & FIXES ---
-User: hannie (ID: 1) | Final Roles: [ROLE_STUDENT] | School: 1
-User: admin (ID: 2) | Final Roles: [ROLE_ADMIN] | School: NULL
-User: school1 (ID: 3) | Final Roles: [ROLE_SCHOOL] | School: 1
-User: teacher1 (ID: 4) | Final Roles: [ROLE_TEACHER] | School: 1
-User: student1 (ID: 5) | Final Roles: [ROLE_STUDENT] | School: 1
-User: student2 (ID: 6) | Final Roles: [ROLE_STUDENT] | School: 1
-User: student3 (ID: 7) | Final Roles: [ROLE_STUDENT] | School: 1
-User: hannie182 (ID: 8) | Final Roles: [ROLE_STUDENT] | School: 1
-User: hocsinh1 (ID: 9) | Final Roles: [ROLE_STUDENT] | School: 1
-User: giaovien1 (ID: 10) | Final Roles: [ROLE_TEACHER] | School: 1
-User: llhisme (ID: 11) | Final Roles: [ROLE_STUDENT] | School: 1
-User: hocsinh100 (ID: 12) | Final Roles: [] | School: 1
-User: test_1774338492451 (ID: 13) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774338694171 (ID: 14) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774338729485 (ID: 15) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774338901953 (ID: 16) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774338943741 (ID: 17) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: adfghf (ID: 18) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774339200425 (ID: 19) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774339315042 (ID: 20) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774339518703 (ID: 21) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774401449251 (ID: 22) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774401507377 (ID: 23) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774576889386 (ID: 24) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774578056511 (ID: 25) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774578460939 (ID: 26) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774578584785 (ID: 27) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774609969928 (ID: 28) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774610386271 (ID: 29) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774610772046 (ID: 30) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774611202570 (ID: 31) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774611615288 (ID: 32) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774611918073 (ID: 33) | FIXED: Added School 1 | Final Roles: [] | School: 1
-User: test_1774612750950 (ID: 34) | FIXED: Added School 1 | Final Roles: [ROLE_STUDENT] | School: 1
-User: test_1774612849772 (ID: 35) | FIXED: Added School 1 | Final Roles: [ROLE_STUDENT] | School: 1
-User: test_1774613047968 (ID: 36) | FIXED: Added School 1 | Final Roles: [ROLE_STUDENT] | School: 1
 
 === END OF REPORT ===

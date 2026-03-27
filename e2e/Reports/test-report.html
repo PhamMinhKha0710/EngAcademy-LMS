@@ -2,207 +2,220 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>E2E Test Report</title>
     <style>
-        :root {
-            --primary: #4f46e5;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --bg: #f3f4f6;
-            --border: #e5e7eb;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text-main); padding: 30px; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); overflow: hidden; }
-        .header { background: #1e1b4b; color: white; padding: 25px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 24px; font-weight: 600; margin: 0; }
-        .summary-cards { display: flex; gap: 20px; padding: 25px 30px; background: #fafafa; border-bottom: 1px solid var(--border); }
-        .card { flex: 1; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card-value { font-size: 32px; font-weight: 700; margin-bottom: 5px; }
-        .card-label { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-        .c-total .card-value { color: var(--primary); }
-        .c-pass .card-value { color: var(--success); }
-        .c-fail .card-value { color: var(--danger); }
-        .table-wrapper { padding: 30px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); line-height: 1.5; }
-        th { background: #312e81; color: white; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; white-space: nowrap; position: sticky; top: 0; }
-        tr:hover td { background-color: #f8fafc; }
-        .id-badge { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-family: monospace; font-size: 13px; white-space: nowrap; }
-        .badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-weight: 600; font-size: 12px; text-align: center; min-width: 80px; }
-        .badge-passed { background: #d1fae5; color: #065f46; }
-        .badge-failed { background: #fee2e2; color: #991b1b; }
-        .action-link { display: inline-block; background: var(--primary); color: white; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; transition: background 0.2s; white-space: nowrap; }
-        .action-link:hover { background: #4338ca; }
-        .action-none { color: var(--text-muted); font-size: 13px; font-style: italic; }
-        .desc-col { max-width: 300px; }
-        .subitem-col { color: #4338ca; font-weight: 500; font-size: 13px; }
-        .expected-col { font-size: 13px; color: var(--text-muted); }
+        :root{--primary:#4f46e5;--success:#10b981;--danger:#ef4444;--bg:#f3f4f6;--border:#e5e7eb;--main:#1f2937;--muted:#6b7280}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--main);padding:30px}
+        .container{max-width:1400px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);overflow:hidden}
+        .header{background:#1e1b4b;color:#fff;padding:25px 30px;display:flex;justify-content:space-between;align-items:center}
+        .header h1{font-size:24px;font-weight:600;margin:0}
+        .summary-cards{display:flex;gap:20px;padding:25px 30px;background:#fafafa;border-bottom:1px solid var(--border)}
+        .card{flex:1;background:#fff;border:1px solid var(--border);border-radius:8px;padding:20px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+        .card-value{font-size:32px;font-weight:700;margin-bottom:5px}
+        .card-label{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+        .c-total .card-value{color:var(--primary)}.c-pass .card-value{color:var(--success)}.c-fail .card-value{color:var(--danger)}
+        .table-wrapper{padding:30px;overflow-x:auto}
+        table{width:100%;border-collapse:collapse;font-size:14px}
+        th,td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);line-height:1.5}
+        th{background:#312e81;color:#fff;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:.5px;white-space:nowrap;position:sticky;top:0}
+        tr:hover td{background:#f8fafc}
+        .id-badge{display:inline-block;background:#e0e7ff;color:#3730a3;padding:4px 8px;border-radius:4px;font-weight:600;font-family:monospace;font-size:13px;white-space:nowrap}
+        .badge{display:inline-block;padding:5px 10px;border-radius:20px;font-weight:600;font-size:12px;text-align:center;min-width:80px}
+        .badge-passed{background:#d1fae5;color:#065f46}.badge-failed{background:#fee2e2;color:#991b1b}
+        .action-btn{display:inline-flex;align-items:center;gap:5px;background:var(--primary);color:#fff;border:none;cursor:pointer;padding:7px 13px;border-radius:6px;font-size:12px;font-weight:600;transition:background .2s,transform .1s;white-space:nowrap}
+        .action-btn:hover{background:#4338ca;transform:translateY(-1px)}.action-btn:active{transform:translateY(0)}
+        .desc-col{max-width:280px}.subitem-col{color:#4338ca;font-weight:500;font-size:13px}.expected-col{font-size:13px;color:var(--muted)}
+        /* Modal */
+        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center}
+        .overlay.open{display:flex}
+        .modal{background:#1e1e2e;border-radius:12px;width:92%;max-width:800px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.45);overflow:hidden}
+        .modal-hd{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:#181825;border-bottom:1px solid #313244}
+        .modal-badge{background:#313244;color:#89b4fa;padding:3px 10px;border-radius:4px;font-size:13px;font-weight:700;font-family:monospace}
+        .modal-title{color:#cdd6f4;font-size:13px;font-weight:600;font-family:monospace;margin-left:10px}
+        .modal-close{background:#45475a;border:none;color:#cdd6f4;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+        .modal-close:hover{background:#ef4444;color:#fff}
+        .modal-body{overflow-y:auto;padding:20px}
+        pre{background:transparent;color:#cdd6f4;font-family:'Fira Code','Cascadia Code',Consolas,monospace;font-size:13px;line-height:1.75;white-space:pre-wrap;word-break:break-all}
+        .ln{color:#45475a;user-select:none;display:inline-block;min-width:36px;text-align:right;margin-right:14px;font-size:12px}
+        .kw{color:#cba6f7}.str{color:#a6e3a1}.cmt{color:#6c7086;font-style:italic}.num{color:#fab387}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Automated E2E Test Report</h1>
-            <div style="font-size: 14px; opacity: 0.8">Generated by Custom Jest Reporter</div>
-        </div>
-        <div class="summary-cards">
-            <div class="card c-total">
-                <div class="card-value">12</div>
-                <div class="card-label">Total Tests</div>
-            </div>
-            <div class="card c-pass">
-                <div class="card-value">2</div>
-                <div class="card-label">Passed</div>
-            </div>
-            <div class="card c-fail">
-                <div class="card-value">10</div>
-                <div class="card-label">Failed</div>
-            </div>
-        </div>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th width="8%">ID</th>
-                        <th width="12%">Items</th>
-                        <th width="15%">Sub-items</th>
-                        <th width="22%">Description</th>
-                        <th width="8%">Exec time</th>
-                        <th width="15%">Expected Output</th>
-                        <th width="10%">Status</th>
-                        <th width="10%">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-
+<div class="container">
+    <div class="header">
+        <h1>Automated E2E Test Report</h1>
+        <div style="font-size:14px;opacity:.8">Generated by Custom Jest Reporter</div>
+    </div>
+    <div class="summary-cards">
+        <div class="card c-total"><div class="card-value">12</div><div class="card-label">Total Tests</div></div>
+        <div class="card c-pass"><div class="card-value">1</div><div class="card-label">Passed</div></div>
+        <div class="card c-fail"><div class="card-value">11</div><div class="card-label">Failed</div></div>
+    </div>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr>
+                <th width="8%">ID</th>
+                <th width="12%">Items</th>
+                <th width="15%">Sub-items</th>
+                <th width="22%">Description</th>
+                <th width="8%">Exec time</th>
+                <th width="15%">Expected Output</th>
+                <th width="10%">Status</th>
+                <th width="10%">Action</th>
+            </tr></thead>
+            <tbody>
                     <tr>
                         <td><span class="id-badge">TC-01</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">HÀNH TRÌNH NGƯỜI DÙNG CƠ BẢN</td>
-                        <td class="desc-col">Luồng Người Dùng Hiện Tại (Đăng nhập -> Dashboard -> Tìm khóa học)</td>
-                        <td style="font-family: monospace; font-size: 13px;">21838 ms</td>
+                        <td class="desc-col">Luồng Người Dùng Hiện Tại (Đăng nhập -&gt; Dashboard -&gt; Tìm khóa học)</td>
+                        <td style="font-family:monospace;font-size:13px">22654 ms</td>
                         <td class="expected-col">Passes all assertions without throwing exceptions.</td>
                         <td><span class="badge badge-passed">Passed</span></td>
-                        <td><a href="../Screenshots/1__Lu_ng_Ng__i_D_ng_Hi_n_T_i____ng_nh_p____Dashboard____T_m_kh_a_h_c_.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(0)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-02</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">HÀNH TRÌNH NGƯỜI DÙNG CƠ BẢN</td>
-                        <td class="desc-col">Luồng Người Dùng Cũ (Đăng xuất -> Đăng nhập lại)</td>
-                        <td style="font-family: monospace; font-size: 13px;">18159 ms</td>
-                        <td class="expected-col">Passes all assertions without throwing exceptions.</td>
-                        <td><span class="badge badge-passed">Passed</span></td>
-                        <td><a href="../Screenshots/2__Lu_ng_Ng__i_D_ng_C_____ng_xu_t______ng_nh_p_l_i_.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td class="desc-col">Luồng Người Dùng Cũ (Đăng xuất -&gt; Đăng nhập lại)</td>
+                        <td style="font-family:monospace;font-size:13px">21426 ms</td>
+                        <td class="expected-col">Process completed successfully.</td>
+                        <td><span class="badge badge-failed">Failed</span></td>
+                        <td><button class="action-btn" onclick="openCode(1)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-LOGIN-01</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE ĐĂNG NHẬP (LOGIN Edge Cases)</td>
                         <td class="desc-col">Đăng nhập thành công</td>
-                        <td style="font-family: monospace; font-size: 13px;">16957 ms</td>
+                        <td style="font-family:monospace;font-size:13px">3 ms</td>
                         <td class="expected-col">Redirect to dashboard, name displayed.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_LOGIN_01____ng_nh_p_th_nh_c_ng.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(2)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-LOGIN-02</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE ĐĂNG NHẬP (LOGIN Edge Cases)</td>
                         <td class="desc-col">Sai mật khẩu</td>
-                        <td style="font-family: monospace; font-size: 13px;">16886 ms</td>
+                        <td style="font-family:monospace;font-size:13px">14 ms</td>
                         <td class="expected-col">Display error message, stay on login.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_LOGIN_02__Sai_m_t_kh_u.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(3)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-LOGIN-03</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE ĐĂNG NHẬP (LOGIN Edge Cases)</td>
                         <td class="desc-col">Thiếu username</td>
-                        <td style="font-family: monospace; font-size: 13px;">16841 ms</td>
+                        <td style="font-family:monospace;font-size:13px">9 ms</td>
                         <td class="expected-col">Process completed successfully.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_LOGIN_03__Thi_u_username.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(4)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-LOGIN-04</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE ĐĂNG NHẬP (LOGIN Edge Cases)</td>
                         <td class="desc-col">Thiếu password</td>
-                        <td style="font-family: monospace; font-size: 13px;">16988 ms</td>
+                        <td style="font-family:monospace;font-size:13px">10 ms</td>
                         <td class="expected-col">Process completed successfully.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_LOGIN_04__Thi_u_password.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(5)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-LOGIN-05</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE ĐĂNG NHẬP (LOGIN Edge Cases)</td>
                         <td class="desc-col">Bảo mật mật khẩu</td>
-                        <td style="font-family: monospace; font-size: 13px;">16877 ms</td>
+                        <td style="font-family:monospace;font-size:13px">3 ms</td>
                         <td class="expected-col">Process completed successfully.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_LOGIN_05__B_o_m_t_m_t_kh_u.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(6)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-SEARCH-01</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE TÌM KIẾM (SEARCH Edge Cases)</td>
                         <td class="desc-col">Từ khóa hợp lệ</td>
-                        <td style="font-family: monospace; font-size: 13px;">390 ms</td>
+                        <td style="font-family:monospace;font-size:13px">1 ms</td>
                         <td class="expected-col">Process completed successfully.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_SEARCH_01__T__kh_a_h_p_l_.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(7)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-SEARCH-02</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE TÌM KIẾM (SEARCH Edge Cases)</td>
                         <td class="desc-col">Từ khóa không có kết quả</td>
-                        <td style="font-family: monospace; font-size: 13px;">340 ms</td>
+                        <td style="font-family:monospace;font-size:13px">1 ms</td>
                         <td class="expected-col">Process completed successfully.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_SEARCH_02__T__kh_a_kh_ng_c__k_t_qu_.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(8)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-SEARCH-03</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE TÌM KIẾM (SEARCH Edge Cases)</td>
                         <td class="desc-col">Từ khóa trống</td>
-                        <td style="font-family: monospace; font-size: 13px;">291 ms</td>
+                        <td style="font-family:monospace;font-size:13px">16 ms</td>
                         <td class="expected-col">Process completed successfully.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_SEARCH_03__T__kh_a_tr_ng.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(9)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-SEARCH-04</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE TÌM KIẾM (SEARCH Edge Cases)</td>
                         <td class="desc-col">Từ khóa quá ngắn</td>
-                        <td style="font-family: monospace; font-size: 13px;">386 ms</td>
+                        <td style="font-family:monospace;font-size:13px">17 ms</td>
                         <td class="expected-col">Process completed successfully.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_SEARCH_04__T__kh_a_qu__ng_n.png" target="_blank" class="action-link">View Screenshot</a></td>
+                        <td><button class="action-btn" onclick="openCode(10)">&#128269; View Code</button></td>
                     </tr>
                     <tr>
                         <td><span class="id-badge">TC-SEARCH-05</span></td>
-                        <td style="font-weight: 500; font-size: 13px;">Toàn bộ E2E</td>
+                        <td style="font-weight:500;font-size:13px">Toàn bộ E2E</td>
                         <td class="subitem-col">KIỂM THỬ CHUYÊN SÂU MODULE TÌM KIẾM (SEARCH Edge Cases)</td>
                         <td class="desc-col">Ký tự đặc biệt</td>
-                        <td style="font-family: monospace; font-size: 13px;">355 ms</td>
+                        <td style="font-family:monospace;font-size:13px">1 ms</td>
                         <td class="expected-col">Process completed successfully.</td>
                         <td><span class="badge badge-failed">Failed</span></td>
-                        <td><a href="../Screenshots/TC_SEARCH_05__K__t____c_bi_t.png" target="_blank" class="action-link">View Screenshot</a></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                        <td><button class="action-btn" onclick="openCode(11)">&#128269; View Code</button></td>
+                    </tr></tbody>
+        </table>
     </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="closeOnBg(event)">
+    <div class="modal">
+        <div class="modal-hd">
+            <div style="display:flex;align-items:center">
+                <span class="modal-badge" id="mBadge"></span>
+                <span class="modal-title" id="mTitle"></span>
+            </div>
+            <button class="modal-close" onclick="closeModal()">&#10005;</button>
+        </div>
+        <div class="modal-body"><pre id="mCode"></pre></div>
+    </div>
+</div>
+
+<script>
+var DATA = [{"id":"TC-01","desc":"Luồng Người Dùng Hiện Tại (Đăng nhập -> Dashboard -> Tìm khóa học)","hl":"<span class=\"ln\">  1</span><span class=\"cmt\">// Đăng nhập với tài khoản cố định</span>\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> page.goto(`${APP_URL}/login`);\n<span class=\"ln\">  3</span>            <span class=\"kw\">await</span> page.waitForSelector(<span class=\"str\">'#username'</span>, { timeout: <span class=\"num\">15000</span> });\n<span class=\"ln\">  4</span>            <span class=\"kw\">await</span> page.type(<span class=\"str\">'#username'</span>, sharedUsername);\n<span class=\"ln\">  5</span>            <span class=\"kw\">await</span> page.type(<span class=\"str\">'#password'</span>, sharedPassword);\n<span class=\"ln\">  6</span>            <span class=\"kw\">await</span> Promise.all([\n<span class=\"ln\">  7</span>                page.waitForNavigation({ waitUntil: <span class=\"str\">'networkidle0'</span>, timeout: <span class=\"num\">15000</span> }).catch(() =&gt; { }),\n<span class=\"ln\">  8</span>                page.click(<span class=\"str\">'button[type=&quot;submit&quot;]'</span>)\n<span class=\"ln\">  9</span>            ]);\n<span class=\"ln\"> 10</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">2000</span>);\n<span class=\"ln\"> 11</span>\n<span class=\"ln\"> 12</span>            <span class=\"cmt\">// Vào trang bài học và tìm kiếm</span>\n<span class=\"ln\"> 13</span>            <span class=\"kw\">await</span> page.goto(`${APP_URL}/lessons`);\n<span class=\"ln\"> 14</span>            <span class=\"kw\">const</span> searchInputSelector = <span class=\"str\">'input[type=&quot;text&quot;]'</span>;\n<span class=\"ln\"> 15</span>            <span class=\"kw\">await</span> page.waitForSelector(searchInputSelector);\n<span class=\"ln\"> 16</span>            <span class=\"kw\">await</span> page.type(searchInputSelector, <span class=\"str\">'Unit <span class=\"num\">2</span>'</span>);\n<span class=\"ln\"> 17</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">1500</span>);\n<span class=\"ln\"> 18</span>\n<span class=\"ln\"> 19</span>            <span class=\"kw\">const</span> lessonCards = <span class=\"kw\">await</span> page.$$(<span class=\"str\">'.card.relative.p-<span class=\"num\">5</span>'</span>);\n<span class=\"ln\"> 20</span>            <span class=\"kw\">expect</span>(lessonCards).toBeDefined();"},{"id":"TC-02","desc":"Luồng Người Dùng Cũ (Đăng xuất -> Đăng nhập lại)","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.goto(`${APP_URL}`);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">2000</span>);\n<span class=\"ln\">  3</span>\n<span class=\"ln\">  4</span>            <span class=\"cmt\">// Click nút Đăng xuất trên thanh Header</span>\n<span class=\"ln\">  5</span>            <span class=\"kw\">const</span> loggedOut = <span class=\"kw\">await</span> page.evaluate(() =&gt; {\n<span class=\"ln\">  6</span>                <span class=\"kw\">const</span> buttons = Array.from(document.querySelectorAll(<span class=\"str\">'button'</span>));\n<span class=\"ln\">  7</span>                <span class=\"kw\">const</span> logoutBtn = buttons.find(b =&gt; b.textContent.includes(<span class=\"str\">'Đăng xuất'</span>) || b.textContent.includes(<span class=\"str\">'Logout'</span>));\n<span class=\"ln\">  8</span>                <span class=\"kw\">if</span> (logoutBtn) { logoutBtn.click(); <span class=\"kw\">return</span> <span class=\"kw\">true</span>; }\n<span class=\"ln\">  9</span>                <span class=\"kw\">return</span> <span class=\"kw\">false</span>;\n<span class=\"ln\"> 10</span>            });\n<span class=\"ln\"> 11</span>            <span class=\"kw\">if</span> (loggedOut) <span class=\"kw\">await</span> delay(<span class=\"num\">2000</span>);\n<span class=\"ln\"> 12</span>\n<span class=\"ln\"> 13</span>            <span class=\"kw\">await</span> page.goto(`${APP_URL}/login`);\n<span class=\"ln\"> 14</span>            <span class=\"kw\">await</span> page.waitForSelector(<span class=\"str\">'#username'</span>);\n<span class=\"ln\"> 15</span>            <span class=\"kw\">await</span> page.type(<span class=\"str\">'#username'</span>, sharedUsername);\n<span class=\"ln\"> 16</span>            <span class=\"kw\">await</span> page.type(<span class=\"str\">'#password'</span>, sharedPassword);\n<span class=\"ln\"> 17</span>\n<span class=\"ln\"> 18</span>            <span class=\"kw\">await</span> Promise.all([\n<span class=\"ln\"> 19</span>                page.waitForNavigation({ waitUntil: <span class=\"str\">'networkidle0'</span>, timeout: <span class=\"num\">10000</span> }).catch(() =&gt; { }),\n<span class=\"ln\"> 20</span>                page.click(<span class=\"str\">'button[type=&quot;submit&quot;]'</span>)\n<span class=\"ln\"> 21</span>            ]);\n<span class=\"ln\"> 22</span>\n<span class=\"ln\"> 23</span>            <span class=\"kw\">const</span> url = page.url();\n<span class=\"ln\"> 24</span>            <span class=\"kw\">expect</span>(url).not.toContain(<span class=\"str\">'/login'</span>);\n<span class=\"ln\"> 25</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">1000</span>);"},{"id":"TC-LOGIN-01","desc":"Đăng nhập thành công","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'#username'</span>, sharedUsername);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> page.type(<span class=\"str\">'#password'</span>, sharedPassword);\n<span class=\"ln\">  3</span>            <span class=\"kw\">await</span> Promise.all([\n<span class=\"ln\">  4</span>                page.waitForNavigation({ waitUntil: <span class=\"str\">'networkidle0'</span>, timeout: <span class=\"num\">10000</span> }).catch(() =&gt; { }),\n<span class=\"ln\">  5</span>                page.click(<span class=\"str\">'button[type=&quot;submit&quot;]'</span>)\n<span class=\"ln\">  6</span>            ]);\n<span class=\"ln\">  7</span>            <span class=\"kw\">expect</span>(page.url()).not.toContain(<span class=\"str\">'/login'</span>);\n<span class=\"ln\">  8</span>            <span class=\"kw\">await</span> page.waitForSelector(<span class=\"str\">'a[href=&quot;/settings&quot;]'</span>);\n<span class=\"ln\">  9</span>            <span class=\"kw\">const</span> userFullName = <span class=\"kw\">await</span> page.$eval(<span class=\"str\">'a[href=&quot;/settings&quot;]'</span>, el =&gt; el.textContent.trim());\n<span class=\"ln\"> 10</span>            <span class=\"kw\">expect</span>(userFullName.length).toBeGreaterThan(<span class=\"num\">0</span>);"},{"id":"TC-LOGIN-02","desc":"Sai mật khẩu","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'#username'</span>, sharedUsername);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> page.type(<span class=\"str\">'#password'</span>, <span class=\"str\">'WrongPassword9<span class=\"num\">99</span>'</span>);\n<span class=\"ln\">  3</span>            <span class=\"kw\">await</span> page.click(<span class=\"str\">'button[type=&quot;submit&quot;]'</span>);\n<span class=\"ln\">  4</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">1500</span>);\n<span class=\"ln\">  5</span>            <span class=\"kw\">expect</span>(page.url()).toContain(<span class=\"str\">'/login'</span>);\n<span class=\"ln\">  6</span>            <span class=\"kw\">await</span> page.waitForSelector(<span class=\"str\">'.bg-red-<span class=\"num\">500</span>\\\\/<span class=\"num\">10</span>.text-red-<span class=\"num\">600</span>'</span>);\n<span class=\"ln\">  7</span>            <span class=\"kw\">const</span> errorText = <span class=\"kw\">await</span> page.$eval(<span class=\"str\">'.bg-red-<span class=\"num\">500</span>\\\\/<span class=\"num\">10</span>.text-red-<span class=\"num\">600</span>'</span>, el =&gt; el.textContent.trim());\n<span class=\"ln\">  8</span>            <span class=\"kw\">expect</span>(errorText.length).toBeGreaterThan(<span class=\"num\">0</span>);"},{"id":"TC-LOGIN-03","desc":"Thiếu username","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'#password'</span>, <span class=\"str\">'Password@<span class=\"num\">123</span>'</span>);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> page.click(<span class=\"str\">'button[type=&quot;submit&quot;]'</span>);\n<span class=\"ln\">  3</span>            <span class=\"kw\">const</span> isInvalid = <span class=\"kw\">await</span> page.$eval(<span class=\"str\">'#username'</span>, el =&gt; !el.checkValidity());\n<span class=\"ln\">  4</span>            <span class=\"kw\">expect</span>(isInvalid).toBe(<span class=\"kw\">true</span>);"},{"id":"TC-LOGIN-04","desc":"Thiếu password","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'#username'</span>, <span class=\"str\">'testuser1<span class=\"num\">23</span>'</span>);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> page.click(<span class=\"str\">'button[type=&quot;submit&quot;]'</span>);\n<span class=\"ln\">  3</span>            <span class=\"kw\">const</span> isInvalid = <span class=\"kw\">await</span> page.$eval(<span class=\"str\">'#password'</span>, el =&gt; !el.checkValidity());\n<span class=\"ln\">  4</span>            <span class=\"kw\">expect</span>(isInvalid).toBe(<span class=\"kw\">true</span>);"},{"id":"TC-LOGIN-05","desc":"Bảo mật mật khẩu","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'#password'</span>, <span class=\"str\">'SecretPassword'</span>);\n<span class=\"ln\">  2</span>            <span class=\"kw\">const</span> inputType = <span class=\"kw\">await</span> page.$eval(<span class=\"str\">'#password'</span>, el =&gt; el.type);\n<span class=\"ln\">  3</span>            <span class=\"kw\">expect</span>(inputType).toBe(<span class=\"str\">'password'</span>);\n<span class=\"ln\">  4</span>\n<span class=\"ln\">  5</span>            <span class=\"kw\">const</span> toggleButtons = <span class=\"kw\">await</span> page.$$(<span class=\"str\">'button[type=&quot;button&quot;]'</span>);\n<span class=\"ln\">  6</span>            <span class=\"kw\">if</span> (toggleButtons.length &gt; <span class=\"num\">0</span>) {\n<span class=\"ln\">  7</span>                <span class=\"kw\">await</span> toggleButtons[<span class=\"num\">0</span>].click();\n<span class=\"ln\">  8</span>                <span class=\"kw\">const</span> inputTypeAfterClick = <span class=\"kw\">await</span> page.$eval(<span class=\"str\">'#password'</span>, el =&gt; el.type);\n<span class=\"ln\">  9</span>                <span class=\"kw\">expect</span>(inputTypeAfterClick).toBe(<span class=\"str\">'text'</span>);\n<span class=\"ln\"> 10</span>            }"},{"id":"TC-SEARCH-01","desc":"Từ khóa hợp lệ","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'input[type=&quot;text&quot;]'</span>, <span class=\"str\">'Unit'</span>);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">1500</span>);\n<span class=\"ln\">  3</span>            <span class=\"kw\">const</span> lessonCards = <span class=\"kw\">await</span> page.$$(<span class=\"str\">'.card.relative.p-<span class=\"num\">5</span>'</span>);\n<span class=\"ln\">  4</span>            <span class=\"kw\">expect</span>(lessonCards.length).toBeGreaterThan(<span class=\"num\">0</span>);"},{"id":"TC-SEARCH-02","desc":"Từ khóa không có kết quả","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'input[type=&quot;text&quot;]'</span>, <span class=\"str\">'xyzabc1<span class=\"num\">23</span>'</span>);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">1500</span>);\n<span class=\"ln\">  3</span>            <span class=\"kw\">const</span> lessonCards = <span class=\"kw\">await</span> page.$$(<span class=\"str\">'.card.relative.p-<span class=\"num\">5</span>'</span>);\n<span class=\"ln\">  4</span>            <span class=\"kw\">expect</span>(lessonCards.length).toBe(<span class=\"num\">0</span>);\n<span class=\"ln\">  5</span>            <span class=\"cmt\">// EmptyState component renders a div.border-dashed (no text-slate-<span class=\"num\">400</span> on svg)</span>\n<span class=\"ln\">  6</span>            <span class=\"kw\">const</span> emptyStateExists = <span class=\"kw\">await</span> page.$(<span class=\"str\">'div.border-dashed'</span>);\n<span class=\"ln\">  7</span>            <span class=\"kw\">expect</span>(emptyStateExists).not.toBeNull();"},{"id":"TC-SEARCH-03","desc":"Từ khóa trống","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.focus(<span class=\"str\">'input[type=&quot;text&quot;]'</span>);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> page.keyboard.press(<span class=\"str\">'Enter'</span>);\n<span class=\"ln\">  3</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">1000</span>);\n<span class=\"ln\">  4</span>            <span class=\"kw\">const</span> lessonCards = <span class=\"kw\">await</span> page.$$(<span class=\"str\">'.card.relative.p-<span class=\"num\">5</span>'</span>);\n<span class=\"ln\">  5</span>            <span class=\"kw\">expect</span>(lessonCards.length).toBeGreaterThan(<span class=\"num\">0</span>);"},{"id":"TC-SEARCH-04","desc":"Từ khóa quá ngắn","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'input[type=&quot;text&quot;]'</span>, <span class=\"str\">'a'</span>);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">1500</span>);\n<span class=\"ln\">  3</span>            <span class=\"kw\">const</span> lessonCards = <span class=\"kw\">await</span> page.$$(<span class=\"str\">'.card.relative.p-<span class=\"num\">5</span>'</span>);\n<span class=\"ln\">  4</span>            <span class=\"kw\">expect</span>(lessonCards.length).toBeGreaterThanOrEqual(<span class=\"num\">0</span>);"},{"id":"TC-SEARCH-05","desc":"Ký tự đặc biệt","hl":"<span class=\"ln\">  1</span><span class=\"kw\">await</span> page.type(<span class=\"str\">'input[type=&quot;text&quot;]'</span>, <span class=\"str\">'@#$%'</span>);\n<span class=\"ln\">  2</span>            <span class=\"kw\">await</span> delay(<span class=\"num\">1500</span>);\n<span class=\"ln\">  3</span>            <span class=\"kw\">const</span> emptyStateSVG = <span class=\"kw\">await</span> page.$(<span class=\"str\">'svg'</span>);\n<span class=\"ln\">  4</span>            <span class=\"kw\">expect</span>(emptyStateSVG).toBeDefined();\n<span class=\"ln\">  5</span>            <span class=\"kw\">const</span> lessonCards = <span class=\"kw\">await</span> page.$$(<span class=\"str\">'.card.relative.p-<span class=\"num\">5</span>'</span>);\n<span class=\"ln\">  6</span>            <span class=\"kw\">expect</span>(lessonCards.length).toBe(<span class=\"num\">0</span>);"}];
+function openCode(i){
+    var d=DATA[i]||{};
+    document.getElementById('mBadge').textContent=d.id||'TC';
+    document.getElementById('mTitle').textContent=' — '+d.desc;
+    document.getElementById('mCode').innerHTML=d.hl||'// not found';
+    document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+function closeOnBg(e){if(e.target.id==='overlay')closeModal();}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+</script>
 </body>
 </html>

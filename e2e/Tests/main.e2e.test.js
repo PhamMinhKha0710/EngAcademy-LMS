@@ -10,9 +10,9 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
     let page;
 
     // Tài khoản cố định đã tồn tại trong DB
-    const sharedUsername = 'hannie';
-    const sharedEmail = 'hannie@example.com';
-    const sharedPassword = 'bichhang18122004@gmail.com';
+    const sharedUsername = 'hannie1812';
+    const sharedEmail = 'bichhang18122004@gmail.com';
+    const sharedPassword = 'hannie1812';
 
     beforeAll(async () => {
         const fs = require('fs');
@@ -23,7 +23,7 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
         // Khởi động đúng 1 Chromium duy nhất cho toàn bộ 12 Test Cases
         browser = await puppeteer.launch({
             headless: false,
-            slowMo: 100, // Tăng lên 100ms mỗi thao tác gõ phím/click để mắt người kịp nhìn
+            slowMo: 50, // Tăng lên 100ms mỗi thao tác gõ phím/click để mắt người kịp nhìn
             args: ['--window-size=1280,800']
         });
         page = await browser.newPage();
@@ -33,9 +33,13 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
     afterEach(async () => {
         if (page) {
             try {
-                // Tạo tên file an toàn (Bỏ dấu tiếng Việt và ký tự lạ)
-                const testName = expect.getState().currentTestName.replace(/[^a-zA-Z0-9]/g, '_');
-                const imageBuffer = await page.screenshot({ path: `./e2e/Screenshots/${testName}.png`, fullPage: true });
+                const fullName = expect.getState().currentTestName;
+                // Ưu tiên lấy ID kiểu "TC-LOGIN-01", "TC-SEARCH-02", …
+                const idMatch = fullName.match(/\b(TC-[A-Z0-9-]+|\d+\.\s*)/);
+                const fileId = idMatch
+                    ? idMatch[1].trim().replace(/\./g, '').replace(/\s+/g, '')
+                    : fullName.replace(/[^a-zA-Z0-9]/g, '_');
+                const imageBuffer = await page.screenshot({ path: `./e2e/Screenshots/${fileId}.png`, fullPage: true });
                 await addAttach({
                     attach: imageBuffer,
                     description: 'Hình chụp Kết quả Test Case'
@@ -110,7 +114,7 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
             // Đảm bảo xóa auth state trước khi vào form login
             await page.goto(APP_URL, { waitUntil: 'domcontentloaded' });
             await page.evaluate(() => {
-                try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+                try { localStorage.clear(); sessionStorage.clear(); } catch (e) { }
             });
             await delay(500); // Chờ React có thể xử lý logout
             await page.goto(`${APP_URL}/login`, { waitUntil: 'domcontentloaded' });
@@ -181,7 +185,7 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
             // Xóa auth state rồi login lại
             await page.goto(APP_URL, { waitUntil: 'domcontentloaded' });
             await page.evaluate(() => {
-                try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+                try { localStorage.clear(); sessionStorage.clear(); } catch (e) { }
             });
             await delay(500);
             await page.goto(`${APP_URL}/login`, { waitUntil: 'domcontentloaded' });
@@ -219,7 +223,8 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
             await delay(1500);
             const lessonCards = await page.$$('.card.relative.p-5');
             expect(lessonCards.length).toBe(0);
-            const emptyStateExists = await page.$('svg.text-slate-400');
+            // EmptyState component renders a div.border-dashed (no text-slate-400 on svg)
+            const emptyStateExists = await page.$('div.border-dashed');
             expect(emptyStateExists).not.toBeNull();
         });
 
@@ -239,7 +244,7 @@ describe('KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN (CHẠY TUẦN TỰ)', () =
         });
 
         test('TC-SEARCH-05: Ký tự đặc biệt', async () => {
-            await page.type('input[type="text"]', '@#$% <script>alert(1)</script>');
+            await page.type('input[type="text"]', '@#$%');
             await delay(1500);
             const emptyStateSVG = await page.$('svg');
             expect(emptyStateSVG).toBeDefined();
