@@ -206,8 +206,8 @@ class CustomReporter {
         <table>
             <thead><tr>
                 <th width="8%">Mã TC</th>
-                <th width="12%">Module</th>
-                <th width="15%">Phân hệ</th>
+                <th width="12%">Items</th>
+                <th width="15%">Sub-Items</th>
                 <th width="22%">Nội dung kiểm thử</th>
                 <th width="8%">Thời gian</th>
                 <th width="15%">Kết quả mong đợi</th>
