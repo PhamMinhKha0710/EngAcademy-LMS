@@ -20,7 +20,6 @@ import { lessonApi, Lesson } from '../../services/api/lessonApi'
 import { vocabularyApi, VocabularyResponse } from '../../services/api/vocabularyApi'
 import { questionApi, QuestionResponse } from '../../services/api/questionApi'
 import { progressApi } from '../../services/api/progressApi'
-import { triggerQuestRefresh } from '../../utils/questRefresh'
 import FlashCard from '../../components/ui/FlashCard'
 import QuizQuestion from '../../components/ui/QuizQuestion'
 
@@ -158,11 +157,11 @@ export default function LessonDetailPage() {
     const handleSubmitQuiz = () => {
         setShowResults(true)
         if (quizScore === questions.length) {
-            addToast({ type: 'success', message: t('lessons.quizPerfect', { score: quizScore, total: questions.length }) })
+            addToast({ type: 'success', message: `Tuyệt vời! Bạn làm đúng toàn bộ ${quizScore}/${questions.length} câu.` })
         } else if (quizScore >= questions.length / 2) {
-            addToast({ type: 'info', message: t('lessons.quizGood', { score: quizScore, total: questions.length }) })
+            addToast({ type: 'info', message: `Khá tốt! Bạn đạt ${quizScore}/${questions.length} điểm.` })
         } else {
-            addToast({ type: 'warning', message: t('lessons.quizReview', { score: quizScore, total: questions.length }) })
+            addToast({ type: 'warning', message: `Bạn chỉ đạt ${quizScore}/${questions.length} điểm. Hãy ôn tập lại nhé!` })
         }
     }
 
@@ -175,18 +174,14 @@ export default function LessonDetailPage() {
         if (!user?.id || !lessonId) return
         setCompleting(true)
         try {
-            const res = await progressApi.completeLesson(user.id, lessonId)
+            await progressApi.completeLesson(user.id, lessonId)
             setCompleted(true)
             setCompletionPercentage(100)
             fireConfetti()
-            triggerQuestRefresh()
-            addToast({ type: 'success', message: t('lessons.lessonCompletedToast') })
-            if (res.questTaskCompleted) {
-                addToast({ type: 'success', message: t('quests.taskCompleted') })
-            }
+            addToast({ type: 'success', message: 'Chúc mừng! Bạn đã hoàn thành Bài học này!' })
         } catch (err) {
             console.error('Failed to complete lesson:', err)
-            addToast({ type: 'error', message: t('lessons.saveProgressError') })
+            addToast({ type: 'error', message: 'Có lỗi xảy ra khi lưu tiến trình. Vui lòng thử lại!' })
         } finally {
             setCompleting(false)
         }
@@ -297,25 +292,25 @@ export default function LessonDetailPage() {
         return (
             <div className="p-6 lg:p-8 flex flex-col items-center justify-center min-h-[50vh] text-center">
                 <AlertCircle className="w-14 h-14 text-red-400 mb-4" />
-                <p className="font-medium text-lg text-[var(--color-text)]">{error || t('lessons.lessonNotFound')}</p>
-                <Link to="/lessons" className="btn-primary mt-6 inline-block focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 rounded-xl">
-                    {t('lessons.backToList')}
+                <p className="font-medium text-lg text-[var(--color-text)]">{error || 'Bài học không tồn tại.'}</p>
+                <Link to="/lessons" className="btn-primary mt-6 inline-block">
+                    Quay lại danh sách
                 </Link>
             </div>
         )
     }
 
     return (
-        <div className="min-h-full bg-[#f8f7f5] dark:bg-[#231a0f] pb-44">
-            <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-4 space-y-5">
-                <header className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between">
+        <div className="min-h-full bg-[#F8FAFC] dark:bg-slate-950 pb-44">
+            <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 space-y-4">
+                <header className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-100 dark:border-slate-800 rounded-2xl px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                        <Link to="/lessons" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2" aria-label={t('lessons.backToList')}>
-                            <ArrowLeft className="h-5 w-5" aria-hidden />
+                        <Link to="/lessons" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                            <ArrowLeft className="h-5 w-5" />
                         </Link>
                         <h1 className="text-base font-bold truncate max-w-[240px]">{lesson.title}</h1>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xs font-bold">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold">
                         {userInitials}
                     </div>
                 </header>
@@ -323,93 +318,62 @@ export default function LessonDetailPage() {
                 <motion.section
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="relative group"
+                    className="bg-gradient-to-br from-orange-50 to-white dark:from-slate-900 dark:to-slate-900 border border-orange-100 dark:border-slate-800 rounded-3xl p-6 relative overflow-hidden"
+                    style={{ boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)' }}
                 >
-                    <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-orange-400 rounded-xl blur opacity-20 group-hover:opacity-30 transition duration-500" />
-                    <div className="relative flex flex-col lg:flex-row items-stretch bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-xl ring-1 ring-slate-200 dark:ring-slate-800">
-                        <div className="lg:w-2/5 relative min-h-[200px] lg:min-h-[280px] bg-gradient-to-br from-orange-100 to-orange-50 dark:from-slate-800 dark:to-slate-800">
-                            <div
-                                className="absolute inset-0 bg-cover bg-center opacity-90"
-                                style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800)' }}
-                                aria-hidden
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-4 lg:p-6">
-                                <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                                    {completed ? t('lessons.completed') : t('lessons.active')}
+                    <div className="relative z-10">
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {lesson.difficultyLevel && (
+                                <span className="px-2 py-1 bg-emerald-500/10 text-emerald-600 text-[10px] font-bold rounded uppercase tracking-wider">
+                                    Cấp {lesson.difficultyLevel}
                                 </span>
-                            </div>
+                            )}
+                            {lesson.topicName && (
+                                <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold rounded uppercase tracking-wider">
+                                    {lesson.topicName}
+                                </span>
+                            )}
                         </div>
-                        <div className="flex-1 p-6 lg:p-8 flex flex-col justify-between gap-6">
-                            <div className="space-y-4">
-                                <div className="flex flex-wrap gap-2">
-                                    {lesson.difficultyLevel != null && (
-                                        <span className="px-2 py-1 bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-bold rounded uppercase tracking-wider">
-                                            {t('lessons.level')} {lesson.difficultyLevel}
-                                        </span>
-                                    )}
-                                    {lesson.topicName && (
-                                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded uppercase tracking-wider">
-                                            {lesson.topicName}
-                                        </span>
-                                    )}
-                                </div>
-                                <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                                    {lesson.title}
-                                </h2>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                    {vocabulary.length} {t('lessons.words')} • {questions.length} {t('lessons.questions')}
-                                </p>
-                                <div className="flex justify-between items-end gap-4">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('lessons.progress')}</h3>
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
-                                            {completed ? t('lessons.completed') : t('lessons.footerHintInProgress')}
-                                        </p>
-                                    </div>
-                                    <span className={`text-2xl lg:text-3xl font-black tabular-nums ${completed ? 'text-green-500' : 'text-orange-500'}`}>
+                        <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100 mb-2">{lesson.title}</h2>
+                        <p className="text-sm text-slate-500 mb-4">
+                            {vocabulary.length} từ vựng • {questions.length} câu hỏi
+                        </p>
+                        
+                        {(completionPercentage > 0 || completed) && (
+                            <div className="mb-6 max-w-xs">
+                                <div className="flex justify-between text-xs font-bold mb-1.5">
+                                    <span className="text-slate-500 dark:text-slate-400">Tiến độ</span>
+                                    <span className={completed ? 'text-green-500' : 'text-primary-500'}>
                                         {completionPercentage}%
                                     </span>
                                 </div>
-                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-1000 ${completed ? 'bg-green-500' : 'bg-orange-500'}`}
+                                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full rounded-full transition-all duration-1000 ${completed ? 'bg-green-500' : 'bg-primary-500'}`}
                                         style={{ width: `${completionPercentage}%` }}
                                     />
                                 </div>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                {!startedLearning && completionPercentage === 0 && (
-                                    <button
-                                        type="button"
-                                        onClick={startLearning}
-                                        className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[44px] focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
-                                    >
-                                        {t('lessons.startLearning')}
-                                        <ArrowLeft className="h-4 w-4 rotate-180" aria-hidden />
-                                    </button>
-                                )}
-                                <Link
-                                    to="/lessons"
-                                    className="px-6 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-center min-h-[44px] flex items-center justify-center"
-                                >
-                                    {t('lessons.backToList')}
-                                </Link>
-                            </div>
-                        </div>
+                        )}
+
+                        <button
+                            onClick={startLearning}
+                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-2xl shadow-lg shadow-orange-200/70 transition-transform active:scale-95"
+                        >
+                            {startedLearning ? 'Tiếp tục học' : 'Bắt đầu học'}
+                        </button>
                     </div>
+                    <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-orange-500/5 rounded-full" />
                 </motion.section>
 
-                <nav className="flex border-b border-slate-200 dark:border-slate-800 gap-6 lg:gap-8 overflow-x-auto" role="tablist">
+                <nav className="flex overflow-x-auto gap-2 py-1">
                     {getTabs.map((tab) => (
                         <button
                             key={tab.key}
-                            type="button"
-                            role="tab"
-                            aria-selected={activeTab === tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`whitespace-nowrap px-1 pb-4 pt-1 text-sm font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 -mb-px ${activeTab === tab.key
-                                    ? 'border-orange-500 text-orange-500'
-                                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                            className={`whitespace-nowrap px-5 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-2 border transition-colors ${activeTab === tab.key
+                                    ? 'bg-orange-500 text-white border-orange-500'
+                                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-300'
                                 }`}
                         >
                             {tab.icon}
@@ -426,59 +390,43 @@ export default function LessonDetailPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.2 }}
-                            className="bg-white dark:bg-slate-900 rounded-2xl p-6 lg:p-8 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6"
+                            className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 space-y-6"
+                            style={{ boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)' }}
                         >
-                            <div className="flex items-center gap-3 pb-4 border-b border-orange-100 dark:border-slate-700/80">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
-                                    <BookOpen className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                        {t('lessons.introHeading')}
-                                    </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        {lesson.topicName || lesson.title}
-                                    </p>
-                                </div>
-                            </div>
                             {lesson.contentHtml ? (
                                 <div
-                                    className="prose prose-sm md:prose-base max-w-none text-[var(--color-text)] leading-relaxed"
+                                    className="prose prose-sm max-w-none text-[var(--color-text)]"
                                     dangerouslySetInnerHTML={{ __html: lesson.contentHtml }}
                                 />
                             ) : (
-                                <p className="text-center py-12 text-[var(--color-text-secondary)]">{t('lessons.noContent')}</p>
+                                <p className="text-center py-12 text-[var(--color-text-secondary)]">Bài học này chưa có nội dung.</p>
                             )}
                             {lesson.audioUrl && (
                                 <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
-                                    <p className="text-sm font-medium mb-2 text-[var(--color-text)]">{t('lessons.audioLesson')}</p>
-                                    <audio controls className="w-full max-w-md rounded-xl">
-                                        <source src={lesson.audioUrl} />
-                                        {t('lessons.browserNoAudio')}
+                                    <p className="text-sm font-medium mb-2 text-[var(--color-text)]">Audio bài học</p>
+                                    <audio controls className="w-full max-w-md" src={lesson.audioUrl}>
+                                        Trình duyệt không hỗ trợ audio.
                                     </audio>
                                 </div>
                             )}
                             {lesson.videoUrl && (
                                 <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
-                                    <p className="text-sm font-medium mb-2 text-[var(--color-text)]">{t('lessons.videoLesson')}</p>
-                                    <div className="aspect-video w-full rounded-xl overflow-hidden border border-orange-100 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
-                                        <video controls className="w-full h-full object-cover" src={lesson.videoUrl}>
-                                            {t('lessons.browserNoVideo')}
-                                        </video>
-                                    </div>
+                                    <p className="text-sm font-medium mb-2 text-[var(--color-text)]">Video bài học</p>
+                                    <video controls className="w-full max-w-2xl rounded-xl" src={lesson.videoUrl}>
+                                        Trình duyệt không hỗ trợ video.
+                                    </video>
                                 </div>
                             )}
                             <div className="mt-8 pt-6 border-t border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3">
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    {t('lessons.contentDoneHint')}
+                                <p className="text-sm text-[var(--color-text-secondary)]">
+                                    Xong phần lý thuyết, chuyển sang học từ vựng và luyện tập nhé.
                                 </p>
                                 <button
-                                    type="button"
                                     onClick={handleContinueLearning}
-                                    className="btn-primary min-h-[44px] px-6 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                                    className="btn-primary"
                                     disabled={!hasGrammar && vocabulary.length === 0 && questions.length === 0}
                                 >
-                                    {t('lessons.continue')}
+                                    Tiếp tục học
                                 </button>
                             </div>
                         </motion.div>
@@ -491,44 +439,29 @@ export default function LessonDetailPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.2 }}
-                            className="bg-white dark:bg-slate-900 rounded-2xl p-6 lg:p-8 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6"
+                            className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 space-y-6"
+                            style={{ boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)' }}
                         >
-                            <div className="flex items-center gap-3 pb-4 border-b border-orange-100 dark:border-slate-700/80">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
-                                    <FileText className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                        {t('lessons.grammarSectionHeading')}
-                                    </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        {t('lessons.grammarSubtitle')}
-                                    </p>
-                                </div>
-                            </div>
                             {hasGrammar ? (
-                                <div className="space-y-6">
-                                    <div
-                                        className="prose prose-sm md:prose-base max-w-none text-[var(--color-text)] leading-relaxed"
-                                        dangerouslySetInnerHTML={{ __html: effectiveGrammarHtml }}
-                                    />
-                                </div>
+                                <div
+                                    className="prose prose-sm max-w-none text-[var(--color-text)]"
+                                    dangerouslySetInnerHTML={{ __html: effectiveGrammarHtml }}
+                                />
                             ) : (
                                 <p className="text-center py-12 text-[var(--color-text-secondary)]">
-                                    {t('lessons.noContent')}
+                                    Bài học này chưa có nội dung ngữ pháp.
                                 </p>
                             )}
                             <div className="mt-8 pt-6 border-t border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3">
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    {t('lessons.grammarDoneHint')}
+                                <p className="text-sm text-[var(--color-text-secondary)]">
+                                    Ôn ngữ pháp xong, chuyển sang từ vựng để luyện phản xạ.
                                 </p>
                                 <button
-                                    type="button"
                                     onClick={handleContinueLearning}
-                                    className="btn-primary min-h-[44px] px-6 focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                                    className="btn-primary"
                                     disabled={vocabulary.length === 0 && questions.length === 0}
                                 >
-                                    {t('lessons.continue')}
+                                    Tiếp tục
                                 </button>
                             </div>
                         </motion.div>
@@ -541,7 +474,6 @@ export default function LessonDetailPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.2 }}
-                            className="bg-white dark:bg-slate-900 rounded-xl p-6 lg:p-8 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6"
                         >
                             {vocabulary.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -565,7 +497,7 @@ export default function LessonDetailPage() {
                                                             className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-primary-500/15 text-primary-500 hover:bg-primary-500/25 transition-colors"
                                                         >
                                                             <Volume2 className="w-3.5 h-3.5" />
-                                                            {t('lessons.playPronunciation')}
+                                                            Phát âm
                                                         </button>
                                                     )}
                                                 </div>
@@ -603,10 +535,10 @@ export default function LessonDetailPage() {
                                                                     e.stopPropagation();
                                                                     playAudio(vocab.audioUrl!);
                                                                 }}
-                                                                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-primary-500/15 text-primary-500 hover:bg-primary-500/25 transition-colors focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                                                                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-primary-500/15 text-primary-500 hover:bg-primary-500/25 transition-colors"
                                                             >
                                                                 <Volume2 className="w-3.5 h-3.5" />
-                                                                {t('lessons.playPronunciation')}
+                                                                Phát âm
                                                             </button>
                                                         )}
                                                     </div>
@@ -635,22 +567,21 @@ export default function LessonDetailPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="py-12 text-center">
-                                    <p className="text-slate-600 dark:text-slate-400">{t('lessons.noVocab')}</p>
+                                <div className="card p-12 text-center">
+                                    <p className="text-[var(--color-text-secondary)]">Bài học này chưa có từ vựng.</p>
                                 </div>
                             )}
                             {vocabulary.length > 0 && (
-                                <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
-                                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                                        {t('lessons.vocabDoneHint')}
+                                <div className="mt-6 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                                    <p className="text-sm text-[var(--color-text-secondary)]">
+                                        Đã xem từ vựng? Sang phần luyện tập để kiểm tra lại kiến thức.
                                     </p>
                                     <button
-                                        type="button"
                                         onClick={handleContinueLearning}
-                                        className="btn-primary min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                                        className="btn-primary"
                                         disabled={questions.length === 0}
                                     >
-                                        {t('lessons.goToPractice')}
+                                        Sang luyện tập
                                     </button>
                                 </div>
                             )}
@@ -664,7 +595,6 @@ export default function LessonDetailPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.2 }}
-                            className="bg-white dark:bg-slate-900 rounded-xl p-6 lg:p-8 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6"
                         >
                             {questions.length > 0 ? (
                                 <div className="space-y-6">
@@ -674,11 +604,11 @@ export default function LessonDetailPage() {
                                             initial={{ opacity: 0, y: 8 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.05 }}
-                                            className="p-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30"
+                                            className="card p-6"
                                         >
                                             <p className="text-xs font-medium mb-3 text-[var(--color-text-secondary)]">
-                                                {t('lessons.questionNumber', { current: index + 1, total: questions.length })}
-                                                {q.points != null ? ` • ${t('lessons.pointsUnit', { points: q.points })}` : ''}
+                                                Câu {index + 1}/{questions.length}
+                                                {q.points ? ` • ${q.points} điểm` : ''}
                                             </p>
                                             <QuizQuestion
                                                 question={{
@@ -692,45 +622,82 @@ export default function LessonDetailPage() {
                                                 disabled={showResults}
                                             />
                                             {showResults && q.explanation && (
-                                                <div className="mt-4 p-4 rounded-xl bg-[var(--color-bg-tertiary)] text-sm text-slate-600 dark:text-slate-400">
-                                                    <span className="font-medium text-slate-800 dark:text-slate-200">{t('lessons.explanation')}: </span>
+                                                <div className="mt-4 p-4 rounded-xl bg-[var(--color-bg-tertiary)] text-sm text-[var(--color-text-secondary)]">
+                                                    <span className="font-medium text-[var(--color-text)]">Giải thích: </span>
                                                     {q.explanation}
                                                 </div>
                                             )}
                                         </motion.div>
                                     ))}
 
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4"
+                                    >
+                                        {showResults ? (
+                                            <>
+                                                <div>
+                                                    <p className="text-lg font-bold text-[var(--color-text)]">
+                                                        Kết quả: {quizScore}/{questions.length} câu đúng
+                                                    </p>
+                                                    <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                                                        {quizScore === questions.length
+                                                            ? 'Xuất sắc! Bạn đã trả lời đúng tất cả!'
+                                                            : 'Ôn lại và thử lại nhé!'}
+                                                    </p>
+                                                </div>
+                                                <button onClick={handleResetQuiz} className="btn-secondary">
+                                                    Làm lại
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p className="text-sm text-[var(--color-text-secondary)]">
+                                                    Đã trả lời {Object.keys(answers).length}/{questions.length} câu
+                                                </p>
+                                                <button
+                                                    onClick={handleSubmitQuiz}
+                                                    disabled={Object.keys(answers).length === 0}
+                                                    className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                                                >
+                                                    Nộp bài
+                                                </button>
+                                            </>
+                                        )}
+                                    </motion.div>
+                                ))
+
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="rounded-xl p-6 border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col sm:flex-row items-center justify-between gap-4"
+                                    className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4"
                                 >
                                     {showResults ? (
                                         <>
                                             <div>
-                                                <p className="text-lg font-bold text-slate-900 dark:text-white">
-                                                    {t('lessons.result')}: {t('lessons.resultScore', { score: quizScore, total: questions.length })}
+                                                <p className="text-lg font-bold text-[var(--color-text)]">
+                                                    Kết quả: {quizScore}/{questions.length} câu đúng
                                                 </p>
-                                                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                                <p className="text-sm text-[var(--color-text-secondary)] mt-1">
                                                     {quizScore === questions.length
                                                         ? t('lessons.perfectScore')
                                                         : t('lessons.reviewAndTryAgain')}
                                                 </p>
                                             </div>
-                                            <button type="button" onClick={handleResetQuiz} className="btn-secondary min-h-[44px] focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2">
+                                            <button onClick={handleResetQuiz} className="btn-secondary">
                                                 {t('lessons.retryQuiz')}
                                             </button>
                                         </>
                                     ) : (
                                         <>
-                                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                                            <p className="text-sm text-[var(--color-text-secondary)]">
                                                 {t('lessons.answeredCount', { answered: Object.keys(answers).length, total: questions.length })}
                                             </p>
                                             <button
-                                                type="button"
                                                 onClick={handleSubmitQuiz}
                                                 disabled={Object.keys(answers).length === 0}
-                                                className="btn-primary min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                                                className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
                                                 {t('lessons.submitQuiz')}
                                             </button>
@@ -739,8 +706,8 @@ export default function LessonDetailPage() {
                                 </motion.div>
                             </div>
                         ) : (
-                            <div className="py-12 text-center">
-                                <p className="text-slate-600 dark:text-slate-400">{t('lessons.noQuestions')}</p>
+                            <div className="card p-12 text-center">
+                                <p className="text-[var(--color-text-secondary)]">Bài học này chưa có câu hỏi luyện tập.</p>
                             </div>
                         )}
                     </motion.div>
@@ -748,58 +715,36 @@ export default function LessonDetailPage() {
             </AnimatePresence>
 
                 <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl p-4 flex items-start gap-3 border border-blue-100/50 dark:border-blue-900/30">
-                    <AlertCircle className="h-5 w-5 text-blue-500 dark:text-blue-400 mt-0.5 shrink-0" aria-hidden />
-                    <p className="text-xs text-blue-700 dark:text-blue-200 leading-snug">
+                    <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5 shrink-0" />
+                    <p className="text-xs text-blue-600 dark:text-blue-300 leading-snug">
                         {t('lessons.completeWarning')}
                     </p>
                 </div>
             </div>
 
-            {(startedLearning || completionPercentage > 0) && (
-                <footer className="sticky bottom-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 px-4 py-3">
-                    <div className="max-w-5xl mx-auto">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 px-4 py-3">
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                    {t('lessons.footerTitle')}
-                                </p>
-                                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
-                                    {t('lessons.progress')}: <span className="text-orange-500 dark:text-orange-400">{completionPercentage}%</span>
-                                </p>
-                                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                                    {completed
-                                        ? t('lessons.footerHintCompleted')
-                                        : t('lessons.footerHintInProgress')}
-                                </p>
-                            </div>
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleContinueLearning}
-                                    className="btn-primary min-h-[44px] px-6 flex items-center justify-center"
-                                >
-                                    {t('lessons.continueLearning')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleCompleteLesson}
-                                    disabled={completing || !isLearningReadyToComplete || completed}
-                                    className={`text-sm font-semibold inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-full border transition-colors ${
-                                        completed
-                                            ? 'border-emerald-200 text-emerald-500 cursor-not-allowed'
-                                            : isLearningReadyToComplete
-                                                ? 'border-orange-200 text-orange-500 hover:bg-orange-50'
-                                                : 'border-slate-200 text-slate-400 cursor-not-allowed'
-                                    }`}
-                                >
-                                    {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                                    {completed ? t('lessons.completed') : t('lessons.completeLesson')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </footer>
-            )}
+            <footer className="sticky bottom-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 p-4">
+                <div className="max-w-5xl mx-auto flex flex-col gap-3">
+                    <button
+                        onClick={handleContinueLearning}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                        Tiếp tục học
+                    </button>
+                    <button
+                        onClick={handleCompleteLesson}
+                        disabled={completing || !isLearningReadyToComplete || completed}
+                        className={`w-full font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all ${
+                                completed ? 'bg-green-100 text-green-600 border border-green-200 cursor-not-allowed' :
+                                isLearningReadyToComplete
+                                    ? 'bg-orange-100 text-orange-500 hover:bg-orange-200'
+                                    : 'bg-orange-100 text-orange-400 opacity-60 cursor-not-allowed'
+                            }`}
+                    >
+                        {completing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                        {completed ? 'Đã hoàn thành' : 'Hoàn thành bài học'}
+                    </button>
+                </div>
+            </footer>
         </div>
     )
 

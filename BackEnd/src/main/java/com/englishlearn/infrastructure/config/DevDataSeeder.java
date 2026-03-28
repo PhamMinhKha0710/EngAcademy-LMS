@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -47,6 +48,7 @@ public class DevDataSeeder {
         private static final String SEED_STUDENT_PASSWORD = "Student@123";
 
         @Bean
+        @Order(2)
         public CommandLineRunner devSeedData() {
                 return args -> {
                         try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter("db_debug.txt"))) {

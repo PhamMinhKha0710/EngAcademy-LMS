@@ -241,7 +241,10 @@ public class ClassRoomService {
                 .map(sc -> sc.getStudent().getId())
                 .collect(Collectors.toSet());
 
+        Long classSchoolId = classRoom.getSchool().getId();
         return userRepository.searchStudentsByKeyword(keyword.trim()).stream()
+                .filter(student -> student.getSchool() != null
+                        && student.getSchool().getId().equals(classSchoolId))
                 .filter(student -> !activeStudentIds.contains(student.getId()))
                 .limit(10)
                 .map(student -> ClassStudentResponse.builder()

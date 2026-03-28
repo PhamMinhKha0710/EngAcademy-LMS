@@ -9,11 +9,9 @@ import {
   Users,
   Plus,
   LayoutGrid,
-  GraduationCap,
   X,
   Search,
   Loader2,
-  School,
 } from "lucide-react";
 
 export default function ClassManagement() {

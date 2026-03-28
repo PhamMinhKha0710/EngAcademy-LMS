@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 /**
  * Data Initializer - Tạo dữ liệu mặc định khi khởi động ứng dụng
@@ -19,6 +20,7 @@ public class DataInitializer {
     private final RoleRepository roleRepository;
 
     @Bean
+    @Order(1)
     public CommandLineRunner initRoles() {
         return args -> {
             // Tạo các role mặc định nếu chưa tồn tại

@@ -11,6 +11,7 @@ import com.englishlearn.infrastructure.persistence.DailyQuestTaskRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -240,6 +241,19 @@ public class DailyQuestService {
 
         dailyQuestTaskRepository.save(task);
         return completed;
+    }
+
+    /**
+     * Async update quest progress - for background processing to reduce DB load.
+     */
+    @Async("taskExecutor")
+    public void updateQuestProgressAsync(Long userId, String taskType, int delta) {
+        try {
+            incrementProgressForTaskType(userId, taskType, delta);
+            log.debug("Async quest progress updated for user {} task {}: +{}", userId, taskType, delta);
+        } catch (Exception e) {
+            log.error("Failed async quest progress update for user {} task {}: {}", userId, taskType, e.getMessage());
+        }
     }
 
     /**

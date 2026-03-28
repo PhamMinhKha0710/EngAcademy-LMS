@@ -36,6 +36,7 @@ const teacherMenuItems: MenuItem[] = [
 ]
 
 interface SidebarProps {
+    isOpen?: boolean;
     onClose?: () => void;
 }
 

@@ -11,6 +11,8 @@ export interface Lesson {
     grammarHtml?: string
     audioUrl?: string
     videoUrl?: string
+    /** Optional cover image URL for lesson banner. When missing or invalid, a gradient + icon placeholder is shown. */
+    coverImageUrl?: string
     difficultyLevel?: number
     orderIndex?: number
     isPublished?: boolean

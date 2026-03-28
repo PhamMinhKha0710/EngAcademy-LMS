@@ -9,6 +9,7 @@ import com.englishlearn.infrastructure.persistence.BadgeDefinitionRepository;
 import com.englishlearn.infrastructure.persistence.UserBadgeRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class BadgeDefinitionService {
      * Badge isSecret chưa đạt sẽ không hiện (trả về null cho earnedAt).
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "badges", key = "#group?.name() ?: 'all'")
     public List<BadgeDTO> getAllBadges(BadgeGroup group) {
         List<BadgeDefinition> definitions = group != null
                 ? badgeDefinitionRepository.findByGroupName(group)

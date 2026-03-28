@@ -9,9 +9,12 @@ import {
     AlertCircle,
     BookMarked,
     FileQuestion,
+    CheckCircle2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { lessonApi, Lesson } from '../../services/api/lessonApi'
+import { progressApi, ProgressResponse } from '../../services/api/progressApi'
+import { useAuthStore } from '../../store/authStore'
 import Badge from '../../components/ui/Badge'
 import EmptyState from '../../components/ui/EmptyState'
 import PageHero from '../../components/ui/PageHero'
@@ -48,6 +51,7 @@ function LessonCardSkeleton() {
 
 export default function LessonsPage() {
     const { t } = useTranslation()
+    const user = useAuthStore((s) => s.user)
     const [lessons, setLessons] = useState<Lesson[]>([])
     const [page, setPage] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
@@ -55,6 +59,31 @@ export default function LessonsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const [progressByLessonId, setProgressByLessonId] = useState<Map<number, ProgressResponse>>(new Map())
+
+    useEffect(() => {
+        if (!user?.id) {
+            setProgressByLessonId(new Map())
+            return
+        }
+        let cancelled = false
+        progressApi
+            .getAll(user.id)
+            .then((rows) => {
+                if (cancelled) return
+                const m = new Map<number, ProgressResponse>()
+                for (const r of rows) {
+                    if (r.lessonId != null) m.set(r.lessonId, r)
+                }
+                setProgressByLessonId(m)
+            })
+            .catch(() => {
+                if (!cancelled) setProgressByLessonId(new Map())
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [user?.id])
 
     useEffect(() => {
         const fetchLessons = async () => {
@@ -140,6 +169,9 @@ export default function LessonsPage() {
                     <AnimatePresence mode="popLayout">
                         {filteredLessons.map((lesson) => {
                             const diff = getDifficulty(lesson.difficultyLevel)
+                            const prog = progressByLessonId.get(lesson.id)
+                            const done = Boolean(prog?.isCompleted)
+                            const pct = prog?.completionPercentage ?? 0
                             return (
                                 <motion.div key={lesson.id} variants={item} layout>
                                     <Link
@@ -147,8 +179,8 @@ export default function LessonsPage() {
                                         className="block group"
                                     >
                                         <motion.div
-                                            className="card relative p-5 flex flex-col h-full overflow-hidden border-l-4"
-                                            style={{ borderLeftColor: 'var(--color-primary)' }}
+                                            className={`card relative p-5 flex flex-col h-full overflow-hidden border-l-4 ${done ? 'ring-2 ring-emerald-500/40' : ''}`}
+                                            style={{ borderLeftColor: done ? 'rgb(16 185 129)' : 'var(--color-primary)' }}
                                             whileHover={{ y: -4, boxShadow: '0 12px 24px -8px rgb(0 0 0 / 0.12)' }}
                                             transition={{ duration: 0.25 }}
                                         >
@@ -157,7 +189,15 @@ export default function LessonsPage() {
                                                 <div className="w-12 h-12 rounded-xl bg-primary-500/15 flex items-center justify-center group-hover:bg-primary-500/25 transition-colors">
                                                     <BookOpen className="w-6 h-6 text-primary-500" />
                                                 </div>
-                                                <Badge variant={diff.variant}>{t(diff.labelKey)}</Badge>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <Badge variant={diff.variant}>{t(diff.labelKey)}</Badge>
+                                                    {done && (
+                                                        <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400" title={t('lessons.placementCreditedHint')}>
+                                                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                                                            {t('lessons.completed')}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <h3 className="font-semibold text-base leading-snug mb-1.5 line-clamp-2 group-hover:text-primary-500 transition-colors text-[var(--color-text)]">
                                                 {lesson.title}
@@ -167,19 +207,32 @@ export default function LessonsPage() {
                                                     {lesson.topicName}
                                                 </p>
                                             )}
-                                            <div className="mt-auto pt-3 flex items-center gap-4 text-xs text-[var(--color-text-secondary)] border-t border-[var(--color-border)]">
-                                                {lesson.vocabularyCount != null && (
-                                                    <span className="flex items-center gap-1">
-                                                        <BookMarked className="w-3.5 h-3.5" />
-                                                        {lesson.vocabularyCount} {t('lessons.words')}
-                                                    </span>
+                                            <div className="mt-auto pt-3 space-y-2 border-t border-[var(--color-border)]">
+                                                {!done && pct > 0 && (
+                                                    <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+                                                        <span className="tabular-nums font-semibold">{pct}%</span>
+                                                        <div className="flex-1 h-1.5 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
+                                                            <div
+                                                                className="h-full rounded-full bg-primary-500 transition-all"
+                                                                style={{ width: `${Math.min(100, pct)}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 )}
-                                                {lesson.questionCount != null && (
-                                                    <span className="flex items-center gap-1">
-                                                        <FileQuestion className="w-3.5 h-3.5" />
-                                                        {lesson.questionCount} {t('lessons.questions')}
-                                                    </span>
-                                                )}
+                                                <div className="flex items-center gap-4 text-xs text-[var(--color-text-secondary)]">
+                                                    {lesson.vocabularyCount != null && (
+                                                        <span className="flex items-center gap-1">
+                                                            <BookMarked className="w-3.5 h-3.5" />
+                                                            {lesson.vocabularyCount} {t('lessons.words')}
+                                                        </span>
+                                                    )}
+                                                    {lesson.questionCount != null && (
+                                                        <span className="flex items-center gap-1">
+                                                            <FileQuestion className="w-3.5 h-3.5" />
+                                                            {lesson.questionCount} {t('lessons.questions')}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </motion.div>
                                     </Link>

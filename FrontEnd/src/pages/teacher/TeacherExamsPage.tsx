@@ -93,8 +93,10 @@ export default function TeacherExamsPage() {
     setDialogOpen(true);
   };
 
-  const openEdit = (exam: ExamResponse) => {
+  const openEdit = async (exam: ExamResponse) => {
     setEditingId(exam.id);
+    setDialogOpen(true);
+    // Prefill form from list data
     setForm({
       title: exam.title,
       classId: exam.classId ?? "",
@@ -106,7 +108,13 @@ export default function TeacherExamsPage() {
       antiCheatEnabled: exam.antiCheatEnabled ?? false,
       questionIds: [],
     });
-    setDialogOpen(true);
+    try {
+      const full = await examApi.getById(exam.id);
+      const ids = (full.questions ?? []).map((q) => q.id);
+      setForm((prev) => ({ ...prev, questionIds: ids }));
+    } catch {
+      // Keep questionIds [] if fetch fails
+    }
   };
 
   const handleSave = async () => {

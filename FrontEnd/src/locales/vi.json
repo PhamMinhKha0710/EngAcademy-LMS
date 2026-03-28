@@ -249,6 +249,8 @@
         "hard": "Khó",
         "veryHard": "Rất khó",
         "intermediate": "Trung cấp",
+        "completed": "Đã hoàn thành",
+        "placementCreditedHint": "Đã công nhận theo kết quả bài kiểm tra xếp lớp",
         "breadcrumbLessons": "Bài học",
         "backToList": "Quay lại danh sách",
         "lessonNotFound": "Bài học không tồn tại.",

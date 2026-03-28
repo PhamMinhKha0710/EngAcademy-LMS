@@ -9,6 +9,7 @@ import com.englishlearn.infrastructure.persistence.LessonRepository;
 import com.englishlearn.infrastructure.persistence.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,8 @@ public class LessonService {
     private final LessonRepository lessonRepository;
     private final TopicRepository topicRepository;
 
+    @Transactional(readOnly = true)
+    @Cacheable(value = "lessons", key = "#id")
     public LessonResponse getLessonById(Long id) {
         Lesson lesson = lessonRepository.findById(id)
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy bài học với ID: " + id));

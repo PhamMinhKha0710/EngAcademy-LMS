@@ -249,6 +249,8 @@
         "hard": "Hard",
         "veryHard": "Very Hard",
         "intermediate": "Intermediate",
+        "completed": "Completed",
+        "placementCreditedHint": "Credited from your placement test level",
         "breadcrumbLessons": "Lessons",
         "backToList": "Back to list",
         "lessonNotFound": "Lesson not found.",

@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "WebLearnEnglish API - Test Collection",
-    "description": "Complete API test collection for WebLearnEnglish platform.\n\nEnvironment Variables needed:\n- base_url: http://localhost:8080\n- admin_token: (auto-set after login)\n- teacher_token: (auto-set after login)\n- student_token: (auto-set after login)\n- school_token: (auto-set after login)",
+    "name": "EngAcademy-LMS API - Test Collection",
+    "description": "Complete API test collection for EngAcademy-LMS platform.\n\nEnvironment Variables needed:\n- base_url: http://localhost:8080\n- admin_token: (auto-set after login)\n- teacher_token: (auto-set after login)\n- student_token: (auto-set after login)\n- school_token: (auto-set after login)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
