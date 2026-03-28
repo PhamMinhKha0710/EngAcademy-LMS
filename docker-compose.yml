@@ -83,6 +83,22 @@ services:
     networks:
       - englishlearn-network
 
+  # Admin (React + Vite)
+  admin:
+    build:
+      context: ./Admin
+      dockerfile: Dockerfile
+    container_name: englishlearn-admin
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      VITE_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - englishlearn-network
+
 volumes:
   mysql_data:
     driver: local
