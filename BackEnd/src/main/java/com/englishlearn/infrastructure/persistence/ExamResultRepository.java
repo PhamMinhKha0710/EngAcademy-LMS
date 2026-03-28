@@ -40,6 +40,16 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     List<ExamResult> findTopScoresByExamId(@Param("examId") Long examId);
 
     /**
+     * Eagerly loads exam, student — prevents LazyInitializationException in read-only transactions.
+     */
+    @Query("SELECT er FROM ExamResult er " +
+           "LEFT JOIN FETCH er.exam " +
+           "LEFT JOIN FETCH er.student " +
+           "WHERE er.exam.id = :examId AND er.submittedAt IS NOT NULL " +
+           "ORDER BY er.score DESC")
+    List<ExamResult> findTopScoresByExamIdWithDetails(@Param("examId") Long examId);
+
+    /**
      * Lấy phiên làm bài đang mở gần nhất (chưa nộp) của một học sinh cho một bài
      * thi.
      */
@@ -64,6 +74,15 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     /**
      * Kiểm tra sinh viên đã làm bài thi chưa (theo ID)
      */
+    @Query("SELECT er FROM ExamResult er " +
+           "LEFT JOIN FETCH er.exam " +
+           "LEFT JOIN FETCH er.student " +
+           "WHERE er.exam.id = :examId AND er.student.id = :studentId AND er.submittedAt IS NOT NULL " +
+           "ORDER BY er.submittedAt DESC, er.id DESC")
+    Optional<ExamResult> findTopByExamIdAndStudentIdWithExamAndStudent(
+            @Param("examId") Long examId,
+            @Param("studentId") Long studentId);
+
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
 
     /**

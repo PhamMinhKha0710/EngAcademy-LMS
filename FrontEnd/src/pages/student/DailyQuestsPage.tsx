@@ -31,7 +31,7 @@ type TaskMeta = {
     rewardLabel: string
 }
 
-const getTaskMeta = (taskType: string, t: (key: string) => string): TaskMeta => {
+const getTaskMeta = (taskType: string): TaskMeta => {
     switch (taskType) {
         case 'LEARN_VOCAB':
             return {
@@ -102,7 +102,7 @@ export default function DailyQuestsPage() {
     const [completingQuest, setCompletingQuest] = useState(false)
     const [showStreakOverlay, setShowStreakOverlay] = useState(false)
     const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false)
-    const [overlayStreakDays, setOverlayStreakDays] = useState(0)
+    const [overlayStreakDays] = useState(0)
     const [levelInfo, setLevelInfo] = useState({
         previousLevel: 1,
         newLevel: 1,
@@ -309,7 +309,7 @@ export default function DailyQuestsPage() {
 
                 <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {quest.tasks?.map((task) => {
-                        const meta = getTaskMeta(task.taskType, t)
+                        const meta = getTaskMeta(task.taskType)
                         const current = getTaskCurrent(task)
                         const done = isTaskDone(task)
                         const percent = task.targetCount > 0 ? Math.min((current / task.targetCount) * 100, 100) : 0

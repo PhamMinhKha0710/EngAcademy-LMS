@@ -193,7 +193,7 @@ export default function LeaderboardPage() {
                     {/* Podium - Top 3 */}
                     {top3.length >= 3 && (
                         <div className="grid grid-cols-3 gap-3 mb-8 items-end">
-                            {podiumOrder.map((entry, i) => {
+                            {podiumOrder.map((entry) => {
                                 const actualRank = entry.computedRank
                                 const medal = getMedalColor(actualRank)
                                 const isFirst = actualRank === 1
@@ -262,7 +262,7 @@ export default function LeaderboardPage() {
                     {/* If less than 3, show as list */}
                     {top3.length < 3 && top3.length > 0 && (
                         <div className="space-y-2 mb-6">
-                            {top3.map((entry, index) => {
+                            {top3.map((entry) => {
                                 const medal = getMedalColor(entry.computedRank)
                                 const isMe = entry.userId === user?.id
                                 return (

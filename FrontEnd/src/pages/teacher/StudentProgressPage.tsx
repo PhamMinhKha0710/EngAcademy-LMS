@@ -144,7 +144,8 @@ export default function StudentProgressPage() {
                     <div className="w-32">
                         <ProgressBar
                             value={pct}
-                            color={pct >= 100 ? 'from-emerald-500 to-emerald-600' : 'from-blue-500 to-blue-600'}
+                            gradientStart={pct >= 100 ? 'from-emerald-500' : 'from-blue-500'}
+                            gradientEnd={pct >= 100 ? 'to-emerald-600' : 'to-blue-600'}
                         />
                         <span className="text-xs mt-0.5 block" style={{ color: 'var(--color-text-secondary)' }}>
                             {Math.round(pct)}%

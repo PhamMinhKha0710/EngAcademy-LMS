@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -11,11 +11,16 @@ import {
     Trophy,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import { useLearningProfileStore } from '../../store/learningProfileStore'
+import { useToastStore } from '../../store/toastStore'
 import { progressApi, ProgressResponse } from '../../services/api/progressApi'
 import { leaderboardApi, LeaderboardEntry } from '../../services/api/leaderboardApi'
 import { DailyQuestResponse, questApi } from '../../services/api/questApi'
 import { vocabularyApi, VocabularyResponse } from '../../services/api/vocabularyApi'
+import { PLACEHOLDER_LESSON_IMAGE } from '../../config/constants'
 import ProgressBar from '../../components/ui/ProgressBar'
+import OnboardingWizard from './OnboardingWizard'
+
 
 interface ProgressStats {
     completedLessons: number
@@ -23,11 +28,18 @@ interface ProgressStats {
     wordsLearned: number
 }
 
-const NEXT_LESSON_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuALCoX9kpHAXVTawTzYGjbLCOoXiJ5VtIDa_NUAyZsaopP3FSofE1OwwHkKqo_WHwSlMvrKI0Voq4udFZ0yRDE1TUesQbm8mWKH6LXMT4LeoWChjDbCLb6yfxY_s1arB4a3L_jLUY2YxhRpOOkwyqfy3K57e-q7Vc03dz6gVvyHN40dgmEwupUmLnNp26VS2Qn4d8-gVem_PDPnbpQq1y_T7MkHTdZO6RwjtzUb2y4P-M7ahfmftTJEdhjgDsSiGM9_xy_1QnDcxuWS'
+// Trusted avatar domains — prevent arbitrary URL injection
+const TRUSTED_AVATAR_DOMAINS = ['lh3.googleusercontent.com']
+
+function isTrustedAvatar(url: string): boolean {
+    return url.startsWith('/') || TRUSTED_AVATAR_DOMAINS.some(d => url.includes(d))
+}
 
 export default function StudentDashboard() {
     const { t } = useTranslation()
     const user = useAuthStore((s) => s.user)
+    const { onboardingCompleted, fetchOnboardingStatus, isLoading: profileLoading } = useLearningProfileStore()
+    const { addToast } = useToastStore()
     const navigate = useNavigate()
 
     const [loading, setLoading] = useState(true)
@@ -37,51 +49,98 @@ export default function StudentDashboard() {
     const [dailyQuest, setDailyQuest] = useState<DailyQuestResponse | null>(null)
     const [dailyWord, setDailyWord] = useState<VocabularyResponse | null>(null)
 
+    // Fetch onboarding status on mount — guard inside so the hook always runs
     useEffect(() => {
-        const fetchWord = () => {
-            vocabularyApi.getRandomFlashcards(1)
-                .then((words) => { if (words.length > 0) setDailyWord(words[0]) })
-                .catch(() => {})
-        }
-        fetchWord()
-        const interval = setInterval(fetchWord, 5 * 60 * 1000)
-        return () => clearInterval(interval)
+        if (!user) return
+        fetchOnboardingStatus()
+    }, [user, fetchOnboardingStatus])
+
+    // Daily word fetch with AbortController
+    const fetchWord = useCallback(() => {
+        const controller = new AbortController()
+        vocabularyApi.getRandomFlashcards(1, { signal: controller.signal })
+            .then((words) => { if (words.length > 0) setDailyWord(words[0]) })
+            .catch((err) => {
+                if (err?.name !== 'AbortError') {
+                    console.warn('Failed to load daily word:', err)
+                }
+            })
+        return controller
     }, [])
 
     useEffect(() => {
-        if (!user?.id) return
+        if (!user || !onboardingCompleted) return
+        const controller = fetchWord()
+        const interval = setInterval(() => {
+            fetchWord()
+        }, 5 * 60 * 1000)
+        return () => {
+            controller.abort()
+            clearInterval(interval)
+        }
+    }, [user, onboardingCompleted, fetchWord])
+
+    // Main dashboard data fetch with AbortController
+    useEffect(() => {
+        if (!user?.id || !onboardingCompleted) return
+        const abortController = new AbortController()
 
         const fetchData = async () => {
             setLoading(true)
             try {
                 const [statsData, inProgressData, leaderboardData, dailyQuestData] =
                     await Promise.allSettled([
-                        progressApi.getStats(user.id),
-                        progressApi.getInProgress(user.id),
-                        leaderboardApi.getTop(5),
-                        questApi.getToday(),
+                        progressApi.getStats(user.id, { signal: abortController.signal }),
+                        progressApi.getInProgress(user.id, { signal: abortController.signal }),
+                        leaderboardApi.getTop(5, { signal: abortController.signal }),
+                        questApi.getToday({ signal: abortController.signal }),
                     ])
 
                 if (statsData.status === 'fulfilled' && statsData.value) {
-                    const raw = statsData.value as Record<string, unknown>
-                    setStats({
-                        completedLessons: (raw.completedLessons as number) ?? 0,
-                        averageProgress: (raw.averageProgress as number) ?? 0,
-                        wordsLearned: (raw.wordsLearned as number) ?? 0,
-                    })
+                    const raw = statsData.value
+                    if (
+                        typeof raw.completedLessons === 'number' &&
+                        typeof raw.averageProgress === 'number' &&
+                        typeof raw.wordsLearned === 'number'
+                    ) {
+                        setStats({
+                            completedLessons: raw.completedLessons,
+                            averageProgress: raw.averageProgress,
+                            wordsLearned: raw.wordsLearned,
+                        })
+                    }
                 }
-                if (inProgressData.status === 'fulfilled') setInProgress((inProgressData.value as ProgressResponse[]).slice(0, 4))
-                if (leaderboardData.status === 'fulfilled') setTop5(leaderboardData.value)
-                if (dailyQuestData.status === 'fulfilled') setDailyQuest(dailyQuestData.value)
+                if (inProgressData.status === 'fulfilled') {
+                    setInProgress((inProgressData.value as ProgressResponse[] | undefined)?.slice(0, 4) ?? [])
+                }
+                if (leaderboardData.status === 'fulfilled') {
+                    setTop5(leaderboardData.value ?? [])
+                }
+                if (dailyQuestData.status === 'fulfilled') {
+                    setDailyQuest(dailyQuestData.value ?? null)
+                }
             } catch (err) {
-                console.error('Failed to load dashboard data:', err)
+                if (err instanceof Error && err.name === 'AbortError') return
+                addToast({ type: 'error', message: 'Không thể tải dữ liệu dashboard. Vui lòng thử lại.' })
+                console.error('Dashboard fetch failed:', err)
             } finally {
-                setLoading(false)
+                if (!abortController.signal.aborted) setLoading(false)
             }
         }
 
         fetchData()
-    }, [user?.id])
+        return () => abortController.abort()
+    }, [user?.id, onboardingCompleted, addToast])
+
+    // Guard: wait for both auth and onboarding check before rendering dashboard content
+    if (!user || profileLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="w-10 h-10 animate-spin text-primary-500" strokeWidth={2} />
+            </div>
+        )
+    }
+    if (!onboardingCompleted) return <OnboardingWizard />
 
     const handleContinueLearning = () => {
         if (inProgress.length > 0) {
@@ -181,7 +240,7 @@ export default function StudentDashboard() {
 
                             {nextLesson ? (
                                 <div className="card overflow-hidden flex flex-col md:flex-row">
-                                    <div className="md:w-[40%] min-h-[260px] bg-cover bg-center" style={{ backgroundImage: `url('${NEXT_LESSON_IMAGE}')` }} />
+                                    <div className="md:w-[40%] min-h-[260px] bg-cover bg-center" style={{ backgroundImage: `url('${PLACEHOLDER_LESSON_IMAGE}')` }} />
                                     <div className="p-6 md:p-8 flex-1">
                                         <div className="flex items-center gap-2 mb-4">
                                             <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{t('lessons.intermediate')}</span>
@@ -211,7 +270,7 @@ export default function StudentDashboard() {
                                     to={`/lessons/${inProgress[1].lessonId}`}
                                     className="card overflow-hidden flex flex-col md:flex-row hover:border-primary-500/30 block"
                                 >
-                                    <div className="md:w-[40%] min-h-[260px] bg-cover bg-center" style={{ backgroundImage: `url('${NEXT_LESSON_IMAGE}')` }} />
+                                    <div className="md:w-[40%] min-h-[260px] bg-cover bg-center" style={{ backgroundImage: `url('${PLACEHOLDER_LESSON_IMAGE}')` }} />
                                     <div className="p-6 md:p-8 flex-1">
                                         <div className="flex items-center gap-2 mb-4">
                                             <span className="px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-bold">{t('lessons.intermediate')}</span>
@@ -261,7 +320,9 @@ export default function StudentDashboard() {
                                             <div key={entry.userId} className={`flex items-center gap-3 p-3 rounded-xl ${isCurrentUser ? 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-600/50' : 'bg-slate-50 dark:bg-slate-800/60'}`}>
                                                 <span className={`w-6 text-center font-black ${isCurrentUser ? 'text-orange-600' : 'text-slate-400'}`}>{index + 1}</span>
                                                 <div className="size-10 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-purple-500 text-white grid place-items-center font-bold">
-                                                    {entry.avatarUrl ? <img src={entry.avatarUrl} alt="" className="size-full object-cover" /> : ((entry.fullName || entry.username)?.[0] ?? '?')}
+                                                    {entry.avatarUrl && isTrustedAvatar(entry.avatarUrl)
+                                                        ? <img src={entry.avatarUrl} alt="" className="size-full object-cover" />
+                                                        : <div>{(entry.fullName || entry.username)?.[0] ?? '?'}</div>}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className={`font-bold truncate ${isCurrentUser ? 'text-orange-700 dark:text-orange-300' : 'text-slate-800 dark:text-slate-200'}`}>
@@ -333,4 +394,3 @@ export default function StudentDashboard() {
         </div>
     )
 }
-

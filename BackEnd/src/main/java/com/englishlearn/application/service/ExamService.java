@@ -15,8 +15,10 @@ import com.englishlearn.domain.exception.ResourceNotFoundException;
 import com.englishlearn.infrastructure.persistence.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +50,7 @@ public class ExamService {
     private final DailyQuestService dailyQuestService;
     private final NotificationService notificationService;
     private final StudentClassRepository studentClassRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional(readOnly = true)
     public Page<ExamResponse> getAllExams(Pageable pageable) {
@@ -86,7 +89,7 @@ public class ExamService {
      */
     @Transactional(readOnly = true)
     public ExamResponse getExamById(Long id) {
-        Exam exam = examRepository.findById(id)
+        Exam exam = examRepository.findByIdWithQuestions(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", id));
         return mapToResponseWithQuestions(exam, false);
     }
@@ -99,7 +102,7 @@ public class ExamService {
      */
     @Transactional(readOnly = true)
     public ExamResponse getExamForStudent(Long id) {
-        Exam exam = examRepository.findById(id)
+        Exam exam = examRepository.findByIdWithQuestions(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", id));
 
         if (!"PUBLISHED".equals(exam.getStatus())) {
@@ -200,7 +203,7 @@ public class ExamService {
                 notificationService.sendNotification(
                     sc.getStudent().getId(),
                     "Bài thi mới: " + exam.getTitle(),
-                    "Giáo viên " + exam.getTeacher().getFullName() + " vừa công bố bài thi mới. Hãy kiểm tra và làm bài đúng hạn nhé!",
+                    "Giáo viên " + exam.getTeacher().getFullName() + " vừa phát hành bài thi mới. Hãy kiểm tra và làm bài đúng hạn nhé!",
                     null
                 );
             }
@@ -261,11 +264,6 @@ public class ExamService {
 
         Exam exam = examRepository.findById(request.getExamId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", request.getExamId()));
-
-        // Check if already submitted
-        if (examResultRepository.existsByExamAndStudent(exam, student)) {
-            throw new DuplicateResourceException("Bạn đã nộp bài kiểm tra này rồi");
-        }
 
         // Calculate score - hỗ trợ MULTIPLE_CHOICE, TRUE_FALSE, FILL_IN_BLANK
         int correctCount = 0;
@@ -340,7 +338,12 @@ public class ExamService {
                 .submittedAt(LocalDateTime.now())
                 .build();
 
-        ExamResult savedResult = examResultRepository.save(result);
+        ExamResult savedResult;
+        try {
+            savedResult = examResultRepository.save(result);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateResourceException("Bạn đã nộp bài kiểm tra này rồi");
+        }
         log.info("Student {} submitted exam {} with score {}", student.getFullName(), exam.getTitle(), score);
 
         try {
@@ -354,10 +357,8 @@ public class ExamService {
 
     @Transactional(readOnly = true)
     public List<ExamResultResponse> getExamResults(Long examId) {
-        return examResultRepository.findTopScoresByExamId(examId)
+        return examResultRepository.findTopScoresByExamIdWithDetails(examId)
                 .stream()
-                // Chỉ hiển thị kết quả đã nộp; bỏ các phiên đang làm dở
-                .filter(er -> er.getSubmittedAt() != null)
                 .map(this::mapToResultResponse)
                 .collect(Collectors.toList());
     }
@@ -365,7 +366,7 @@ public class ExamService {
     @Transactional(readOnly = true)
     public ExamResultResponse getStudentExamResult(Long examId, Long studentId) {
         ExamResult result = examResultRepository
-                .findTopByExamIdAndStudentIdAndSubmittedAtIsNotNullOrderBySubmittedAtDescIdDesc(examId, studentId)
+                .findTopByExamIdAndStudentIdWithExamAndStudent(examId, studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả bài thi", "examId", examId));
 
         // Học sinh chỉ xem chi tiết sau khi giáo viên công bố điểm
@@ -541,7 +542,7 @@ public class ExamService {
      */
     @Transactional
     public ExamTakeDTO takeExam(Long examId, Long studentId) {
-        Exam exam = examRepository.findById(examId)
+        Exam exam = examRepository.findByIdWithQuestions(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài thi", "id", examId));
 
         User student = userRepository.findById(studentId)
@@ -585,14 +586,20 @@ public class ExamService {
         // Chuyển đổi questions sang DTO với shuffle
         List<Question> questions = new ArrayList<>(exam.getQuestions());
 
-        // Shuffle questions nếu được bật
+        // Shuffle questions nếu được bật — dùng Redis-incremented seed để tránh predictable shuffle
         if (Boolean.TRUE.equals(exam.getShuffleQuestions())) {
-            Collections.shuffle(questions, new Random(studentId + examId));
-            log.info("Shuffled questions for exam {} student {}", examId, studentId);
+            String shuffleSeedKey = "exam:shuffle:" + examId + ":" + studentId;
+            Long seed = redisTemplate.opsForValue().increment(shuffleSeedKey);
+            if (seed == null) {
+                seed = System.nanoTime() % Integer.MAX_VALUE;
+            }
+            Collections.shuffle(questions, new Random(seed));
+            log.debug("Shuffled {} questions for exam {} student {} with seed {}",
+                    questions.size(), examId, studentId, seed);
         }
 
         List<ExamQuestionDTO> questionDTOs = questions.stream()
-                .map(q -> mapToExamQuestionDTO(q, exam.getShuffleAnswers(), studentId, examId))
+                .map(q -> mapToExamQuestionDTO(q, exam.getShuffleAnswers()))
                 .collect(Collectors.toList());
 
         return ExamTakeDTO.builder()
@@ -611,13 +618,12 @@ public class ExamService {
     /**
      * Map Question entity sang ExamQuestionDTO với shuffle options
      */
-    private ExamQuestionDTO mapToExamQuestionDTO(Question question, Boolean shuffleAnswers, Long studentId,
-            Long examId) {
+    private ExamQuestionDTO mapToExamQuestionDTO(Question question, Boolean shuffleAnswers) {
         List<QuestionOption> options = questionOptionRepository.findByQuestionId(question.getId());
 
         if (Boolean.TRUE.equals(shuffleAnswers)) {
             List<QuestionOption> shuffledOptions = new ArrayList<>(options);
-            Collections.shuffle(shuffledOptions, new Random(studentId + examId + question.getId()));
+            Collections.shuffle(shuffledOptions, new Random(question.getId().hashCode()));
             options = shuffledOptions;
         }
 

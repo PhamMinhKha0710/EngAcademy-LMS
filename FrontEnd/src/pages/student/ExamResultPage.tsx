@@ -256,12 +256,19 @@ export default function ExamResultPage() {
                         </div>
                         <ProgressBar
                             value={percentage}
-                            color={
+                            gradientStart={
                                 percentage >= 80
-                                    ? 'from-green-500 to-emerald-500'
+                                    ? 'from-green-500'
                                     : percentage >= 50
-                                      ? 'from-yellow-500 to-orange-500'
-                                      : 'from-red-500 to-rose-500'
+                                      ? 'from-yellow-500'
+                                      : 'from-red-500'
+                            }
+                            gradientEnd={
+                                percentage >= 80
+                                    ? 'to-emerald-500'
+                                    : percentage >= 50
+                                      ? 'to-orange-500'
+                                      : 'to-rose-500'
                             }
                             height="h-3"
                         />
