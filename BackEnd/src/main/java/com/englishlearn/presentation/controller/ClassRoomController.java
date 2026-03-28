@@ -209,16 +209,30 @@ public class ClassRoomController {
                         @AuthenticationPrincipal UserDetails userDetails) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
-                if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
-                        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
-                        UserResponse student = userService.getUserById(studentId);
+                ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+                UserResponse student = userService.getUserById(studentId);
 
+                if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
                         if (currentUser.getSchoolId() == null
                                         || !currentUser.getSchoolId().equals(classRoom.getSchoolId())
                                         || !currentUser.getSchoolId().equals(student.getSchoolId())) {
                                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                                 .body(ApiResponse.error(
                                                                 "Bạn không có quyền thực hiện thao tác này trên trường khác"));
+                        }
+                } else if (currentUser.getRoles().contains("ROLE_TEACHER")) {
+                        // Giáo viên thường không có schoolId trùng lớp — kiểm tra phụ trách lớp + HS cùng trường với lớp
+                        if (classRoom.getTeacherId() == null
+                                        || !classRoom.getTeacherId().equals(currentUser.getId())) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error(
+                                                                "Bạn chỉ có thể thêm học sinh vào lớp mà bạn phụ trách."));
+                        }
+                        if (student.getSchoolId() == null
+                                        || !student.getSchoolId().equals(classRoom.getSchoolId())) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error(
+                                                                "Học sinh phải thuộc cùng trường với lớp học."));
                         }
                 }
 
@@ -235,14 +249,20 @@ public class ClassRoomController {
                         @AuthenticationPrincipal UserDetails userDetails) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
-                if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
-                        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
-
+                ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+                if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
                         if (currentUser.getSchoolId() == null
                                         || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
                                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                                 .body(ApiResponse.error(
                                                                 "Bạn không có quyền thực hiện thao tác này trên lớp của trường khác"));
+                        }
+                } else if (currentUser.getRoles().contains("ROLE_TEACHER")) {
+                        if (classRoom.getTeacherId() == null
+                                        || !classRoom.getTeacherId().equals(currentUser.getId())) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error(
+                                                                "Bạn chỉ có thể thao tác trên lớp mà bạn phụ trách."));
                         }
                 }
 
@@ -276,7 +296,23 @@ public class ClassRoomController {
         @Operation(summary = "Search students by username/fullName/email to add into classroom")
         public ResponseEntity<ApiResponse<List<ClassStudentResponse>>> searchStudentsForClass(
                         @PathVariable Long classId,
-                        @RequestParam String keyword) {
+                        @RequestParam String keyword,
+                        @AuthenticationPrincipal UserDetails userDetails) {
+                var currentUser = userService.getUserByUsername(userDetails.getUsername());
+                ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+                if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+                        if (currentUser.getSchoolId() == null
+                                        || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error("Bạn không có quyền tìm kiếm trong lớp này"));
+                        }
+                } else if (currentUser.getRoles().contains("ROLE_TEACHER")) {
+                        if (classRoom.getTeacherId() == null
+                                        || !classRoom.getTeacherId().equals(currentUser.getId())) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error("Bạn chỉ có thể tìm học sinh cho lớp mà bạn phụ trách."));
+                        }
+                }
                 List<ClassStudentResponse> students = classRoomService.searchStudentsForClass(classId, keyword);
                 return ResponseEntity.ok(ApiResponse.success("Tìm kiếm học sinh thành công", students));
         }

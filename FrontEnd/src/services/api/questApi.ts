@@ -1,4 +1,4 @@
-import api from './axios'
+import api, { AxiosRequestConfig } from './axios'
 interface ApiResponse<T> { success: boolean; message: string; data: T }
 
 export interface QuestTask {
@@ -21,20 +21,20 @@ export interface DailyQuestResponse {
 }
 
 export const questApi = {
-    getToday: async () => {
-        const r = await api.get<ApiResponse<DailyQuestResponse>>('/quests/today')
+    getToday: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<DailyQuestResponse>>('/quests/today', config)
         return r.data.data
     },
-    updateTaskProgress: async (taskId: number, progress: number) => {
-        const r = await api.patch<ApiResponse<DailyQuestResponse>>(`/quests/tasks/${taskId}?progress=${progress}`)
+    updateTaskProgress: async (taskId: number, progress: number, config?: AxiosRequestConfig) => {
+        const r = await api.patch<ApiResponse<DailyQuestResponse>>(`/quests/tasks/${taskId}?progress=${progress}`, undefined, config)
         return r.data.data
     },
-    completeQuest: async () => {
-        const r = await api.post<ApiResponse<DailyQuestResponse>>('/quests/complete')
+    completeQuest: async (config?: AxiosRequestConfig) => {
+        const r = await api.post<ApiResponse<DailyQuestResponse>>('/quests/complete', undefined, config)
         return r.data.data
     },
-    getHistory: async () => {
-        const r = await api.get<ApiResponse<DailyQuestResponse[]>>('/quests/history')
+    getHistory: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<DailyQuestResponse[]>>('/quests/history', config)
         return r.data.data
     },
 }

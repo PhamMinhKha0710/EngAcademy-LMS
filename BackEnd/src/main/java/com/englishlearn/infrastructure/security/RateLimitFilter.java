@@ -3,6 +3,8 @@ package com.englishlearn.infrastructure.security;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +19,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -42,6 +47,33 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private final Map<String, RateLimitEntry> attempts = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private ScheduledExecutorService cleanupExecutor;
+
+    @PostConstruct
+    public void init() {
+        cleanupExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "rate-limit-cleanup");
+            t.setDaemon(true);
+            return t;
+        });
+        // Run cleanup every 1 hour to remove stale entries
+        cleanupExecutor.scheduleAtFixedRate(() -> {
+            long cutoff = System.currentTimeMillis() - (windowSeconds * 2000L);
+            int before = attempts.size();
+            attempts.entrySet().removeIf(e -> e.getValue().windowStart < cutoff);
+            int removed = before - attempts.size();
+            if (removed > 0) {
+                log.debug("Rate limit cleanup removed {} stale entries (current: {})", removed, attempts.size());
+            }
+        }, 1, 1, TimeUnit.HOURS);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        if (cleanupExecutor != null) {
+            cleanupExecutor.shutdown();
+        }
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -49,6 +81,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
         String method = request.getMethod();
+
+        // Skip OPTIONS (CORS preflight) requests before rate limiting check
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // Chỉ áp dụng rate limit cho POST /api/v1/auth/login và /api/v1/auth/register
         if (enabled && "POST".equalsIgnoreCase(method) &&

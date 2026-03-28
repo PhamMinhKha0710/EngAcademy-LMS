@@ -206,7 +206,7 @@ export default function BadgesPage() {
             )}
 
             {/* Empty state - no definitions */}
-            {totalBadges === 0 && !error && (
+            {!hasDefinitions && !error && (
                 <EmptyState
                     icon={<Award className="w-8 h-8" />}
                     title={t('badges.noBadges')}

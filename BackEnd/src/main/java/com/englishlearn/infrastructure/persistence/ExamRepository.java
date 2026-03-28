@@ -33,6 +33,13 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.classRoom cr LEFT JOIN FETCH cr.school LEFT JOIN FETCH e.teacher WHERE e.id = :id")
     Optional<Exam> findByIdWithFullDetails(@Param("id") Long id);
 
+    /**
+     * Eagerly loads questions — prevents LazyInitializationException when accessing exam.getQuestions()
+     * in read-only transactions. Used by mapToResponse().
+     */
+    @Query("SELECT DISTINCT e FROM Exam e LEFT JOIN FETCH e.questions LEFT JOIN FETCH e.classRoom LEFT JOIN FETCH e.teacher WHERE e.id = :id")
+    Optional<Exam> findByIdWithQuestions(@Param("id") Long id);
+
     @Query("SELECT e FROM Exam e WHERE e.classRoom.id = :classId AND e.status = 'PUBLISHED' AND e.startTime <= :now AND e.endTime >= :now")
     List<Exam> findActiveExamsByClassId(@Param("classId") Long classId, @Param("now") LocalDateTime now);
 

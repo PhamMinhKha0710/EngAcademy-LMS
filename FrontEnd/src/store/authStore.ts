@@ -171,10 +171,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
+      // Only persist what's safe: user profile, auth state, and short-lived access token.
+      // NEVER persist refreshToken to localStorage — it's XSS-extractable.
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     }
