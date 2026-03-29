@@ -3,7 +3,6 @@ services:
     name: engacademy-backend
     runtime: docker
     dockerfilePath: BackEnd/Dockerfile
-    rootDirectory: ./
     region: singapore
     healthCheckPath: /api/v1/auth/health
     envVars:
