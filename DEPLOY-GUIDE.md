@@ -2474,4 +2474,106 @@ Internet
 
 ---
 
+## 19. Deploy Backend len Render
+
+### 19.1. Muc luc
+
+| Platform | Technology |
+|----------|-----------|
+| Backend | Render (Docker) |
+| Database | MySQL tren Railway |
+| Cache | Upstash Redis |
+| Frontend | Vercel (da cau hinh o muc 18) |
+
+### 19.2. Cai dat tren Render
+
+**B1:** Tao repo moi tren Render (hoac connect tu GitHub)
+- Vao https://dashboard.render.com/new?type=web
+- Chon **Deploy from GitHub repo**
+- Chon repo: `PhamMinhKha0710/EngAcademy-LMS`
+- Branch: `dev` hoac `main`
+
+**B2:** Cau hinh service
+
+| Field | Value |
+|-------|-------|
+| Name | `engacademy-backend` |
+| Region | Singapore |
+| Runtime | Docker |
+| Dockerfile Path | `BackEnd/Dockerfile` |
+| Root Directory | `./` |
+| Health Check | `/api/v1/auth/health` |
+| Instance Type | Free (hoac Starter neu can) |
+
+**B3:** Them Environment Variables trong Render Dashboard
+
+Render se tu dong doc `render.yaml` neu co trong repo, nhung ban van can them thu cong cac bien sau trong Render Dashboard > Environment:
+
+| Key | Value / Notes |
+|-----|---------------|
+| `SPRING_PROFILES_ACTIVE` | `prod` |
+| `SPRING_JPA_HIBERNATE_DDL_AUTO` | `update` |
+| `APPLICATION_SECURITY_JWT_SECRET_KEY` | Render se tu tao (hoac ban nhap thu cong) |
+| `APPLICATION_SECURITY_JWT_EXPIRATION` | `86400000` |
+| `APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION` | `604800000` |
+| `APPLICATION_CORS_ALLOWED_ORIGINS` | `http://eng-academy-lms.vercel.app,https://eng-academy-admin.vercel.app` |
+| `SPRING_DATA_REDIS_HOST` | `renewed-tadpole-87254.upstash.io` |
+| `SPRING_DATA_REDIS_PORT` | `6379` |
+| `SPRING_DATA_REDIS_USERNAME` | `default` |
+| `SPRING_DATA_REDIS_PASSWORD` | *(Upstash token — tu them trong Render dashboard)* |
+| `SPRING_DATA_REDIS_SSL` | `true` |
+| `SPRING_MAIL_HOST` | `smtp.gmail.com` |
+| `SPRING_MAIL_PORT` | `587` |
+| `SPRING_MAIL_USERNAME` | `dinhminh4424@gmail.com` |
+| `SPRING_MAIL_PASSWORD` | *(Gmail App Password — tu them trong Render dashboard)* |
+| `RATE_LIMIT_MAX_ATTEMPTS` | `100` |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60` |
+| `RATE_LIMIT_ENABLED` | `true` |
+| `DATABASE_URL` | *(xem muc 19.3)* |
+
+**B4:** Deploy — click **Create Web Service**
+
+Render se build Docker image, tai code tu `BackEnd/`, build Maven, va chay JAR.
+
+### 19.3. Cau hinh DATABASE_URL (MySQL tren Railway)
+
+Render khong dung bien `SPRING_DATASOURCE_URL` nhu Railway. Ban can them:
+
+```
+DATABASE_URL = mysql://<user>:<password>@<host>:<port>/<database>
+```
+
+Lay tu Railway Dashboard > MySQL service > **Connect** > Public URL. Chu y:
+- Railway Internal hostname (`mysql.railway.internal`) **khong hoat dong** tren Render — phai dung **Public Host**.
+- Format: `mysql://root:<password>@<public-host>:<port>/railway`
+
+Vi du:
+```
+DATABASE_URL = mysql://root:ncxDhwRDzpBAtzfLaBzumhwnPGflObjS@top1.nearest.of.engacademy-db.internal:5432/railway
+```
+
+File `application-prod.properties` da duoc cau hinh de doc `DATABASE_URL` lam truoc, neu khong co se fallback ve `SPRING_DATASOURCE_URL`.
+
+### 19.4. Cap nhat CORS sau khi deploy
+
+Sau khi backend duoc deploy, Render se cung cap URL nhu:
+```
+https://engacademy-backend.onrender.com
+```
+
+Cap nhat `APPLICATION_CORS_ALLOWED_ORIGINS` trong Render Dashboard:
+```
+http://eng-academy-lms.vercel.app,https://eng-academy-admin.vercel.app,https://engacademy-backend.onrender.com
+```
+
+### 19.5. Tom tat cac file da tao/sua cho Render
+
+| File | Hanh dong |
+|------|-----------|
+| `render.yaml` | Tao moi — chi Render biet Dockerfile nam o dau |
+| `BackEnd/Dockerfile` | Sua — EXPOSE $PORT, ENTRYPOINT dung $PORT |
+| `BackEnd/src/main/resources/application-prod.properties` | Sua — ho tro DATABASE_URL |
+
+---
+
 **End of Document**
