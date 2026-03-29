@@ -114,7 +114,7 @@ public class RecommendationService {
     }
 
     private List<RecommendedLesson> getLessonsByTopic(String topic, Set<Long> excludeIds, CefrLevel level) {
-        return lessonRepository.findByTopicNameIgnoreCaseAndIsPublishedTrueOrderByOrderIndexAsc(topic).stream()
+        return lessonRepository.findByTopic_NameIgnoreCaseAndIsPublishedTrueOrderByOrderIndexAsc(topic).stream()
                 .filter(l -> !excludeIds.contains(l.getId()))
                 .limit(3)
                 .map(l -> toRecommended(l, "Chủ đề: " + topic))
