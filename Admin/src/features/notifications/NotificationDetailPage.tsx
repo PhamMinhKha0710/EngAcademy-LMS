@@ -84,11 +84,11 @@ export default function NotificationDetailPage() {
                             <div className="flex items-center gap-6 text-sm font-bold text-muted-foreground/60">
                                 <div className="flex items-center gap-2">
                                     <Calendar className="h-4 w-4" />
-                                    {format(new Date(notification.createdAt), 'dd MMMM, yyyy', { locale: vi })}
+                                    {format(new Date(notification.createdAt ?? ''), 'dd MMMM, yyyy', { locale: vi })}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Clock className="h-4 w-4" />
-                                    {format(new Date(notification.createdAt), 'HH:mm', { locale: vi })}
+                                    {format(new Date(notification.createdAt ?? ''), 'HH:mm', { locale: vi })}
                                 </div>
                             </div>
                         </div>
