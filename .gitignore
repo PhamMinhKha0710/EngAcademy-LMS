@@ -51,6 +51,7 @@ dist-ssr/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # Debug logs
 npm-debug.log*
