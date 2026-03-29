@@ -91,8 +91,8 @@ public class AuthController {
      */
     @GetMapping("/health")
     @Operation(summary = "Kiểm tra trạng thái server")
-    public ResponseEntity<ApiResponse<String>> healthCheck() {
-        return ResponseEntity.ok(ApiResponse.success("Server đang hoạt động", "OK"));
+    public ResponseEntity<?> healthCheck() {
+        return ResponseEntity.ok().body("OK");
     }
 
     /**
