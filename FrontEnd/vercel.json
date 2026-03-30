@@ -7,15 +7,15 @@
   "rewrites": [
     {
       "source": "/api/v1/(.*)",
-      "destination": "https://<RAILWAY_BACKEND_URL>/api/v1/$1"
+      "destination": "https://engacademy-lms.onrender.com/api/v1/$1"
     },
     {
       "source": "/api/(.*)",
-      "destination": "https://<RAILWAY_BACKEND_URL>/api/$1"
+      "destination": "https://engacademy-lms.onrender.com/api/$1"
     },
     {
       "source": "/ws/(.*)",
-      "destination": "https://<RAILWAY_BACKEND_URL>/ws/$1"
+      "destination": "https://engacademy-lms.onrender.com/ws/$1"
     }
   ],
   "headers": [
