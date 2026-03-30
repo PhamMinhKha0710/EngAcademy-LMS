@@ -42,10 +42,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Value("${rate-limit.window-seconds:60}")
     private long windowSeconds;
 
+    @Value("${rate-limit.otp.max-attempts:5}")
+    private int otpMaxAttempts;
+
+    @Value("${rate-limit.otp.window-seconds:300}")
+    private long otpWindowSeconds;
+
     @Value("${rate-limit.enabled:true}")
     private boolean enabled;
 
     private final Map<String, RateLimitEntry> attempts = new ConcurrentHashMap<>();
+    private final Map<String, RateLimitEntry> otpAttempts = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private ScheduledExecutorService cleanupExecutor;
 
@@ -113,6 +120,34 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
                 ApiResponse<Void> apiResponse = ApiResponse.error(
                         "Quá nhiều yêu cầu. Vui lòng thử lại sau " + windowSeconds + " giây");
+                objectMapper.writeValue(response.getOutputStream(), apiResponse);
+                return;
+            }
+        }
+
+        // Rate limit cho OTP verify endpoint (reset-password)
+        if (enabled && "POST".equalsIgnoreCase(method) && path.equals("/api/v1/auth/reset-password")) {
+            String clientIp = getClientIp(request);
+            String key = clientIp + ":" + path;
+            long windowMs = otpWindowSeconds * 1000;
+
+            RateLimitEntry entry = otpAttempts.compute(key, (k, existing) -> {
+                long now = System.currentTimeMillis();
+                if (existing == null || now - existing.windowStart > windowMs) {
+                    return new RateLimitEntry(now, new AtomicInteger(1));
+                }
+                existing.count.incrementAndGet();
+                return existing;
+            });
+
+            if (entry.count.get() > otpMaxAttempts) {
+                log.warn("OTP rate limit vượt quá cho IP: {} trên {}", clientIp, path);
+                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setCharacterEncoding("UTF-8");
+
+                ApiResponse<Void> apiResponse = ApiResponse.error(
+                        "Quá nhiều lần thử OTP. Vui lòng thử lại sau " + (otpWindowSeconds / 60) + " phút");
                 objectMapper.writeValue(response.getOutputStream(), apiResponse);
                 return;
             }

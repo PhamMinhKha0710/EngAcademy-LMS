@@ -90,8 +90,8 @@ export default function StudentDashboard() {
             try {
                 const [statsData, inProgressData, leaderboardData, dailyQuestData] =
                     await Promise.allSettled([
-                        progressApi.getStats(user.id, { signal: abortController.signal }),
-                        progressApi.getInProgress(user.id, { signal: abortController.signal }),
+                        progressApi.getMyStats({ signal: abortController.signal }),
+                        progressApi.getMyInProgress({ signal: abortController.signal }),
                         leaderboardApi.getTop(5, { signal: abortController.signal }),
                         questApi.getToday({ signal: abortController.signal }),
                     ])

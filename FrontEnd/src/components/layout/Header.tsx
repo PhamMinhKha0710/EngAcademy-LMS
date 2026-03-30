@@ -66,7 +66,7 @@ const Header = ({ showMenuButton, onMenuClick }: HeaderProps) => {
                     <ThemeToggle />
                     {isAuthenticated ? (
                         <div className="flex items-center gap-3">
-                            {user?.id && <NotificationComponent userId={user.id} />}
+                            {isAuthenticated && <NotificationComponent />}
                             <Badge variant="info">{roleLabel}</Badge>
                             <Link
                                 to="/settings"

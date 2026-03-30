@@ -51,25 +51,25 @@ export const vocabularyApi = {
         await api.delete(`/vocabulary/${id}`, config)
     },
 
-    // Topic-based learning
-    getTopics: async (userId: number, config?: AxiosRequestConfig) => {
-        const r = await api.get<ApiResponse<TopicProgress[]>>(`/topics?userId=${userId}`, config)
+    // Topic-based learning - userId lấy từ auth token
+    getTopics: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<TopicProgress[]>>('/topics', config)
         return r.data.data
     },
-    getWordsToLearn: async (topicId: number, userId: number, config?: AxiosRequestConfig) => {
-        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/topics/${topicId}/learn?userId=${userId}`, config)
+    getWordsToLearn: async (topicId: number, config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/topics/${topicId}/learn`, config)
         return r.data.data
     },
-    reviewWord: async (vocabularyId: number, userId: number, result: 'correct' | 'wrong', config?: AxiosRequestConfig) => {
-        const r = await api.post<ApiResponse<ReviewResult>>('/vocabulary/review', { vocabularyId, userId, result }, config)
+    reviewWord: async (vocabularyId: number, result: 'correct' | 'wrong', config?: AxiosRequestConfig) => {
+        const r = await api.post<ApiResponse<ReviewResult>>('/vocabulary/review', { vocabularyId, result }, config)
         return r.data.data
     },
-    getLearnedWords: async (userId: number, config?: AxiosRequestConfig) => {
-        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/learned?userId=${userId}`, config)
+    getLearnedWords: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse[]>>('/vocabulary/learned', config)
         return r.data.data
     },
-    getLearnedCount: async (userId: number, config?: AxiosRequestConfig) => {
-        const r = await api.get<ApiResponse<number>>(`/vocabulary/learned/count?userId=${userId}`, config)
+    getLearnedCount: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<number>>('/vocabulary/learned/count', config)
         return r.data.data
     },
 }

@@ -100,8 +100,8 @@ export default function StudentProgressPage() {
         setError(null)
         try {
             const [prog, st] = await Promise.all([
-                progressApi.getAll(parseInt(studentId)),
-                progressApi.getStats(parseInt(studentId)),
+                progressApi.getUserProgress(parseInt(studentId)),
+                progressApi.getUserStats(parseInt(studentId)),
             ])
             setProgress(prog)
             setStats(st as ProgressStats)
