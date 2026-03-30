@@ -28,6 +28,12 @@ services:
         sync: false
       - key: SPRING_DATA_REDIS_SSL
         value: true
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:mysql://hopper.proxy.rlwy.net:56199/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - key: SPRING_DATASOURCE_USERNAME
+        value: root
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
       - key: SPRING_MAIL_HOST
         value: smtp.gmail.com
       - key: SPRING_MAIL_PORT
