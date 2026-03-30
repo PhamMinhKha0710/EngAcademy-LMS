@@ -29,7 +29,7 @@ services:
       - key: SPRING_DATA_REDIS_SSL_ENABLED
         value: true
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:mysql://hopper.proxy.rlwy.net:56199/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+        value: jdbc:mysql://mysql.railway.internal:3306/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - key: SPRING_DATASOURCE_USERNAME
         value: root
       - key: SPRING_DATASOURCE_PASSWORD
