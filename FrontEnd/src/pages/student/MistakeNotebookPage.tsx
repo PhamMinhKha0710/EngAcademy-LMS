@@ -48,7 +48,7 @@ export default function MistakeNotebookPage() {
         try {
             setLoading(true)
             setError(null)
-            const allMistakes = await mistakeApi.getUserMistakes(user.id)
+            const allMistakes = await mistakeApi.getMyMistakes()
             setMistakes(allMistakes || [])
         } catch (err) {
             console.error('Failed to fetch mistakes:', err)
@@ -82,7 +82,7 @@ export default function MistakeNotebookPage() {
 
         try {
             setReviewingId(currentItem.id)
-            const result = await vocabularyApi.reviewWord(vocabId, user.id, correct ? 'correct' : 'wrong')
+            const result = await vocabularyApi.reviewWord(vocabId, correct ? 'correct' : 'wrong')
             if (result.questTaskCompleted) {
                 addToast({ type: 'success', message: t('quests.taskCompleted') })
             }

@@ -20,11 +20,6 @@ public class LearningEventService {
     private final LearningEventPersistenceHelper persistenceHelper;
 
     /**
-     * Async event tracking — runs in a separate thread via the taskExecutor pool.
-     * Uses its own transaction to ensure the event is persisted independently of the caller's transaction.
-     * Errors are caught and logged, but do not propagate to the caller.
-     */
-    /**
      * Delegates to the helper to avoid Spring proxy self-invocation issues.
      */
     public void trackEventAsync(Long userId, String eventType, BatchEventRequest.EventItem extra) {

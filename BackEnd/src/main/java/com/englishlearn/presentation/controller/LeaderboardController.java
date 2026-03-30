@@ -107,6 +107,7 @@ public class LeaderboardController {
      * GET /api/v1/leaderboard/users/{userId} - Vị trí của user theo ID
      */
     @GetMapping("/users/{userId}")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Lấy vị trí (rank) của user theo ID")
     public ResponseEntity<ApiResponse<LeaderboardResponse>> getUserRank(
             @PathVariable Long userId,
@@ -137,6 +138,7 @@ public class LeaderboardController {
      * theo ID
      */
     @GetMapping("/around-user/{userId}")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Lấy bảng xếp hạng xung quanh vị trí user theo ID")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> getLeaderboardAroundUser(
             @PathVariable Long userId,
@@ -150,6 +152,7 @@ public class LeaderboardController {
      * GET /api/v1/leaderboard/compare - So sánh users
      */
     @GetMapping("/compare")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "So sánh vị trí của nhiều users")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> compareUsers(
             @RequestParam(required = false) Long schoolId,

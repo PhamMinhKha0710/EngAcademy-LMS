@@ -8,31 +8,42 @@ export interface ProgressResponse {
 }
 
 export const progressApi = {
-    getAll: async (userId: number, config?: AxiosRequestConfig) => {
+    // === STUDENT endpoints (userId từ auth token) ===
+    getMyProgress: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<ProgressResponse[]>>('/progress/me', config)
+        return r.data.data
+    },
+    getMyCompleted: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<ProgressResponse[]>>('/progress/me/completed', config)
+        return r.data.data
+    },
+    getMyInProgress: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<ProgressResponse[]>>('/progress/me/in-progress', config)
+        return r.data.data
+    },
+    getMyLessonProgress: async (lessonId: number, config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<ProgressResponse>>(`/progress/me/lesson/${lessonId}`, config)
+        return r.data.data
+    },
+    updateMyProgress: async (lessonId: number, percentage: number, config?: AxiosRequestConfig) => {
+        const r = await api.post<ApiResponse<ProgressResponse>>(`/progress/me/lesson/${lessonId}?percentage=${percentage}`, undefined, config)
+        return r.data.data
+    },
+    completeMyLesson: async (lessonId: number, config?: AxiosRequestConfig) => {
+        const r = await api.post<ApiResponse<ProgressResponse>>(`/progress/me/lesson/${lessonId}/complete`, undefined, config)
+        return r.data.data
+    },
+    getMyStats: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<Record<string, unknown>>>(`/progress/me/stats`, config)
+        return r.data.data
+    },
+
+    // === TEACHER/ADMIN endpoints (userId path param) ===
+    getUserProgress: async (userId: number, config?: AxiosRequestConfig) => {
         const r = await api.get<ApiResponse<ProgressResponse[]>>(`/progress/user/${userId}`, config)
         return r.data.data
     },
-    getCompleted: async (userId: number, config?: AxiosRequestConfig) => {
-        const r = await api.get<ApiResponse<ProgressResponse[]>>(`/progress/user/${userId}/completed`, config)
-        return r.data.data
-    },
-    getInProgress: async (userId: number, config?: AxiosRequestConfig) => {
-        const r = await api.get<ApiResponse<ProgressResponse[]>>(`/progress/user/${userId}/in-progress`, config)
-        return r.data.data
-    },
-    getForLesson: async (userId: number, lessonId: number, config?: AxiosRequestConfig) => {
-        const r = await api.get<ApiResponse<ProgressResponse>>(`/progress/user/${userId}/lesson/${lessonId}`, config)
-        return r.data.data
-    },
-    updateProgress: async (userId: number, lessonId: number, percentage: number, config?: AxiosRequestConfig) => {
-        const r = await api.post<ApiResponse<ProgressResponse>>(`/progress/user/${userId}/lesson/${lessonId}?percentage=${percentage}`, undefined, config)
-        return r.data.data
-    },
-    completeLesson: async (userId: number, lessonId: number, config?: AxiosRequestConfig) => {
-        const r = await api.post<ApiResponse<ProgressResponse>>(`/progress/user/${userId}/lesson/${lessonId}/complete`, undefined, config)
-        return r.data.data
-    },
-    getStats: async (userId: number, config?: AxiosRequestConfig) => {
+    getUserStats: async (userId: number, config?: AxiosRequestConfig) => {
         const r = await api.get<ApiResponse<Record<string, unknown>>>(`/progress/user/${userId}/stats`, config)
         return r.data.data
     },

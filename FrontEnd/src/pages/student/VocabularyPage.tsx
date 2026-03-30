@@ -59,7 +59,7 @@ export default function VocabularyPage() {
         if (!user?.id) return
         setTopicsLoading(true)
         try {
-            const data = await vocabularyApi.getTopics(user.id)
+            const data = await vocabularyApi.getTopics()
             setTopics(data)
         } catch {
             addToast({ type: 'error', message: t('common.error') })
@@ -74,7 +74,7 @@ export default function VocabularyPage() {
         setFlashcardError(null)
         setTopicDone(false)
         try {
-            const data = await vocabularyApi.getWordsToLearn(topicId, user.id)
+            const data = await vocabularyApi.getWordsToLearn(topicId)
             if (data.length === 0) {
                 setTopicDone(true)
             }
@@ -91,7 +91,7 @@ export default function VocabularyPage() {
         if (!user?.id) return
         setLearnedLoading(true)
         try {
-            const data = await vocabularyApi.getLearnedWords(user.id)
+            const data = await vocabularyApi.getLearnedWords()
             setLearnedWords(data)
         } catch {
             addToast({ type: 'error', message: t('common.error') })
@@ -125,7 +125,7 @@ export default function VocabularyPage() {
         }
 
         try {
-            const result = await vocabularyApi.reviewWord(currentCard.id, user.id, correct ? 'correct' : 'wrong')
+            const result = await vocabularyApi.reviewWord(currentCard.id, correct ? 'correct' : 'wrong')
             if (result.topicCompleted) {
                 addToast({ type: 'success', message: t('vocabulary.topicDone') })
             }

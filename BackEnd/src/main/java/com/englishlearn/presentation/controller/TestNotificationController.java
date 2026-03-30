@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,7 +22,8 @@ public class TestNotificationController {
         private final UserRepository userRepository;
 
         @PostMapping("/send/{userId}")
-        @Operation(summary = "Gửi thông báo test cho user cụ thể")
+        @PreAuthorize("hasAnyRole('ADMIN', 'SYSTEM')")
+        @Operation(summary = "Gửi thông báo test cho user cụ thể (chỉ ADMIN hoặc SYSTEM)")
         public ResponseEntity<ApiResponse<String>> sendTest(
                         @PathVariable Long userId,
                         @RequestParam String title,

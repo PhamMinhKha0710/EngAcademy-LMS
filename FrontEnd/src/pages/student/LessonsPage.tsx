@@ -67,8 +67,7 @@ export default function LessonsPage() {
             return
         }
         let cancelled = false
-        progressApi
-            .getAll(user.id)
+        progressApi.getMyProgress()
             .then((rows) => {
                 if (cancelled) return
                 const m = new Map<number, ProgressResponse>()

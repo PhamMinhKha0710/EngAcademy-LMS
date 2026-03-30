@@ -8,16 +8,16 @@ export interface MistakeNotebook {
 export interface MistakeRequest { vocabularyId: number; userId?: number }
 
 export const mistakeApi = {
-    getUserMistakes: async (userId: number) => {
-        const r = await api.get<ApiResponse<MistakeNotebook[]>>(`/mistakes/user/${userId}`)
+    getMyMistakes: async () => {
+        const r = await api.get<ApiResponse<MistakeNotebook[]>>('/mistakes/me')
         return r.data.data
     },
-    getTopMistakes: async (userId: number) => {
-        const r = await api.get<ApiResponse<MistakeNotebook[]>>(`/mistakes/user/${userId}/top`)
+    getMyTopMistakes: async () => {
+        const r = await api.get<ApiResponse<MistakeNotebook[]>>('/mistakes/me/top')
         return r.data.data
     },
-    getCount: async (userId: number) => {
-        const r = await api.get<ApiResponse<number>>(`/mistakes/user/${userId}/count`)
+    getMyCount: async () => {
+        const r = await api.get<ApiResponse<number>>('/mistakes/me/count')
         return r.data.data
     },
     addMistake: async (data: MistakeRequest) => {

@@ -88,7 +88,7 @@ export default function LessonDetailPage() {
 
                 if (user?.id) {
                     try {
-                        const prog = await progressApi.getForLesson(user.id, lessonId)
+                        const prog = await progressApi.getMyLessonProgress(lessonId)
                         if (prog) {
                             const isCompleted = !!prog.isCompleted
                             setCompleted(isCompleted)
@@ -150,7 +150,7 @@ export default function LessonDetailPage() {
 
         if (basePercentage > completionPercentage) {
             setCompletionPercentage(basePercentage);
-            progressApi.updateProgress(user.id, lessonId, basePercentage).catch(console.error);
+            progressApi.updateMyProgress(lessonId, basePercentage).catch(console.error);
         }
     }, [progressLoaded, visitedTabs, showResults, quizScore, questions.length, user?.id, lessonId, completed, completionPercentage]);
 
@@ -174,7 +174,7 @@ export default function LessonDetailPage() {
         if (!user?.id || !lessonId) return
         setCompleting(true)
         try {
-            await progressApi.completeLesson(user.id, lessonId)
+            await progressApi.completeMyLesson(lessonId)
             setCompleted(true)
             setCompletionPercentage(100)
             fireConfetti()

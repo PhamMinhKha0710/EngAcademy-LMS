@@ -3,7 +3,7 @@
 
 [deploy]
   startCommand = "java -jar app.jar"
-  healthcheckPath = "/api/v1/groups"
-  healthcheckInterval = 30
+  healthcheckPath = "/api/v1/auth/health"
+  healthcheckInterval = 60
   restartPolicyType = "ON_FAILURE"
   restartPolicyMaxRetries = 10

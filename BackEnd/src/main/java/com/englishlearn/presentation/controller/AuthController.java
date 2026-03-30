@@ -14,7 +14,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * Auth Controller - Xác thực người dùng
@@ -76,13 +79,18 @@ public class AuthController {
     }
 
     /**
-     * POST /api/v1/auth/logout - Đăng xuất (invalidate token phía client)
+     * POST /api/v1/auth/logout - Đăng xuất (invalidate token)
      */
     @PostMapping("/logout")
     @Operation(summary = "Đăng xuất")
-    public ResponseEntity<ApiResponse<Void>> logout() {
-        // JWT là stateless - client tự xóa token
-        // Nếu cần blacklist token, có thể lưu vào Redis/DB
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails,
+            HttpServletRequest request) {
+        final String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            authService.logout(token);
+        }
         return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công"));
     }
 
@@ -91,8 +99,8 @@ public class AuthController {
      */
     @GetMapping("/health")
     @Operation(summary = "Kiểm tra trạng thái server")
-    public ResponseEntity<ApiResponse<String>> healthCheck() {
-        return ResponseEntity.ok(ApiResponse.success("Server đang hoạt động", "OK"));
+    public ResponseEntity<?> healthCheck() {
+        return ResponseEntity.ok(Map.of("status", "UP"));
     }
 
     /**

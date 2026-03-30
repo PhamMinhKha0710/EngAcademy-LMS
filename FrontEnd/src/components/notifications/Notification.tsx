@@ -14,7 +14,7 @@ interface Notification {
   createdAt: string;
 }
 
-const NotificationComponent = ({ userId }: { userId: number }) => {
+const NotificationComponent = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -23,7 +23,7 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('Setting up WebSocket for user:', userId);
+    console.log('Setting up WebSocket for user:', user?.username);
     // Initial fetch
     fetchNotifications();
     fetchUnreadCount();
@@ -74,11 +74,11 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
       stompClient.deactivate();
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [userId]);
+  }, [user?.username]);
 
   const fetchNotifications = async () => {
     try {
-      const response = await api.get(`/notifications/user/${userId}`);
+      const response = await api.get('/notifications/me');
       if (response.data.success) {
         setNotifications(response.data.data);
       }
@@ -89,7 +89,7 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await api.get(`/notifications/user/${userId}/unread-count`);
+      const response = await api.get('/notifications/me/unread-count');
       if (response.data.success) {
         setUnreadCount(response.data.data);
       }
@@ -100,7 +100,7 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
 
   const markAsRead = async (id: number) => {
     try {
-      await api.put(`/notifications/${id}/read`);
+      await api.put(`/notifications/me/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
@@ -112,7 +112,7 @@ const NotificationComponent = ({ userId }: { userId: number }) => {
 
   const markAllAsRead = async () => {
     try {
-      await api.put(`/notifications/user/${userId}/read-all`);
+      await api.put('/notifications/me/read-all');
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, isRead: true })),
       );

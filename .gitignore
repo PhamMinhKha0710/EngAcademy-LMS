@@ -25,9 +25,10 @@ build/
 .mvn/wrapper/maven-wrapper.jar
 HELP.md
 
-# Sensitive Spring configs (use *.example.properties instead)
-BackEnd/src/main/resources/application.properties
-BackEnd/src/main/resources/application-dev.properties
+# Spring default / prod configs (non-sensitive defaults; secrets via env vars / Render dashboard)
+# NOTE: application.properties now holds only safe defaults used as fallbacks.
+# Sensitive values are provided via environment variables in render.yaml.
+BackEnd/src/main/resources/application-prod.properties
 
 # Logs
 logs/

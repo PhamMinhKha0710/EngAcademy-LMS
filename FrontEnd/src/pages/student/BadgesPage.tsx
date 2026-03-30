@@ -32,8 +32,8 @@ export default function BadgesPage() {
             setError(null)
             const [defs, earnedList, progressList] = await Promise.all([
                 badgeApi.getDefinitions(),
-                badgeApi.getUserEarned(user.id),
-                badgeApi.getUserProgress(user.id),
+                badgeApi.getMyEarned(),
+                badgeApi.getMyProgress(),
             ])
             setDefinitions(defs)
             setEarned(earnedList)
@@ -54,7 +54,7 @@ export default function BadgesPage() {
         if (!user?.id) return
         try {
             setChecking(true)
-            const res = await badgeApi.checkAndAward(user.id)
+            const res = await badgeApi.checkAndAward()
             await fetchData()
             if (res.newlyEarnedBadges?.length) {
                 addToast({
