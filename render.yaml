@@ -8,6 +8,8 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+      - key: PORT
+        value: 8080
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
       - key: APPLICATION_SECURITY_JWT_SECRET_KEY
