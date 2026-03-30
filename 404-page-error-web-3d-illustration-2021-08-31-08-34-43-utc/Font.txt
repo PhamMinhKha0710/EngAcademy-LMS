@@ -1,7 +1,0 @@
-Font :
-------------------------------------------------
-Poppins: https://fonts.google.com/specimen/Poppins?query=popp&preview.text_type=custom
-Open sans: https://fonts.google.com/specimen/Open+Sans?query=open+sa&preview.text_type=custom
-
-Wanna See More Illustration, Landing Page & Presentation ?
-https://elements.envato.com/user/SlideFactory
