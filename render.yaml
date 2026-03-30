@@ -35,7 +35,7 @@ services:
       - key: SPRING_DATASOURCE_USERNAME
         value: root
       - key: SPRING_DATASOURCE_PASSWORD
-        sync: false
+        value: yXZzFdHrRyCrLOJzoqxdPqzPSVlQZoBD
       - key: SPRING_MAIL_HOST
         value: smtp.gmail.com
       - key: SPRING_MAIL_PORT
