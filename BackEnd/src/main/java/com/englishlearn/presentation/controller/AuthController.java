@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * Auth Controller - Xác thực người dùng
  * 
@@ -92,7 +94,7 @@ public class AuthController {
     @GetMapping("/health")
     @Operation(summary = "Kiểm tra trạng thái server")
     public ResponseEntity<?> healthCheck() {
-        return ResponseEntity.ok().body("OK");
+        return ResponseEntity.ok(Map.of("status", "UP"));
     }
 
     /**
