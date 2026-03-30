@@ -30,14 +30,14 @@ const NotificationDetailPage = () => {
         // but often we just mark as read on visit.
         
         // Actually, let's just fetch all and filter for now to avoid too many backend changes
-        const response = await api.get(`/notifications/user/me`);
+        const response = await api.get('/notifications/me');
         const list = response.data.data;
         const found = list.find((n: Notification) => n.id === Number(id));
         
         if (found) {
           setNotification(found);
           if (!found.isRead) {
-            await api.put(`/notifications/${id}/read`);
+            await api.put(`/notifications/me/${id}/read`);
           }
         }
       } catch (error) {

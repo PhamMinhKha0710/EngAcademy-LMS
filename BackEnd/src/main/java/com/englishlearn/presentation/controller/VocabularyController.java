@@ -2,17 +2,22 @@ package com.englishlearn.presentation.controller;
 
 import com.englishlearn.application.dto.request.VocabularyRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
+import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.application.dto.response.VocabularyResponse;
+import com.englishlearn.application.service.UserService;
 import com.englishlearn.application.service.VocabularyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +30,7 @@ import java.util.Map;
 public class VocabularyController {
 
     private final VocabularyService vocabularyService;
+    private final UserService userService;
 
     @GetMapping("/lesson/{lessonId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
@@ -65,7 +71,7 @@ public class VocabularyController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     @Operation(summary = "Search vocabulary")
     public ResponseEntity<ApiResponse<List<VocabularyResponse>>> searchVocabulary(
-            @RequestParam String keyword) {
+            @RequestParam @Size(min = 1, max = 100, message = "Keyword must be between 1 and 100 characters") String keyword) {
         List<VocabularyResponse> vocabs = vocabularyService.searchVocabulary(keyword);
         return ResponseEntity.ok(ApiResponse.success("Tìm kiếm từ vựng thành công", vocabs));
     }
@@ -121,27 +127,33 @@ public class VocabularyController {
     @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER')")
     @Operation(summary = "Review a vocabulary word (correct/wrong)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> reviewWord(
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, Object> body) {
         Long vocabularyId = ((Number) body.get("vocabularyId")).longValue();
-        Long userId = ((Number) body.get("userId")).longValue();
+        // Get userId from authentication context to prevent IDOR
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
         boolean correct = "correct".equals(body.get("result"));
-        Map<String, Object> result = vocabularyService.reviewWord(userId, vocabularyId, correct);
+        Map<String, Object> result = vocabularyService.reviewWord(currentUser.getId(), vocabularyId, correct);
         return ResponseEntity.ok(ApiResponse.success("Đã cập nhật kết quả học", result));
     }
 
     @GetMapping("/learned")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
-    @Operation(summary = "Get all mastered vocabulary for user")
-    public ResponseEntity<ApiResponse<List<VocabularyResponse>>> getLearnedWords(@RequestParam Long userId) {
-        List<VocabularyResponse> words = vocabularyService.getLearnedWords(userId);
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get all mastered vocabulary for current user")
+    public ResponseEntity<ApiResponse<List<VocabularyResponse>>> getLearnedWords(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        List<VocabularyResponse> words = vocabularyService.getLearnedWords(currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách từ đã học thành công", words));
     }
 
     @GetMapping("/learned/count")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
-    @Operation(summary = "Get mastered vocabulary count for user")
-    public ResponseEntity<ApiResponse<Long>> getLearnedCount(@RequestParam Long userId) {
-        Long count = vocabularyService.getLearnedCount(userId);
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get mastered vocabulary count for current user")
+    public ResponseEntity<ApiResponse<Long>> getLearnedCount(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        Long count = vocabularyService.getLearnedCount(currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Lấy số từ đã học thành công", count));
     }
 }

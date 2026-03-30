@@ -205,7 +205,13 @@ public class ExamController {
     @Operation(summary = "Submit exam answers")
     public ResponseEntity<ApiResponse<ExamResultResponse>> submitExam(
             @RequestParam Long studentId,
-            @Valid @RequestBody SubmitExamRequest request) {
+            @Valid @RequestBody SubmitExamRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        if (!currentUser.getId().equals(studentId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Bạn chỉ có thể nộp bài cho chính mình"));
+        }
         ExamResultResponse result = examService.submitExam(studentId, request);
         return ResponseEntity.ok(ApiResponse.success("Nộp bài kiểm tra thành công", result));
     }

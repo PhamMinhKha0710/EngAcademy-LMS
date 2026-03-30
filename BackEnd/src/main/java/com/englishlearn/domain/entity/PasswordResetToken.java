@@ -35,4 +35,19 @@ public class PasswordResetToken {
     @Column(nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int failedAttempts = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean locked = false;
+
+    public void incrementFailedAttempts() {
+        this.failedAttempts++;
+        if (this.failedAttempts >= 5) {
+            this.locked = true;
+        }
+    }
 }

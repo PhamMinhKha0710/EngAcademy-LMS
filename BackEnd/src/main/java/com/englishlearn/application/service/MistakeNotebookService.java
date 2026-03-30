@@ -102,7 +102,7 @@ public class MistakeNotebookService {
     }
 
     /**
-     * Xóa lỗi sai khỏi sổ tay
+     * Xóa lỗi sai khỏi sổ tay (chỉ STUDENT xóa được của mình)
      */
     @Transactional
     public void removeMistake(Long id) {
@@ -111,6 +111,24 @@ public class MistakeNotebookService {
         }
         mistakeNotebookRepository.deleteById(id);
         log.info("Removed mistake with ID: {}", id);
+    }
+
+    /**
+     * Xóa lỗi sai với kiểm tra ownership - STUDENT chỉ xóa được của mình
+     */
+    @Transactional
+    public void deleteMistakeForUser(Long mistakeId, Long userId) {
+        MistakeNotebook mistake = mistakeNotebookRepository.findById(mistakeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lỗi sai", "id", mistakeId));
+
+        // Kiểm tra ownership - chỉ xóa được mistake của chính mình
+        if (!mistake.getUser().getId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Bạn không có quyền xóa lỗi sai của người khác");
+        }
+
+        mistakeNotebookRepository.deleteById(mistakeId);
+        log.info("User {} removed mistake with ID: {}", userId, mistakeId);
     }
 
     /**

@@ -146,11 +146,26 @@ public class AuthService {
      * Reset mật khẩu bằng OTP
      */
     @Transactional
+    public void logout(String token) {
+        jwtService.blacklistToken(token);
+    }
+
+    @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         // Validate OTP
         PasswordResetToken token = passwordResetTokenRepository
                 .findByOtpAndUsedFalse(request.getOtp())
-                .orElseThrow(() -> new RuntimeException("Mã OTP không hợp lệ hoặc đã được sử dụng"));
+                .orElseThrow(() -> {
+                    // Increment failed attempts for tracking
+                    // Note: Without the OTP, we can't identify the specific token
+                    // This is handled by IP-based rate limiting in RateLimitFilter
+                    return new RuntimeException("Mã OTP không hợp lệ hoặc đã được sử dụng");
+                });
+
+        // Check if token is locked due to too many failed attempts
+        if (token.isLocked()) {
+            throw new RuntimeException("Mã OTP đã bị khóa do nhập sai quá nhiều lần. Vui lòng yêu cầu mã mới.");
+        }
 
         // Kiểm tra hết hạn
         if (LocalDateTime.now().isAfter(token.getExpiredAt())) {

@@ -58,16 +58,16 @@ export const badgeApi = {
         const r = await api.get<ApiResponse<BadgeDTO[]>>('/badges/definitions', { params })
         return r.data.data || []
     },
-    getUserEarned: async (userId: number): Promise<BadgeDTO[]> => {
-        const r = await api.get<ApiResponse<BadgeDTO[]>>(`/badges/users/${userId}/earned`)
+    getMyEarned: async (): Promise<BadgeDTO[]> => {
+        const r = await api.get<ApiResponse<BadgeDTO[]>>('/badges/me/earned')
         return r.data.data || []
     },
-    getUserProgress: async (userId: number): Promise<BadgeProgressDTO[]> => {
-        const r = await api.get<ApiResponse<BadgeProgressDTO[]>>(`/badges/users/${userId}/progress`)
+    getMyProgress: async (): Promise<BadgeProgressDTO[]> => {
+        const r = await api.get<ApiResponse<BadgeProgressDTO[]>>('/badges/me/progress')
         return r.data.data || []
     },
-    checkAndAward: async (userId: number): Promise<CheckBadgeResponse> => {
-        const r = await api.post<ApiResponse<CheckBadgeResponse>>(`/badges/check/${userId}`)
+    checkAndAward: async (): Promise<CheckBadgeResponse> => {
+        const r = await api.post<ApiResponse<CheckBadgeResponse>>('/badges/me/check')
         return r.data.data!
     },
 }

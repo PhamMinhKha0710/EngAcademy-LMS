@@ -69,6 +69,27 @@ public class NotificationService {
     }
 
     @Transactional
+    public void deleteNotificationForUser(Long id, Long userId) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xóa thông báo này");
+        }
+        notificationRepository.delete(notification);
+    }
+
+    @Transactional
+    public void markAsReadForUser(Long id, Long userId) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền đánh dấu thông báo này");
+        }
+        notification.setIsRead(true);
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
     public void sendNotification(Notification notification) {
         Notification saved = notificationRepository.save(notification);
         NotificationResponse response = mapToResponse(saved);
