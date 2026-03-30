@@ -5,12 +5,14 @@ import com.englishlearn.domain.entity.Question;
 import com.englishlearn.domain.entity.QuestionOption;
 import com.englishlearn.domain.entity.Role;
 import com.englishlearn.domain.entity.Topic;
+import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.entity.Vocabulary;
 import com.englishlearn.infrastructure.persistence.LessonRepository;
 import com.englishlearn.infrastructure.persistence.QuestionOptionRepository;
 import com.englishlearn.infrastructure.persistence.QuestionRepository;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.TopicRepository;
+import com.englishlearn.infrastructure.persistence.UserRepository;
 import com.englishlearn.infrastructure.persistence.VocabularyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +20,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Seed tối thiểu cho môi trường production.
@@ -41,6 +45,8 @@ public class ProdDataSeeder {
     private final VocabularyRepository vocabularyRepository;
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Bean
     public CommandLineRunner prodSeedData() {
@@ -48,6 +54,7 @@ public class ProdDataSeeder {
             log.info("Running ProdDataSeeder: ensuring core roles and curriculum exist (no demo users will be created).");
 
             seedCoreRoles();
+            seedDefaultAdmin();
 
             if (lessonRepository.count() > 0) {
                 log.info("Lessons already exist. Skipping curriculum seeding on production.");
@@ -76,6 +83,26 @@ public class ProdDataSeeder {
                         .build());
             });
         }
+    }
+
+    private void seedDefaultAdmin() {
+        if (userRepository.findByUsername("admin").isPresent()) {
+            log.info("Admin user already exists. Skipping.");
+            return;
+        }
+        Role adminRole = roleRepository.findByName(Role.ADMIN).orElse(null);
+        User admin = User.builder()
+                .username("admin")
+                .email("admin@engacademy.vn")
+                .passwordHash(passwordEncoder.encode("Admin@123"))
+                .fullName("Administrator")
+                .coins(100)
+                .streakDays(0)
+                .isActive(true)
+                .roles(adminRole != null ? Set.of(adminRole) : Set.of())
+                .build();
+        userRepository.save(admin);
+        log.info("Default admin user created: username=admin, password=Admin@123");
     }
 
     /**
