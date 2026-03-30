@@ -11,8 +11,6 @@ services:
         value: prod
       - key: PORT
         value: 10000
-      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: update
       - key: APPLICATION_SECURITY_JWT_SECRET_KEY
         generateValue: true
       - key: APPLICATION_SECURITY_JWT_EXPIRATION
