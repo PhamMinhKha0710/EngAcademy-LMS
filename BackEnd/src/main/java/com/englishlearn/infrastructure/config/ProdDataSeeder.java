@@ -1,16 +1,22 @@
 package com.englishlearn.infrastructure.config;
 
+import com.englishlearn.domain.entity.ClassRoom;
+import com.englishlearn.domain.entity.Exam;
 import com.englishlearn.domain.entity.Lesson;
 import com.englishlearn.domain.entity.Question;
 import com.englishlearn.domain.entity.QuestionOption;
 import com.englishlearn.domain.entity.Role;
+import com.englishlearn.domain.entity.School;
 import com.englishlearn.domain.entity.Topic;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.entity.Vocabulary;
+import com.englishlearn.infrastructure.persistence.ClassRoomRepository;
+import com.englishlearn.infrastructure.persistence.ExamRepository;
 import com.englishlearn.infrastructure.persistence.LessonRepository;
 import com.englishlearn.infrastructure.persistence.QuestionOptionRepository;
 import com.englishlearn.infrastructure.persistence.QuestionRepository;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
+import com.englishlearn.infrastructure.persistence.SchoolRepository;
 import com.englishlearn.infrastructure.persistence.TopicRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import com.englishlearn.infrastructure.persistence.VocabularyRepository;
@@ -22,6 +28,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -40,11 +48,14 @@ import java.util.Set;
 public class ProdDataSeeder {
 
     private final RoleRepository roleRepository;
+    private final SchoolRepository schoolRepository;
+    private final ClassRoomRepository classRoomRepository;
     private final TopicRepository topicRepository;
     private final LessonRepository lessonRepository;
     private final VocabularyRepository vocabularyRepository;
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
+    private final ExamRepository examRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -110,6 +121,40 @@ public class ProdDataSeeder {
      * chỉ tạo Topic, Lesson, Vocabulary và Question/QuestionOption.
      */
     private void seedGrade6Curriculum() {
+        // ── School ──
+        School school = schoolRepository.save(School.builder()
+                .name("Trường THCS Nguyễn Du")
+                .address("123 Nguyễn Du, Quận 1, TP.HCM")
+                .phone("028 1234 5678")
+                .email("contact@nguyendu.edu.vn")
+                .isActive(true)
+                .build());
+
+        // ── Roles (already seeded in seedCoreRoles) ──
+        Role roleTeacher = roleRepository.findByName(Role.TEACHER).orElse(null);
+
+        // ── Dummy teacher (needed for ClassRoom & Exam relationships; no real user) ──
+        User dummyTeacher = userRepository.save(User.builder()
+                .username("teacher_seed")
+                .email("teacher_seed@nguyendu.edu.vn")
+                .passwordHash(passwordEncoder.encode("TeacherSeed@123"))
+                .fullName("Giáo viên mẫu")
+                .roles(roleTeacher != null ? Set.of(roleTeacher) : Set.of())
+                .school(school)
+                .isActive(true)
+                .coins(0)
+                .streakDays(0)
+                .build());
+
+        // ── ClassRooms ──
+        ClassRoom class6A = classRoomRepository.save(ClassRoom.builder()
+                .name("Lớp 6A1").school(school).teacher(dummyTeacher)
+                .academicYear("2025-2026").isActive(true).build());
+
+        classRoomRepository.save(ClassRoom.builder()
+                .name("Lớp 6A2").school(school).teacher(dummyTeacher)
+                .academicYear("2025-2026").isActive(true).build());
+
         // Học kỳ I
         Topic topicHK1 = topicRepository.save(Topic.builder()
                 .name("Tiếng Anh Lớp 6 - Học Kỳ I")
@@ -533,7 +578,7 @@ public class ProdDataSeeder {
         saveOption(q6_3, "False", false);
 
         // Học kỳ II (gọi lại logic từ DevDataSeeder, nhưng không gắn teacher/class/exam)
-        List<Lesson> hk2Lessons = seedSemester2(topicHK1);
+        List<Lesson> hk2Lessons = seedSemester2(topicHK1, dummyTeacher, class6A);
         Lesson lesson7 = hk2Lessons.get(0);
         Lesson lesson8 = hk2Lessons.get(1);
         Lesson lesson9 = hk2Lessons.get(2);
@@ -541,12 +586,129 @@ public class ProdDataSeeder {
         Lesson lesson11 = hk2Lessons.get(4);
         Lesson lesson12 = hk2Lessons.get(5);
 
+        // ── EXAMS ──
+        LocalDateTime now = LocalDateTime.now();
+
+        // Exam 1: Unit 1-2
+        List<Question> exam1Questions = questionRepository.findByLessonId(lesson1.getId());
+        exam1Questions.addAll(questionRepository.findByLessonId(lesson2.getId()));
+        examRepository.save(Exam.builder()
+                .title("Kiểm tra 15 phút - Unit 1 & 2: School & House")
+                .teacher(dummyTeacher).classRoom(class6A)
+                .startTime(now.minusDays(1)).endTime(now.plusDays(14))
+                .durationMinutes(15)
+                .shuffleQuestions(true).shuffleAnswers(true).antiCheatEnabled(true)
+                .status("PUBLISHED")
+                .questions(new HashSet<>(exam1Questions))
+                .build());
+
+        // Exam 2: Unit 3-4
+        List<Question> exam2Questions = questionRepository.findByLessonId(lesson3.getId());
+        exam2Questions.addAll(questionRepository.findByLessonId(lesson4.getId()));
+        examRepository.save(Exam.builder()
+                .title("Kiểm tra 15 phút - Unit 3 & 4: Friends & Neighborhood")
+                .teacher(dummyTeacher).classRoom(class6A)
+                .startTime(now.minusDays(1)).endTime(now.plusDays(14))
+                .durationMinutes(15)
+                .shuffleQuestions(true).shuffleAnswers(true).antiCheatEnabled(true)
+                .status("PUBLISHED")
+                .questions(new HashSet<>(exam2Questions))
+                .build());
+
+        // Exam 3: Mid-term I (all units HK1)
+        List<Question> midtermQuestions = questionRepository.findByLessonId(lesson1.getId());
+        midtermQuestions.addAll(questionRepository.findByLessonId(lesson2.getId()));
+        midtermQuestions.addAll(questionRepository.findByLessonId(lesson3.getId()));
+        midtermQuestions.addAll(questionRepository.findByLessonId(lesson4.getId()));
+        midtermQuestions.addAll(questionRepository.findByLessonId(lesson5.getId()));
+        midtermQuestions.addAll(questionRepository.findByLessonId(lesson6.getId()));
+        examRepository.save(Exam.builder()
+                .title("Kiểm tra Giữa Kỳ I - Tiếng Anh 6")
+                .teacher(dummyTeacher).classRoom(class6A)
+                .startTime(now.minusDays(1)).endTime(now.plusDays(30))
+                .durationMinutes(45)
+                .shuffleQuestions(true).shuffleAnswers(true).antiCheatEnabled(true)
+                .status("PUBLISHED")
+                .questions(new HashSet<>(midtermQuestions))
+                .build());
+
+        // Exam 4: Unit 7-8 (15 min)
+        List<Question> exam4Questions = questionRepository.findByLessonId(lesson7.getId());
+        exam4Questions.addAll(questionRepository.findByLessonId(lesson8.getId()));
+        examRepository.save(Exam.builder()
+                .title("Kiểm tra 15 phút - Unit 7 & 8: Television & Sports")
+                .teacher(dummyTeacher).classRoom(class6A)
+                .startTime(now.minusDays(1)).endTime(now.plusDays(48))
+                .durationMinutes(15)
+                .shuffleQuestions(true).shuffleAnswers(true).antiCheatEnabled(true)
+                .status("PUBLISHED")
+                .questions(new HashSet<>(exam4Questions))
+                .build());
+
+        // Exam 5: Unit 9-10 (15 min)
+        List<Question> exam5Questions = questionRepository.findByLessonId(lesson9.getId());
+        exam5Questions.addAll(questionRepository.findByLessonId(lesson10.getId()));
+        examRepository.save(Exam.builder()
+                .title("Kiểm tra 15 phút - Unit 9 & 10: Cities & Future Houses")
+                .teacher(dummyTeacher).classRoom(class6A)
+                .startTime(now.minusDays(1)).endTime(now.plusDays(63))
+                .durationMinutes(15)
+                .shuffleQuestions(true).shuffleAnswers(true).antiCheatEnabled(true)
+                .status("PUBLISHED")
+                .questions(new HashSet<>(exam5Questions))
+                .build());
+
+        // Exam 6: Unit 11-12 (15 min)
+        List<Question> exam6Questions = questionRepository.findByLessonId(lesson11.getId());
+        exam6Questions.addAll(questionRepository.findByLessonId(lesson12.getId()));
+        examRepository.save(Exam.builder()
+                .title("Kiểm tra 15 phút - Unit 11 & 12: Green World & Robots")
+                .teacher(dummyTeacher).classRoom(class6A)
+                .startTime(now.minusDays(1)).endTime(now.plusDays(78))
+                .durationMinutes(15)
+                .shuffleQuestions(true).shuffleAnswers(true).antiCheatEnabled(true)
+                .status("PUBLISHED")
+                .questions(new HashSet<>(exam6Questions))
+                .build());
+
+        // Exam 7: Mid-term II (Units 7-12)
+        List<Question> midterm2Questions = questionRepository.findByLessonId(lesson7.getId());
+        midterm2Questions.addAll(questionRepository.findByLessonId(lesson8.getId()));
+        midterm2Questions.addAll(questionRepository.findByLessonId(lesson9.getId()));
+        midterm2Questions.addAll(questionRepository.findByLessonId(lesson10.getId()));
+        examRepository.save(Exam.builder()
+                .title("Kiểm tra Giữa Kỳ II - Tiếng Anh 6")
+                .teacher(dummyTeacher).classRoom(class6A)
+                .startTime(now.minusDays(1)).endTime(now.plusDays(93))
+                .durationMinutes(45)
+                .shuffleQuestions(true).shuffleAnswers(true).antiCheatEnabled(true)
+                .status("PUBLISHED")
+                .questions(new HashSet<>(midterm2Questions))
+                .build());
+
+        // Exam 8: Final II (Units 7-12)
+        List<Question> finalQuestions = questionRepository.findByLessonId(lesson7.getId());
+        finalQuestions.addAll(questionRepository.findByLessonId(lesson8.getId()));
+        finalQuestions.addAll(questionRepository.findByLessonId(lesson9.getId()));
+        finalQuestions.addAll(questionRepository.findByLessonId(lesson10.getId()));
+        finalQuestions.addAll(questionRepository.findByLessonId(lesson11.getId()));
+        finalQuestions.addAll(questionRepository.findByLessonId(lesson12.getId()));
+        examRepository.save(Exam.builder()
+                .title("Kiểm tra Cuối Kỳ II - Tiếng Anh 6")
+                .teacher(dummyTeacher).classRoom(class6A)
+                .startTime(now.minusDays(1)).endTime(now.plusDays(108))
+                .durationMinutes(60)
+                .shuffleQuestions(true).shuffleAnswers(true).antiCheatEnabled(true)
+                .status("PUBLISHED")
+                .questions(new HashSet<>(finalQuestions))
+                .build());
+
         log.info("Seeded Grade 6 curriculum on production: lessons={}, topicHK1={}, hk2Lessons={}.",
                 6 + hk2Lessons.size(), topicHK1.getId(),
                 List.of(lesson7.getId(), lesson8.getId(), lesson9.getId(), lesson10.getId(), lesson11.getId(), lesson12.getId()));
     }
 
-    private List<Lesson> seedSemester2(Topic topicHK1) {
+    private List<Lesson> seedSemester2(Topic topicHK1, User teacher, ClassRoom class6A) {
         // Tạo Topic học kỳ II riêng
         Topic topicHK2 = topicRepository.save(Topic.builder()
                 .name("Tiếng Anh Lớp 6 - Học Kỳ II")
