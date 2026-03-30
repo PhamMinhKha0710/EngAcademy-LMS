@@ -5,6 +5,7 @@ services:
     dockerfilePath: Dockerfile
     region: singapore
     healthCheckPath: /api/v1/auth/health
+    ignoreHealthCheckOnDeploy: false
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
