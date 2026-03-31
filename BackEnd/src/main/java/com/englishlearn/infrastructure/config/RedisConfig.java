@@ -2,7 +2,6 @@ package com.englishlearn.infrastructure.config;
 
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.SocketOptions;
-import io.lettuce.core.ssl.SslOptions;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -72,19 +71,14 @@ public class RedisConfig {
         redisConfig.setUsername(username);
         redisConfig.setPassword(password);
 
-        // Configure SSL/TLS (Upstash uses rediss://)
+        // Configure socket options (SSL auto-enabled for rediss:// URLs)
         SocketOptions socketOptions = SocketOptions.builder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .keepAlive(true)
                 .build();
 
-        SslOptions sslOptions = SslOptions.builder()
-                .enabled(true)
-                .build();
-
         ClientOptions clientOptions = ClientOptions.builder()
                 .socketOptions(socketOptions)
-                .sslOptions(sslOptions)
                 .autoReconnect(true)
                 .build();
 
