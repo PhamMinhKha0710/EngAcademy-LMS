@@ -41,9 +41,7 @@ function App() {
         <>
             <ToastContainer />
             <Routes>
-                {/* Full-page 404 — no layout (Header/Sidebar) */}
-                <Route path="*" element={<NotFound />} />
-
+                {/* Full-page 404 — MUST be last (catch-all) */}
                 <Route path="/" element={<MainLayout />}>
                     {/* Public routes */}
                     <Route index element={<Home />} />
@@ -87,6 +85,9 @@ function App() {
                         <Route path="notifications/:id" element={<NotificationDetailPage />} />
                     </Route>
                 </Route>
+
+                {/* Catch-all 404 — MUST be last */}
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </>
     )

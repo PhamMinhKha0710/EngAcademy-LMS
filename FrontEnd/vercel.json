@@ -16,6 +16,10 @@
     {
       "source": "/ws/(.*)",
       "destination": "https://engacademy-lms.onrender.com/ws/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [

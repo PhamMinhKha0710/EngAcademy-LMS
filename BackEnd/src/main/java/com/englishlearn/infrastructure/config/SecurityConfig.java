@@ -2,6 +2,7 @@ package com.englishlearn.infrastructure.config;
 
 import com.englishlearn.infrastructure.security.CustomAccessDeniedHandler;
 import com.englishlearn.infrastructure.security.CustomAuthenticationEntryPoint;
+import com.englishlearn.infrastructure.security.CustomUserDetailsService;
 import com.englishlearn.infrastructure.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +36,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Value("${application.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
     private String allowedOrigins;
@@ -48,6 +50,7 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setPasswordEncoder(passwordEncoder);
+        authProvider.setUserDetailsService(customUserDetailsService);
         return new ProviderManager(authProvider);
     }
 
