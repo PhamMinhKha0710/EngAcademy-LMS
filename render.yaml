@@ -18,16 +18,9 @@ services:
         value: 604800000
       - key: APPLICATION_CORS_ALLOWED_ORIGINS
         value: https://eng-academy-lms.vercel.app,https://eng-academy-admin.vercel.app,https://*.vercel.app,http://localhost:3000,http://localhost:3001
-      - key: SPRING_DATA_REDIS_HOST
-        value: renewed-tadpole-87254.upstash.io
-      - key: SPRING_DATA_REDIS_PORT
-        value: 6379
-      - key: SPRING_DATA_REDIS_USERNAME
-        value: default
-      - key: SPRING_DATA_REDIS_PASSWORD
+      - key: REDIS_URL
         sync: false
-      - key: SPRING_DATA_REDIS_SSL_ENABLED
-        value: true
+        value: "rediss://default:gQAAAAAAAVTWAAIncDI2ZDk2ZTY2Y2U3OTM0MmM3OWEzNWNlNzJjMDE1Yzg0YnAyODcyNTQ@renewed-tadpole-87254.upstash.io:6379"
       - key: SPRING_DATASOURCE_URL
         value: jdbc:mysql://mysql.railway.internal:3306/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - key: SPRING_DATASOURCE_USERNAME
