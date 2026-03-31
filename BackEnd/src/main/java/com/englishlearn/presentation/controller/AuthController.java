@@ -100,7 +100,7 @@ public class AuthController {
     @GetMapping("/health")
     @Operation(summary = "Kiểm tra trạng thái server")
     public ResponseEntity<?> healthCheck() {
-        return ResponseEntity.ok(Map.of("status", "UP"));
+        return ResponseEntity.ok(Map.of("status", "UP", "timestamp", System.currentTimeMillis()));
     }
 
     /**

@@ -8,4 +8,4 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 10000
-ENTRYPOINT ["java", "-jar", "app.jar", "--server.port=${PORT:-8080}", "--spring.profiles.active=prod"]
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT:-10000} --spring.profiles.active=prod"]

@@ -108,27 +108,34 @@ public class JwtService {
     }
 
     public boolean isTokenBlacklisted(String token) {
-        String jti = extractJti(token);
-        if (jti == null) {
-            // For tokens without JTI, blacklist by token hash
-            jti = "token:" + Integer.toHexString(token.hashCode());
+        try {
+            String jti = extractJti(token);
+            if (jti == null) {
+                jti = "token:" + Integer.toHexString(token.hashCode());
+            }
+            return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + jti));
+        } catch (Exception e) {
+            log.warn("Redis unavailable for blacklist check, assuming not blacklisted: {}", e.getMessage());
+            return false;
         }
-        return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + jti));
     }
 
     public void blacklistToken(String token) {
-        String jti = extractJti(token);
-        if (jti == null) {
-            jti = "token:" + Integer.toHexString(token.hashCode());
-        }
+        try {
+            String jti = extractJti(token);
+            if (jti == null) {
+                jti = "token:" + Integer.toHexString(token.hashCode());
+            }
 
-        // Calculate TTL based on token expiration
-        long ttlSeconds = getTokenExpirationRemainingSeconds(token);
-        if (ttlSeconds > 0) {
-            redisTemplate.opsForValue().set(BLACKLIST_PREFIX + jti, "1", ttlSeconds, TimeUnit.SECONDS);
-            log.info("Token blacklisted with JTI: {}, TTL: {} seconds", jti, ttlSeconds);
-        } else {
-            log.debug("Token already expired, no need to blacklist: {}", jti);
+            long ttlSeconds = getTokenExpirationRemainingSeconds(token);
+            if (ttlSeconds > 0) {
+                redisTemplate.opsForValue().set(BLACKLIST_PREFIX + jti, "1", ttlSeconds, TimeUnit.SECONDS);
+                log.info("Token blacklisted with JTI: {}, TTL: {} seconds", jti, ttlSeconds);
+            } else {
+                log.debug("Token already expired, no need to blacklist: {}", jti);
+            }
+        } catch (Exception e) {
+            log.warn("Redis unavailable for blacklist token, skip: {}", e.getMessage());
         }
     }
 
