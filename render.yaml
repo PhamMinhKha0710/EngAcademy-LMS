@@ -39,7 +39,7 @@ services:
       - key: APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION
         value: 604800000
       - key: APPLICATION_CORS_ALLOWED_ORIGINS
-        value: https://eng-academy-lms.vercel.app,https://eng-academy-admin.vercel.app,https://*.vercel.app,http://localhost:3000,http://localhost:3001
+        value: https://engacademy-lms-1.onrender.com,https://engacademy-admin.onrender.com,https://engacademy-backend.onrender.com,http://localhost:3000,http://localhost:3001
       - key: REDIS_URL
         sync: false
         value: "rediss://default:gQAAAAAAAVTWAAIncDI2ZDk2ZTY2Y2U3OTM0MmM3OWEzNWNlNzJjMDE1Yzg0YnAyODcyNTQ@renewed-tadpole-87254.upstash.io:6379"
