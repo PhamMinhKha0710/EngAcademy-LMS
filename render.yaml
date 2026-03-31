@@ -17,7 +17,7 @@ services:
       - key: APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION
         value: 604800000
       - key: APPLICATION_CORS_ALLOWED_ORIGINS
-        value: http://eng-academy-lms.vercel.app,https://eng-academy-admin.vercel.app
+        value: https://eng-academy-lms.vercel.app,https://eng-academy-admin.vercel.app,https://*.vercel.app,http://localhost:3000,http://localhost:3001
       - key: SPRING_DATA_REDIS_HOST
         value: renewed-tadpole-87254.upstash.io
       - key: SPRING_DATA_REDIS_PORT
