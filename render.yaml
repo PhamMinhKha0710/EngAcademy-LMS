@@ -1,5 +1,27 @@
 services:
   - type: web
+    name: engacademy-frontend
+    runtime: docker
+    dockerfilePath: FrontEnd/Dockerfile
+    region: singapore
+    port: 3000
+    healthCheckPath: /
+    envVars:
+      - key: VITE_API_URL
+        value: https://engacademy-backend.onrender.com
+
+  - type: web
+    name: engacademy-admin
+    runtime: docker
+    dockerfilePath: Admin/Dockerfile
+    region: singapore
+    port: 3001
+    healthCheckPath: /
+    envVars:
+      - key: VITE_API_URL
+        value: https://engacademy-backend.onrender.com
+
+  - type: web
     name: engacademy-backend
     runtime: docker
     dockerfilePath: Dockerfile
