@@ -16,8 +16,10 @@
     ]
   },
   "scripts": {
-    "test:e2e": "jest e2e/Tests/ & npm run report:pdf",
-    "report:pdf": "node e2e/generate-pdf.js"
+    "test:e2e": "jest e2e/Tests/ ",
+    "test:daily-quests": "jest e2e/Tests/daily-quests.test.js",
+    "test:main": "jest e2e/Tests/main.e2e.test.js",
+    "report:pdf": "node e2e/generate-pdf.js & npm run report:pdf"
   },
   "repository": {
     "type": "git",
