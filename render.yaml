@@ -26,6 +26,7 @@ services:
     runtime: docker
     dockerfilePath: Dockerfile
     region: singapore
+    port: 10000
     healthCheckPath: /api/v1/auth/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
