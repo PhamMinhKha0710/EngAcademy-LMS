@@ -631,43 +631,7 @@ export default function LessonDetailPage() {
                                         </motion.div>
                                     ))}
 
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4"
-                                    >
-                                        {showResults ? (
-                                            <>
-                                                <div>
-                                                    <p className="text-lg font-bold text-[var(--color-text)]">
-                                                        Kết quả: {quizScore}/{questions.length} câu đúng
-                                                    </p>
-                                                    <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                                                        {quizScore === questions.length
-                                                            ? 'Xuất sắc! Bạn đã trả lời đúng tất cả!'
-                                                            : 'Ôn lại và thử lại nhé!'}
-                                                    </p>
-                                                </div>
-                                                <button onClick={handleResetQuiz} className="btn-secondary">
-                                                    Làm lại
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p className="text-sm text-[var(--color-text-secondary)]">
-                                                    Đã trả lời {Object.keys(answers).length}/{questions.length} câu
-                                                </p>
-                                                <button
-                                                    onClick={handleSubmitQuiz}
-                                                    disabled={Object.keys(answers).length === 0}
-                                                    className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-                                                >
-                                                    Nộp bài
-                                                </button>
-                                            </>
-                                        )}
-                                    </motion.div>
-                                ))}
+
 
                                 <motion.div
                                     initial={{ opacity: 0 }}
