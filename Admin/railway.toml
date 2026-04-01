@@ -13,4 +13,4 @@
   PORT = "3001"
 
 [build.args]
-  VITE_API_URL = "https://engacademy-backend.onrender.com"
+  VITE_API_URL = "https://engacademy-lms.onrender.com"

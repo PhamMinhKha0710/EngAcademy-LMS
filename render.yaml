@@ -32,6 +32,8 @@ services:
         value: prod
       - key: PORT
         value: 10000
+      - key: SERVER_PORT
+        value: 10000
       - key: APPLICATION_SECURITY_JWT_SECRET_KEY
         generateValue: true
       - key: APPLICATION_SECURITY_JWT_EXPIRATION
