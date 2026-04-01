@@ -18,7 +18,7 @@ public class DailyQuestResponse {
     private Boolean isCompleted;
     private List<DailyQuestTaskResponse> tasks;
     private Integer totalCoins;
-    
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -27,7 +27,8 @@ public class DailyQuestResponse {
         private Long id;
         private String taskType;
         private Integer targetCount;
-        private Integer currentCount;
+        private Integer currentProgress;
         private Boolean isCompleted;
+        private Integer coins;
     }
 }

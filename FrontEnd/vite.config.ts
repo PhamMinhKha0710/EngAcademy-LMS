@@ -12,17 +12,32 @@ export default defineConfig({
             '@': path.resolve(__dirname, './src'),
         },
     },
+    base: '/',
+    build: {
+        outDir: 'dist',
+        sourcemap: false,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    vendor: ['react', 'react-dom', 'react-router-dom'],
+                    utils: ['axios', 'zustand', 'i18next'],
+                },
+            },
+        },
+    },
     server: {
-        port: 5173,
+        port: 3000,
         proxy: {
             '/api': {
-                target: 'http://localhost:8080',
+                target: process.env.VITE_API_URL || 'http://localhost:8080',
                 changeOrigin: true,
+                secure: true,
             },
             '/ws': {
-                target: 'http://localhost:8080',
+                target: process.env.VITE_API_URL || 'http://localhost:8080',
                 ws: true,
                 changeOrigin: true,
+                secure: true,
             },
         },
     },

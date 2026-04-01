@@ -1,4 +1,4 @@
-import api from './axios'
+import api, { AxiosRequestConfig } from './axios'
 interface ApiResponse<T> { success: boolean; message: string; data: T }
 
 export interface VocabularyResponse {
@@ -10,35 +10,66 @@ export interface VocabularyRequest {
     word: string; meaning: string; pronunciation?: string; exampleSentence?: string;
     imageUrl?: string; audioUrl?: string; lessonId?: number;
 }
+export interface TopicProgress {
+    id: number; name: string; description?: string;
+    totalWords: number; masteredWords: number; progress: number; completed: boolean;
+}
+export interface ReviewResult {
+    status: string; topicCompleted: boolean; questTaskCompleted?: boolean;
+}
 
 export const vocabularyApi = {
-    getByLesson: async (lessonId: number) => {
-        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/lesson/${lessonId}`)
+    getByLesson: async (lessonId: number, config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/lesson/${lessonId}`, config)
         return r.data.data
     },
-    getById: async (id: number) => {
-        const r = await api.get<ApiResponse<VocabularyResponse>>(`/vocabulary/${id}`)
+    getById: async (id: number, config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse>>(`/vocabulary/${id}`, config)
         return r.data.data
     },
-    search: async (keyword: string) => {
-        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/search?keyword=${encodeURIComponent(keyword)}`)
+    search: async (keyword: string, config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/search?keyword=${encodeURIComponent(keyword)}`, config)
         return r.data.data
     },
-    getFlashcards: async (lessonId: number, count = 10) => {
-        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/flashcards/${lessonId}?count=${count}`)
+    getFlashcards: async (lessonId: number, count = 10, config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/flashcards/${lessonId}?count=${count}`, config)
         return r.data.data
     },
-    getRandomFlashcards: async (count = 20) => {
-        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/flashcards/random?count=${count}`)
+    getRandomFlashcards: async (count = 20, config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/vocabulary/flashcards/random?count=${count}`, config)
         return r.data.data
     },
-    create: async (data: VocabularyRequest) => {
-        const r = await api.post<ApiResponse<VocabularyResponse>>('/vocabulary', data)
+    create: async (data: VocabularyRequest, config?: AxiosRequestConfig) => {
+        const r = await api.post<ApiResponse<VocabularyResponse>>('/vocabulary', data, config)
         return r.data.data
     },
-    update: async (id: number, data: VocabularyRequest) => {
-        const r = await api.put<ApiResponse<VocabularyResponse>>(`/vocabulary/${id}`, data)
+    update: async (id: number, data: VocabularyRequest, config?: AxiosRequestConfig) => {
+        const r = await api.put<ApiResponse<VocabularyResponse>>(`/vocabulary/${id}`, data, config)
         return r.data.data
     },
-    delete: async (id: number) => { await api.delete(`/vocabulary/${id}`) },
+    delete: async (id: number, config?: AxiosRequestConfig) => {
+        await api.delete(`/vocabulary/${id}`, config)
+    },
+
+    // Topic-based learning - userId lấy từ auth token
+    getTopics: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<TopicProgress[]>>('/topics', config)
+        return r.data.data
+    },
+    getWordsToLearn: async (topicId: number, config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse[]>>(`/topics/${topicId}/learn`, config)
+        return r.data.data
+    },
+    reviewWord: async (vocabularyId: number, result: 'correct' | 'wrong', config?: AxiosRequestConfig) => {
+        const r = await api.post<ApiResponse<ReviewResult>>('/vocabulary/review', { vocabularyId, result }, config)
+        return r.data.data
+    },
+    getLearnedWords: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<VocabularyResponse[]>>('/vocabulary/learned', config)
+        return r.data.data
+    },
+    getLearnedCount: async (config?: AxiosRequestConfig) => {
+        const r = await api.get<ApiResponse<number>>('/vocabulary/learned/count', config)
+        return r.data.data
+    },
 }

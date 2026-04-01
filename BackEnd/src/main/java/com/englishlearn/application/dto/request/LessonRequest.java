@@ -20,6 +20,8 @@ public class LessonRequest {
 
     private String contentHtml;
 
+    private String grammarHtml;
+
     private String audioUrl;
 
     private String videoUrl;

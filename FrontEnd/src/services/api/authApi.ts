@@ -12,6 +12,7 @@ export interface User {
     streakDays?: number
     isActive?: boolean
     roles: string[]
+    exp?: number
 }
 
 export interface LoginRequest {
@@ -57,6 +58,14 @@ export const authApi = {
     },
 
     /**
+     * POST /api/v1/auth/google
+     */
+    loginWithGoogle: async (accessToken: string): Promise<AuthResponse> => {
+        const response = await api.post<ApiResponse<AuthResponse>>('/auth/google', { accessToken })
+        return response.data.data
+    },
+
+    /**
      * POST /api/v1/auth/register
      */
     register: async (data: RegisterRequest): Promise<AuthResponse> => {
@@ -78,5 +87,19 @@ export const authApi = {
     healthCheck: async (): Promise<string> => {
         const response = await api.get<ApiResponse<string>>('/auth/health')
         return response.data.data
+    },
+
+    /**
+     * POST /api/v1/auth/forgot-password - Gửi OTP về email
+     */
+    forgotPassword: async (email: string): Promise<void> => {
+        await api.post('/auth/forgot-password', { email })
+    },
+
+    /**
+     * POST /api/v1/auth/reset-password - Đặt lại mật khẩu bằng OTP
+     */
+    resetPassword: async (otp: string, newPassword: string, confirmPassword: string): Promise<void> => {
+        await api.post('/auth/reset-password', { otp, newPassword, confirmPassword })
     },
 }

@@ -26,4 +26,5 @@ public class MistakeNotebookDTO {
     private Integer mistakeCount; // Số lần sai
     private String userRecordingUrl; // Recording của user
     private LocalDateTime addedAt;
+    private LocalDateTime lastMistakeAt; // Alias cho FE hiện tại
 }

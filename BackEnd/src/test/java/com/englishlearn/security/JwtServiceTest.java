@@ -6,7 +6,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,6 +28,9 @@ class JwtServiceTest {
     private JwtService jwtService;
     private UserDetails userDetails;
 
+    @Mock
+    private StringRedisTemplate redisTemplate;
+
     // Test secret key (base64 encoded, 256-bit minimum for HS256)
     private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
     private static final long JWT_EXPIRATION = 86400000; // 24 hours
@@ -33,7 +38,7 @@ class JwtServiceTest {
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService();
+        jwtService = new JwtService(redisTemplate);
 
         // Set the private fields using reflection
         ReflectionTestUtils.setField(jwtService, "secretKey", SECRET_KEY);
@@ -106,7 +111,7 @@ class JwtServiceTest {
     @DisplayName("isTokenValid should return false for expired token")
     void isTokenValid_WithExpiredToken_ShouldReturnFalse() {
         // Given - Create a token with very short expiration
-        JwtService shortExpirationService = new JwtService();
+        JwtService shortExpirationService = new JwtService(redisTemplate);
         ReflectionTestUtils.setField(shortExpirationService, "secretKey", SECRET_KEY);
         ReflectionTestUtils.setField(shortExpirationService, "jwtExpiration", 1L); // 1ms
         ReflectionTestUtils.setField(shortExpirationService, "refreshExpiration", 1L);

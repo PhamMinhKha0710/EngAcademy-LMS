@@ -4,7 +4,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -12,10 +15,17 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class JwtService {
+
+    private final StringRedisTemplate redisTemplate;
+
+    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
 
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
@@ -59,7 +69,15 @@ public class JwtService {
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        boolean valid = (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+
+        // Also check blacklist
+        if (valid && isTokenBlacklisted(token)) {
+            log.debug("Token is blacklisted for user: {}", username);
+            return false;
+        }
+
+        return valid;
     }
 
     private boolean isTokenExpired(String token) {
@@ -81,5 +99,52 @@ public class JwtService {
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public long getTokenExpirationRemainingSeconds(String token) {
+        Date expiration = extractExpiration(token);
+        long remainingMs = expiration.getTime() - System.currentTimeMillis();
+        return Math.max(0, remainingMs / 1000);
+    }
+
+    public boolean isTokenBlacklisted(String token) {
+        try {
+            String jti = extractJti(token);
+            if (jti == null) {
+                jti = "token:" + Integer.toHexString(token.hashCode());
+            }
+            return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + jti));
+        } catch (Exception e) {
+            log.warn("Redis unavailable for blacklist check, assuming not blacklisted: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public void blacklistToken(String token) {
+        try {
+            String jti = extractJti(token);
+            if (jti == null) {
+                jti = "token:" + Integer.toHexString(token.hashCode());
+            }
+
+            long ttlSeconds = getTokenExpirationRemainingSeconds(token);
+            if (ttlSeconds > 0) {
+                redisTemplate.opsForValue().set(BLACKLIST_PREFIX + jti, "1", ttlSeconds, TimeUnit.SECONDS);
+                log.info("Token blacklisted with JTI: {}, TTL: {} seconds", jti, ttlSeconds);
+            } else {
+                log.debug("Token already expired, no need to blacklist: {}", jti);
+            }
+        } catch (Exception e) {
+            log.warn("Redis unavailable for blacklist token, skip: {}", e.getMessage());
+        }
+    }
+
+    private String extractJti(String token) {
+        try {
+            return extractClaim(token, claims -> claims.get("jti", String.class));
+        } catch (Exception e) {
+            // Token doesn't have JTI claim
+            return null;
+        }
     }
 }

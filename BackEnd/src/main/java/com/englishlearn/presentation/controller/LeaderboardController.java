@@ -46,8 +46,9 @@ public class LeaderboardController {
     @GetMapping("/coins")
     @Operation(summary = "Lấy bảng xếp hạng theo coins")
     public ResponseEntity<ApiResponse<Page<LeaderboardResponse>>> getLeaderboardByCoins(
+            @RequestParam(required = false) Long schoolId,
             Pageable pageable) {
-        Page<LeaderboardResponse> response = leaderboardService.getLeaderboardByCoins(pageable);
+        Page<LeaderboardResponse> response = leaderboardService.getLeaderboardByCoins(schoolId, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -57,8 +58,9 @@ public class LeaderboardController {
     @GetMapping("/streak")
     @Operation(summary = "Lấy bảng xếp hạng theo streak")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> getLeaderboardByStreak(
+            @RequestParam(required = false) Long schoolId,
             @RequestParam(defaultValue = "100") int limit) {
-        List<LeaderboardResponse> response = leaderboardService.getLeaderboardByStreak(limit);
+        List<LeaderboardResponse> response = leaderboardService.getLeaderboardByStreak(schoolId, limit);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -68,8 +70,9 @@ public class LeaderboardController {
     @GetMapping("/global")
     @Operation(summary = "Lấy bảng xếp hạng tổng hợp (coins + streak)")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> getGlobalLeaderboard(
+            @RequestParam(required = false) Long schoolId,
             @RequestParam(defaultValue = "100") int limit) {
-        List<LeaderboardResponse> response = leaderboardService.getGlobalLeaderboard(limit);
+        List<LeaderboardResponse> response = leaderboardService.getGlobalLeaderboard(schoolId, limit);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -79,8 +82,9 @@ public class LeaderboardController {
     @GetMapping("/top")
     @Operation(summary = "Lấy top users theo coins")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> getTopUsers(
+            @RequestParam(required = false) Long schoolId,
             @RequestParam(defaultValue = "10") int limit) {
-        List<LeaderboardResponse> response = leaderboardService.getTopUsersByCoins(limit);
+        List<LeaderboardResponse> response = leaderboardService.getTopUsersByCoins(schoolId, limit);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -91,9 +95,11 @@ public class LeaderboardController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Lấy vị trí (rank) của user hiện tại")
     public ResponseEntity<ApiResponse<LeaderboardResponse>> getMyRank(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        Long userId = getUserId(userDetails);
-        LeaderboardResponse response = leaderboardService.getUserRank(userId);
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) Long schoolId) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        LeaderboardResponse response = leaderboardService.getUserRank(user.getId(), schoolId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -101,10 +107,12 @@ public class LeaderboardController {
      * GET /api/v1/leaderboard/users/{userId} - Vị trí của user theo ID
      */
     @GetMapping("/users/{userId}")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Lấy vị trí (rank) của user theo ID")
     public ResponseEntity<ApiResponse<LeaderboardResponse>> getUserRank(
-            @PathVariable Long userId) {
-        LeaderboardResponse response = leaderboardService.getUserRank(userId);
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long schoolId) {
+        LeaderboardResponse response = leaderboardService.getUserRank(userId, schoolId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -116,21 +124,27 @@ public class LeaderboardController {
     @Operation(summary = "Lấy bảng xếp hạng xung quanh vị trí user hiện tại")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> getLeaderboardAroundMe(
             @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) Long schoolId,
             @RequestParam(defaultValue = "10") int rangeSize) {
-        Long userId = getUserId(userDetails);
-        List<LeaderboardResponse> response = leaderboardService.getLeaderboardAroundUser(userId, rangeSize);
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        List<LeaderboardResponse> response = leaderboardService.getLeaderboardAroundUser(user.getId(), schoolId,
+                rangeSize);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
-     * GET /api/v1/leaderboard/around-user/{userId} - Bảng xếp hạng xung quanh user theo ID
+     * GET /api/v1/leaderboard/around-user/{userId} - Bảng xếp hạng xung quanh user
+     * theo ID
      */
     @GetMapping("/around-user/{userId}")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Lấy bảng xếp hạng xung quanh vị trí user theo ID")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> getLeaderboardAroundUser(
             @PathVariable Long userId,
+            @RequestParam(required = false) Long schoolId,
             @RequestParam(defaultValue = "10") int rangeSize) {
-        List<LeaderboardResponse> response = leaderboardService.getLeaderboardAroundUser(userId, rangeSize);
+        List<LeaderboardResponse> response = leaderboardService.getLeaderboardAroundUser(userId, schoolId, rangeSize);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -138,19 +152,13 @@ public class LeaderboardController {
      * GET /api/v1/leaderboard/compare - So sánh users
      */
     @GetMapping("/compare")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "So sánh vị trí của nhiều users")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> compareUsers(
+            @RequestParam(required = false) Long schoolId,
             @RequestParam List<Long> userIds) {
-        List<LeaderboardResponse> response = leaderboardService.compareUsers(userIds);
+        List<LeaderboardResponse> response = leaderboardService.compareUsers(userIds, schoolId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    /**
-     * Helper method to extract userId from UserDetails
-     */
-    private Long getUserId(UserDetails userDetails) {
-        User user = userRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return user.getId();
-    }
 }

@@ -9,7 +9,11 @@ import java.time.LocalDateTime;
  * Entity lưu trữ các sự kiện anti-cheat để audit
  */
 @Entity
-@Table(name = "ANTI_CHEAT_EVENT")
+@Table(name = "ANTI_CHEAT_EVENT", indexes = {
+    @Index(name = "idx_anticheat_exam_result", columnList = "exam_result_id"),
+    @Index(name = "idx_anticheat_time", columnList = "event_time"),
+    @Index(name = "idx_anticheat_type", columnList = "event_type")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,6 +25,7 @@ public class AntiCheatEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exam_result_id", nullable = false)
     private ExamResult examResult;

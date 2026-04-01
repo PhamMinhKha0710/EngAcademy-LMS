@@ -2,14 +2,18 @@ package com.englishlearn.application.service;
 
 import com.englishlearn.application.dto.request.LoginRequest;
 import com.englishlearn.application.dto.request.RegisterRequest;
+import com.englishlearn.application.dto.request.ResetPasswordRequest;
 import com.englishlearn.application.dto.response.AuthResponse;
+import com.englishlearn.domain.entity.PasswordResetToken;
 import com.englishlearn.domain.entity.Role;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
+import com.englishlearn.infrastructure.persistence.PasswordResetTokenRepository;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import com.englishlearn.infrastructure.security.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,7 +22,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
+
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +40,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -59,7 +73,8 @@ public class AuthService {
         return buildAuthResponse(savedUser);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    @Transactional
+    public AuthResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -68,9 +83,15 @@ public class AuthService {
         var user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Tài khoản", "username", request.getUsername()));
 
+        // Log the login event
+        String ipAddress = httpServletRequest.getRemoteAddr();
+        String userAgent = httpServletRequest.getHeader("User-Agent");
+        auditLogService.log(user.getId(), "LOGIN", "Đăng nhập thành công", ipAddress, userAgent);
+
         return buildAuthResponse(user);
     }
 
+    @Transactional
     public AuthResponse refreshToken(String refreshToken) {
         String username = jwtService.extractUsername(refreshToken);
         var user = userRepository.findByUsername(username)
@@ -95,6 +116,138 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Quên mật khẩu - Sinh OTP 6 số, lưu DB, gửi email HTML
+     * Luôn trả về success để không tiết lộ email có tồn tại không
+     */
+    @Transactional
+    public void forgotPassword(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            // Xóa token cũ (nếu có)
+            passwordResetTokenRepository.deleteAllByUser(user);
+
+            // Sinh OTP 6 số ngẫu nhiên
+            String otp = String.format("%06d", new SecureRandom().nextInt(1_000_000));
+
+            // Lưu token, hết hạn sau 10 phút
+            PasswordResetToken token = PasswordResetToken.builder()
+                    .user(user)
+                    .otp(otp)
+                    .expiredAt(LocalDateTime.now().plusMinutes(10))
+                    .build();
+            passwordResetTokenRepository.save(token);
+
+            // Gửi email HTML (async)
+            emailService.sendOtpEmail(user.getEmail(), user.getFullName(), otp);
+        });
+    }
+
+    /**
+     * Reset mật khẩu bằng OTP
+     */
+    @Transactional
+    public void logout(String token) {
+        jwtService.blacklistToken(token);
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        // Validate OTP
+        PasswordResetToken token = passwordResetTokenRepository
+                .findByOtpAndUsedFalse(request.getOtp())
+                .orElseThrow(() -> {
+                    // Increment failed attempts for tracking
+                    // Note: Without the OTP, we can't identify the specific token
+                    // This is handled by IP-based rate limiting in RateLimitFilter
+                    return new RuntimeException("Mã OTP không hợp lệ hoặc đã được sử dụng");
+                });
+
+        // Check if token is locked due to too many failed attempts
+        if (token.isLocked()) {
+            throw new RuntimeException("Mã OTP đã bị khóa do nhập sai quá nhiều lần. Vui lòng yêu cầu mã mới.");
+        }
+
+        // Kiểm tra hết hạn
+        if (LocalDateTime.now().isAfter(token.getExpiredAt())) {
+            throw new RuntimeException("Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.");
+        }
+
+        // Validate confirm password
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Mật khẩu xác nhận không khớp");
+        }
+
+        // Cập nhật mật khẩu
+        User user = token.getUser();
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Đánh dấu token đã dùng
+        token.setUsed(true);
+        passwordResetTokenRepository.save(token);
+    }
+
+    @Transactional
+    public AuthResponse googleLogin(com.englishlearn.application.dto.request.GoogleLoginRequest request) {
+        try {
+            // Using Access Token to fetch user profile via Google OAuth2 api
+            String userInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
+            com.google.api.client.http.HttpRequestFactory requestFactory = new NetHttpTransport().createRequestFactory();
+            com.google.api.client.http.HttpRequest httpRequest = requestFactory.buildGetRequest(new com.google.api.client.http.GenericUrl(userInfoUrl));
+            httpRequest.getHeaders().setAuthorization("Bearer " + request.getAccessToken());
+
+            com.google.api.client.http.HttpResponse httpResponse = httpRequest.execute();
+            String jsonResponse = httpResponse.parseAsString();
+            
+            // Parse JSON manually
+            com.google.gson.JsonObject payload = com.google.gson.JsonParser.parseString(jsonResponse).getAsJsonObject();
+
+            if (!payload.has("email")) {
+                throw new RuntimeException("Không tìm thấy Email từ Google Account");
+            }
+            
+            String email = payload.get("email").getAsString();
+            String name = payload.has("name") ? payload.get("name").getAsString() : "Người dùng Google";
+            String pictureUrl = payload.has("picture") ? payload.get("picture").getAsString() : null;
+
+            // Tim xem DB đã có user này chưa
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                // Tạo user mới tự động với Role Default
+                Role userRole = roleRepository.findByName(Role.STUDENT)
+                        .orElseThrow(() -> new ResourceNotFoundException("Vai trò", "name", Role.STUDENT));
+
+                // Username lấy phần trước @ của email (ví dụ: nguyenphong@... -> nguyenphong)
+                // Cần đảm bảo duy nhất
+                String baseUsername = email.split("@")[0];
+                String username = baseUsername;
+                int suffix = 1;
+                while (userRepository.existsByUsername(username)) {
+                    username = baseUsername + suffix++;
+                }
+
+                user = User.builder()
+                        .username(username)
+                        .email(email)
+                        // Pass giả lập random (người dùng Google không cần password)
+                        .passwordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                        .fullName(name)
+                        .avatarUrl(pictureUrl)
+                        .isActive(true)
+                        .build();
+
+                user.getRoles().add(userRole);
+                user = userRepository.save(user);
+            }
+
+            return buildAuthResponse(user);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi xác thực Google: " + e.getMessage());
+        }
+    }
+
     private AuthResponse buildAuthResponse(User user) {
         var userDetails = buildUserDetails(user);
         var accessToken = jwtService.generateToken(userDetails);
@@ -111,9 +264,21 @@ public class AuthService {
     }
 
     private org.springframework.security.core.userdetails.User buildUserDetails(User user) {
+        // Tài khoản bị khóa nếu:
+        // 1. User.isActive = false
+        // 2. User thuộc về 1 trường và School.isActive = false
+        boolean enabled = Boolean.TRUE.equals(user.getIsActive());
+        if (enabled && user.getSchool() != null) {
+            enabled = Boolean.TRUE.equals(user.getSchool().getIsActive());
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPasswordHash(),
+                enabled,
+                true,
+                true,
+                true,
                 user.getRoles().stream()
                         .map(role -> new SimpleGrantedAuthority(role.getName()))
                         .collect(Collectors.toList()));

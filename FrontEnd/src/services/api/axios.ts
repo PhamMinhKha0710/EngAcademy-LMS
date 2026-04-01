@@ -1,18 +1,17 @@
 import axios from 'axios'
+import { useToastStore } from '../../store/toastStore'
 
-// Create axios instance with base configuration
+export type { AxiosRequestConfig } from 'axios'
+
 const api = axios.create({
-    baseURL: '/api/v1',
+    baseURL: (import.meta.env.VITE_API_URL || '') + '/api/v1',
     timeout: 10000,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
+    withCredentials: true,
 })
 
-// Request interceptor - Add JWT token to headers
 api.interceptors.request.use(
     (config) => {
-        // Get token from localStorage (persisted by zustand)
         const authStorage = localStorage.getItem('auth-storage')
         if (authStorage) {
             try {
@@ -26,34 +25,29 @@ api.interceptors.request.use(
         }
         return config
     },
-    (error) => {
-        return Promise.reject(error)
-    }
+    (error) => Promise.reject(error)
 )
 
-// Response interceptor - Handle errors globally
 api.interceptors.response.use(
-    (response) => {
-        return response
-    },
+    (response) => response,
     (error) => {
-        // Handle 401 Unauthorized - Token expired or invalid
-        if (error.response?.status === 401) {
-            // Clear auth storage and redirect to login
+        const { addToast } = useToastStore.getState()
+
+        if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
+            addToast({ type: 'error', message: 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.' })
             localStorage.removeItem('auth-storage')
             window.location.href = '/login'
+        } else if (error.response?.status === 403) {
+            addToast({ type: 'warning', message: 'Bạn không có quyền truy cập chức năng này.' })
+        } else if (!error.response) {
+            addToast({ type: 'error', message: 'Lỗi mạng - Vui lòng kiểm tra kết nối internet của bạn.' })
+        } else {
+            const isLoginRequest = error.config?.url?.includes('/auth/login')
+            if (!isLoginRequest) {
+                const message = error.response?.data?.message || 'Đã xảy ra lỗi hệ thống.'
+                addToast({ type: 'error', message })
+            }
         }
-
-        // Handle 403 Forbidden
-        if (error.response?.status === 403) {
-            console.error('Access denied')
-        }
-
-        // Handle network errors
-        if (!error.response) {
-            console.error('Network error - please check your connection')
-        }
-
         return Promise.reject(error)
     }
 )

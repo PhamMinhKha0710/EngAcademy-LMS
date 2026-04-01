@@ -3,6 +3,8 @@ package com.englishlearn.infrastructure.persistence;
 import com.englishlearn.domain.entity.Exam;
 import com.englishlearn.domain.entity.ExamResult;
 import com.englishlearn.domain.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,8 +27,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     boolean existsByExamAndStudent(Exam exam, User student);
 
-    @Query("SELECT COUNT(er) FROM ExamResult er WHERE er.exam.id = :examId")
-    Long countByExamId(@Param("examId") Long examId);
+    @Query("SELECT COUNT(DISTINCT er.student.id) FROM ExamResult er WHERE er.exam.id = :examId AND er.submittedAt IS NOT NULL")
+    Long countSubmittedStudentsByExamId(@Param("examId") Long examId);
 
     @Query("SELECT AVG(er.score) FROM ExamResult er WHERE er.exam.id = :examId")
     Double averageScoreByExamId(@Param("examId") Long examId);
@@ -38,9 +40,26 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     List<ExamResult> findTopScoresByExamId(@Param("examId") Long examId);
 
     /**
-     * Tìm kết quả thi theo exam ID và student ID
+     * Eagerly loads exam, student — prevents LazyInitializationException in read-only transactions.
      */
-    Optional<ExamResult> findByExamIdAndStudentId(Long examId, Long studentId);
+    @Query("SELECT er FROM ExamResult er " +
+           "LEFT JOIN FETCH er.exam " +
+           "LEFT JOIN FETCH er.student " +
+           "WHERE er.exam.id = :examId AND er.submittedAt IS NOT NULL " +
+           "ORDER BY er.score DESC")
+    List<ExamResult> findTopScoresByExamIdWithDetails(@Param("examId") Long examId);
+
+    /**
+     * Lấy phiên làm bài đang mở gần nhất (chưa nộp) của một học sinh cho một bài
+     * thi.
+     */
+    Optional<ExamResult> findTopByExamIdAndStudentIdAndSubmittedAtIsNullOrderByIdDesc(Long examId, Long studentId);
+
+    /**
+     * Lấy kết quả đã nộp mới nhất của một học sinh cho một bài thi.
+     */
+    Optional<ExamResult> findTopByExamIdAndStudentIdAndSubmittedAtIsNotNullOrderBySubmittedAtDescIdDesc(Long examId,
+            Long studentId);
 
     /**
      * Lấy tất cả kết quả của một bài thi, sắp xếp theo điểm giảm dần
@@ -55,5 +74,25 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     /**
      * Kiểm tra sinh viên đã làm bài thi chưa (theo ID)
      */
+    @Query("SELECT er FROM ExamResult er " +
+           "LEFT JOIN FETCH er.exam " +
+           "LEFT JOIN FETCH er.student " +
+           "WHERE er.exam.id = :examId AND er.student.id = :studentId AND er.submittedAt IS NOT NULL " +
+           "ORDER BY er.submittedAt DESC, er.id DESC")
+    Optional<ExamResult> findTopByExamIdAndStudentIdWithExamAndStudent(
+            @Param("examId") Long examId,
+            @Param("studentId") Long studentId);
+
     boolean existsByExamIdAndStudentId(Long examId, Long studentId);
+
+    /**
+     * Lấy kết quả thi theo trường - dùng cho ROLE_SCHOOL
+     */
+    @Query("SELECT er FROM ExamResult er JOIN FETCH er.exam e LEFT JOIN FETCH e.classRoom JOIN FETCH er.student WHERE er.exam.classRoom.school.id = :schoolId AND er.submittedAt IS NOT NULL")
+    Page<ExamResult> findBySchoolIdWithDetails(@Param("schoolId") Long schoolId, Pageable pageable);
+
+    @Query("SELECT AVG(er.score) FROM ExamResult er WHERE er.submittedAt IS NOT NULL")
+    Double averageScoreAll();
+
+    long countBySubmittedAtIsNotNull();
 }

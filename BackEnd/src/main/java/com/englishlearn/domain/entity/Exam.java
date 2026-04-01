@@ -7,7 +7,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "EXAM")
+@Table(name = "EXAM", indexes = {
+    @Index(name = "idx_exam_class", columnList = "class_id"),
+    @Index(name = "idx_exam_teacher", columnList = "teacher_id"),
+    @Index(name = "idx_exam_status", columnList = "status"),
+    @Index(name = "idx_exam_time", columnList = "start_time, end_time")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -54,6 +59,10 @@ public class Exam {
     @Column(length = 20)
     @Builder.Default
     private String status = "DRAFT"; // DRAFT, PUBLISHED, CLOSED
+
+    @Column(name = "score_published", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean scorePublished = false;
 
     @ManyToMany
     @JoinTable(name = "EXAM_QUESTION", joinColumns = @JoinColumn(name = "exam_id"), inverseJoinColumns = @JoinColumn(name = "question_id"))

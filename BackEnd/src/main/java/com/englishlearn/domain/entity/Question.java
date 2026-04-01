@@ -4,7 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "QUESTION")
+@Table(name = "QUESTION", indexes = {
+    @Index(name = "idx_question_lesson", columnList = "lesson_id"),
+    @Index(name = "idx_question_vocab", columnList = "vocabulary_id"),
+    @Index(name = "idx_question_type", columnList = "question_type")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,6 +23,10 @@ public class Question {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id")
     private Lesson lesson;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vocabulary_id")
+    private Vocabulary vocabulary;
 
     @Column(name = "question_type", length = 50)
     private String questionType; // MULTIPLE_CHOICE, FILL_IN_BLANK, TRUE_FALSE, ESSAY

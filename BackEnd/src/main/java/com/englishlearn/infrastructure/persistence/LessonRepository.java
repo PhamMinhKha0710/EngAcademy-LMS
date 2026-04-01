@@ -15,5 +15,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     List<Lesson> findByDifficultyLevel(Integer level);
 
+    List<Lesson> findByTopic_NameIgnoreCaseAndIsPublishedTrueOrderByOrderIndexAsc(String topicName);
+
     boolean existsByTitle(String title);
 }

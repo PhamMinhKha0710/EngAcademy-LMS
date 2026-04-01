@@ -15,7 +15,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MistakeNotebookRequest {
 
-    @NotNull(message = "User ID không được để trống")
+    /**
+     * userId được backend tự suy ra từ access token ở Controller.
+     * Giữ field này để tương thích ngược với các luồng nội bộ.
+     */
     private Long userId;
 
     @NotNull(message = "Vocabulary ID không được để trống")

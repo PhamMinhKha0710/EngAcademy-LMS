@@ -8,9 +8,11 @@ interface DialogProps {
     title: string
     children: ReactNode
     footer?: ReactNode
+    maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full'
+    className?: string
 }
 
-export default function Dialog({ open, onClose, title, children, footer }: DialogProps) {
+export default function Dialog({ open, onClose, title, children, footer, maxWidth = 'lg', className = '' }: DialogProps) {
     const overlayRef = useRef<HTMLDivElement>(null)
 
     // Close on Escape key
@@ -56,7 +58,7 @@ export default function Dialog({ open, onClose, title, children, footer }: Dialo
 
             {/* Dialog */}
             <div
-                className="relative w-full max-w-lg rounded-2xl border shadow-2xl animate-[slideUp_200ms_ease-out]"
+                className={`relative w-full max-w-${maxWidth} max-h-[90vh] rounded-2xl border shadow-2xl animate-[slideUp_200ms_ease-out] flex flex-col overflow-hidden ${className}`}
                 style={{
                     backgroundColor: 'var(--color-bg)',
                     borderColor: 'var(--color-bg-secondary)',
@@ -82,7 +84,22 @@ export default function Dialog({ open, onClose, title, children, footer }: Dialo
                 </div>
 
                 {/* Body */}
-                <div className="px-6 py-5" style={{ color: 'var(--color-text)' }}>
+                <div className="px-6 py-5 overflow-y-auto flex-1 custom-scrollbar" style={{ color: 'var(--color-text)' }}>
+                    <style>{`
+                        .custom-scrollbar::-webkit-scrollbar {
+                            width: 6px;
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-track {
+                            background: transparent;
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-thumb {
+                            background: #475569;
+                            border-radius: 10px;
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                            background: #64748b;
+                        }
+                    `}</style>
                     {children}
                 </div>
 

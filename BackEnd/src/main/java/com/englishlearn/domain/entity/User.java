@@ -8,7 +8,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "USERS")
+@Table(name = "USERS", indexes = {
+    @Index(name = "idx_user_coins", columnList = "coins"),
+    @Index(name = "idx_user_streak", columnList = "streak_days"),
+    @Index(name = "idx_user_school", columnList = "school_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -64,6 +68,22 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "school_id")
     private School school;
+
+    // ===== User preferences for settings page =====
+
+    @Column(name = "sound_effects_enabled", columnDefinition = "boolean default true")
+    @Builder.Default
+    private Boolean soundEffectsEnabled = true;
+
+    @Column(name = "daily_reminders_enabled", columnDefinition = "boolean default true")
+    @Builder.Default
+    private Boolean dailyRemindersEnabled = true;
+
+    /**
+     * Nullable: if null, follow system/default theme. true = dark, false = light.
+     */
+    @Column(name = "prefers_dark_mode")
+    private Boolean prefersDarkMode;
 
     @PrePersist
     protected void onCreate() {

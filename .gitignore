@@ -4,7 +4,12 @@
 
 # ===== Plans & Documentation =====
 Plans/
-docs/private/
+docs/
+antigravity-kit/
+.cursor/
+.husky/
+memory/
+.agent/
 
 # ===== Backend (Java/Spring Boot) =====
 
@@ -19,6 +24,11 @@ build/
 # Maven
 .mvn/wrapper/maven-wrapper.jar
 HELP.md
+
+# Spring default / prod configs (non-sensitive defaults; secrets via env vars / Render dashboard)
+# NOTE: application.properties now holds only safe defaults used as fallbacks.
+# Sensitive values are provided via environment variables in render.yaml.
+BackEnd/src/main/resources/application-prod.properties
 
 # Logs
 logs/
@@ -42,6 +52,7 @@ dist-ssr/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # Debug logs
 npm-debug.log*

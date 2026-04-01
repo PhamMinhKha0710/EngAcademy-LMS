@@ -1,0 +1,68 @@
+services:
+  - type: web
+    name: engacademy-frontend
+    runtime: docker
+    dockerfilePath: FrontEnd/Dockerfile
+    region: singapore
+    port: 3000
+    healthCheckPath: /
+    envVars:
+      - key: VITE_API_URL
+        value: https://engacademy-lms.onrender.com
+
+  - type: web
+    name: engacademy-admin
+    runtime: docker
+    dockerfilePath: Admin/Dockerfile
+    region: singapore
+    port: 3001
+    healthCheckPath: /
+    envVars:
+      - key: VITE_API_URL
+        value: https://engacademy-lms.onrender.com
+
+  - type: web
+    name: engacademy-backend
+    runtime: docker
+    dockerfilePath: Dockerfile
+    region: singapore
+    port: 10000
+    healthCheckPath: /api/v1/auth/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: PORT
+        value: 10000
+      - key: SERVER_PORT
+        value: 10000
+      - key: APPLICATION_SECURITY_JWT_SECRET_KEY
+        generateValue: true
+      - key: APPLICATION_SECURITY_JWT_EXPIRATION
+        value: 86400000
+      - key: APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION
+        value: 604800000
+      - key: APPLICATION_CORS_ALLOWED_ORIGINS
+        value: https://engacademy-lms-1.onrender.com,https://engacademy-admin.onrender.com,https://engacademy-lms.onrender.com,http://localhost:3000,http://localhost:3001
+      - key: REDIS_URL
+        sync: false
+        value: "rediss://default:gQAAAAAAAVTWAAIncDI2ZDk2ZTY2Y2U3OTM0MmM3OWEzNWNlNzJjMDE1Yzg0YnAyODcyNTQ@renewed-tadpole-87254.upstash.io:6379"
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:mysql://hopper.proxy.rlwy.net:56199/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - key: SPRING_DATASOURCE_USERNAME
+        value: root
+      - key: SPRING_DATASOURCE_PASSWORD
+        value: yXZzFdHrRyCrLOJzoqxdPqzPSVlQZoBD
+      - key: SPRING_MAIL_HOST
+        value: smtp.gmail.com
+      - key: SPRING_MAIL_PORT
+        value: 587
+      - key: SPRING_MAIL_USERNAME
+        value: dinhminh4424@gmail.com
+      - key: SPRING_MAIL_PASSWORD
+        sync: false
+      - key: RATE_LIMIT_MAX_ATTEMPTS
+        value: 100
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: 60
+      - key: RATE_LIMIT_ENABLED
+        value: true

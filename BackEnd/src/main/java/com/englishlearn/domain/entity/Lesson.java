@@ -29,6 +29,9 @@ public class Lesson {
     @Column(name = "content_html", columnDefinition = "TEXT")
     private String contentHtml;
 
+    @Column(name = "grammar_html", columnDefinition = "TEXT")
+    private String grammarHtml;
+
     @Column(name = "audio_url", length = 500)
     private String audioUrl;
 
