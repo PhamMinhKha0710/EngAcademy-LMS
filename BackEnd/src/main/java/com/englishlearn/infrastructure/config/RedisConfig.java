@@ -33,8 +33,10 @@ public class RedisConfig {
         int port = 6379;
         String username = "default";
         String password = "";
+        boolean useSsl = false;
 
         if (redisUrl != null && !redisUrl.isBlank()) {
+            useSsl = redisUrl.startsWith("rediss://");
             String withoutScheme = redisUrl.replaceFirst("^(rediss|redis)://", "");
             int atIndex = withoutScheme.indexOf('@');
             String hostPort;
@@ -71,7 +73,7 @@ public class RedisConfig {
         redisConfig.setUsername(username);
         redisConfig.setPassword(password);
 
-        // Configure socket options (SSL auto-enabled for rediss:// URLs)
+        // Configure socket options
         SocketOptions socketOptions = SocketOptions.builder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .keepAlive(true)
@@ -89,11 +91,18 @@ public class RedisConfig {
         poolConfig.setMinIdle(2);
         poolConfig.setMaxWait(Duration.ofSeconds(5));
 
-        LettuceClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
-                .poolConfig(poolConfig)
-                .commandTimeout(Duration.ofSeconds(5))
-                .clientOptions(clientOptions)
-                .build();
+        // Enable SSL for rediss:// URLs (e.g., Upstash)
+        LettucePoolingClientConfiguration.LettucePoolingClientConfigurationBuilder builder =
+                LettucePoolingClientConfiguration.builder()
+                        .poolConfig(poolConfig)
+                        .commandTimeout(Duration.ofSeconds(5))
+                        .clientOptions(clientOptions);
+
+        if (useSsl) {
+            builder.useSsl().disablePeerVerification();
+        }
+
+        LettuceClientConfiguration clientConfig = builder.build();
 
         LettuceConnectionFactory factory = new LettuceConnectionFactory(redisConfig, clientConfig);
         factory.afterPropertiesSet();
