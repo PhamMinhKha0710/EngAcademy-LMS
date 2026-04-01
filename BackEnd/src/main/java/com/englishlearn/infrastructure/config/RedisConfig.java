@@ -1,5 +1,7 @@
 package com.englishlearn.infrastructure.config;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -11,6 +13,17 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
+    @Value("${spring.data.redis.url:}")
+    private String redisUrl;
+
+    @Bean
+    public LettuceClientConfigurationBuilderCustomizer lettuceCustomizer() {
+        return builder -> {
+            if (redisUrl != null && redisUrl.startsWith("rediss://")) {
+                builder.useSsl().disablePeerVerification();
+            }
+        };
+    }
 
     @Lazy
     @Bean
