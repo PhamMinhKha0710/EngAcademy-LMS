@@ -60,7 +60,10 @@ public class PlacementService {
         PlacementQuestion question = selectQuestion(session, currentSkill, currentBand);
         if (question == null) {
             log.warn("No placement question found for skill={}, band={}", currentSkill, currentBand);
-            session.advanceSkill();
+            session.setCurrentSkillIndex(session.getCurrentSkillIndex() + 1);
+            if (session.getCurrentSkillIndex() >= PlacementSkill.values().length) {
+                session.setComplete(true);
+            }
             saveSession(sessionId, session);
             return getNextQuestion(sessionId);
         }

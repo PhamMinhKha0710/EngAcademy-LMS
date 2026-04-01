@@ -3,6 +3,7 @@ package com.englishlearn.infrastructure.config;
 import com.englishlearn.domain.entity.ClassRoom;
 import com.englishlearn.domain.entity.Exam;
 import com.englishlearn.domain.entity.Lesson;
+import com.englishlearn.domain.entity.PlacementQuestion;
 import com.englishlearn.domain.entity.Question;
 import com.englishlearn.domain.entity.QuestionOption;
 import com.englishlearn.domain.entity.Role;
@@ -10,11 +11,14 @@ import com.englishlearn.domain.entity.School;
 import com.englishlearn.domain.entity.Topic;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.entity.Vocabulary;
+import com.englishlearn.domain.enums.CefrLevel;
+import com.englishlearn.domain.enums.PlacementSkill;
 import com.englishlearn.infrastructure.persistence.ClassRoomRepository;
 import com.englishlearn.infrastructure.persistence.ExamRepository;
 import com.englishlearn.infrastructure.persistence.LessonRepository;
 import com.englishlearn.infrastructure.persistence.QuestionOptionRepository;
 import com.englishlearn.infrastructure.persistence.QuestionRepository;
+import com.englishlearn.infrastructure.persistence.PlacementQuestionRepository;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.SchoolRepository;
 import com.englishlearn.infrastructure.persistence.TopicRepository;
@@ -57,6 +61,7 @@ public class ProdDataSeeder {
     private final QuestionOptionRepository questionOptionRepository;
     private final ExamRepository examRepository;
     private final UserRepository userRepository;
+    private final PlacementQuestionRepository placementQuestionRepo;
     private final PasswordEncoder passwordEncoder;
 
     @Bean
@@ -69,13 +74,52 @@ public class ProdDataSeeder {
 
             if (lessonRepository.count() > 0) {
                 log.info("Lessons already exist. Skipping curriculum seeding on production.");
+                if (placementQuestionRepo.count() == 0) {
+                    seedPlacementQuestions();
+                }
                 return;
             }
 
             seedGrade6Curriculum();
+            if (placementQuestionRepo.count() == 0) {
+                seedPlacementQuestions();
+            }
 
             log.info("ProdDataSeeder completed. Core roles and Grade 6 curriculum are present.");
         };
+    }
+
+    private void seedPlacementQuestions() {
+        log.info("Seeding minimal Placement Questions for production...");
+        for (CefrLevel level : CefrLevel.values()) {
+            // GRAMMAR
+            savePQ(PlacementSkill.GRAMMAR, level, "Choose the correct grammar form for level " + level.name(), "Option A", "Option A", "Option B", "Option C", "Option D");
+            savePQ(PlacementSkill.GRAMMAR, level, "Which sentence is correct? (" + level.name() + ")", "Option C", "Option A", "Option B", "Option C", "Option D");
+            // VOCABULARY
+            savePQ(PlacementSkill.VOCABULARY, level, "Choose the correct word for level " + level.name(), "Option B", "Option A", "Option B", "Option C", "Option D");
+            savePQ(PlacementSkill.VOCABULARY, level, "What does this word mean? (" + level.name() + ")", "Option D", "Option A", "Option B", "Option C", "Option D");
+            // READING
+            savePQ(PlacementSkill.READING, level, "Read the text and answer for level " + level.name(), "Option A", "Option A", "Option B", "Option C", "Option D");
+            savePQ(PlacementSkill.READING, level, "What is the main idea? (" + level.name() + ")", "Option C", "Option A", "Option B", "Option C", "Option D");
+            // LISTENING
+            savePQ(PlacementSkill.LISTENING, level, "Listen and choose the correct answer for level " + level.name(), "Option B", "Option A", "Option B", "Option C", "Option D");
+            savePQ(PlacementSkill.LISTENING, level, "What did the speaker say? (" + level.name() + ")", "Option D", "Option A", "Option B", "Option C", "Option D");
+        }
+        log.info("Placement questions seeded.");
+    }
+
+    private void savePQ(PlacementSkill skill, CefrLevel level, String text, String correct, String a, String b, String c, String d) {
+        placementQuestionRepo.save(PlacementQuestion.builder()
+                .skill(skill)
+                .cefrBand(level)
+                .questionText(text)
+                .correctAnswer(correct)
+                .optionA(a)
+                .optionB(b)
+                .optionC(c)
+                .optionD(d)
+                .isActive(true)
+                .build());
     }
 
     private void seedCoreRoles() {

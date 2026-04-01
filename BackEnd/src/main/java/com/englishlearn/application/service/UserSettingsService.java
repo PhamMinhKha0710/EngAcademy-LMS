@@ -29,7 +29,7 @@ public class UserSettingsService {
     private static final int MINUTES_PER_LESSON = 15;
     private static final int DEFAULT_WEEKLY_GOAL_MINUTES = 5 * 60; // 5 hours / tuần
 
-    @Transactional(readOnly = true)
+    @Transactional
     public UserSettingsResponse getSettingsForUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
