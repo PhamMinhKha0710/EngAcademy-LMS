@@ -1,4 +1,4 @@
-=== DIAGNOSTIC REPORT - 2026-03-27T23:16:23.073551 ===
+=== DIAGNOSTIC REPORT - 2026-04-04T01:33:46.478747600 ===
 
 --- ROLES ---
 ID: 1, Name: ROLE_ADMIN
@@ -7,8 +7,17 @@ ID: 3, Name: ROLE_TEACHER
 ID: 4, Name: ROLE_STUDENT
 
 --- SCHOOLS ---
-WARNING: No schools found. Creating default school.
+ID: 1, Name: Trường THCS Nguyễn Du
+ID: 2, Name: Trường THCS Nguyễn Du
 
 --- USERS & FIXES ---
+User: admin (ID: 1) | Final Roles: [ROLE_ADMIN] | School: NULL
+User: school1 (ID: 2) | Final Roles: [ROLE_SCHOOL] | School: 2
+User: teacher1 (ID: 3) | Final Roles: [ROLE_TEACHER] | School: 2
+User: student1 (ID: 4) | Final Roles: [ROLE_STUDENT] | School: 2
+User: student2 (ID: 5) | Final Roles: [ROLE_STUDENT] | School: 2
+User: student3 (ID: 6) | Final Roles: [ROLE_STUDENT] | School: 2
+User: hannie1812 (ID: 7) | Final Roles: [ROLE_STUDENT] | School: 1
+User: llhisme1704 (ID: 8) | FIXED: Added School 1 | Final Roles: [ROLE_STUDENT] | School: 1
 
 === END OF REPORT ===

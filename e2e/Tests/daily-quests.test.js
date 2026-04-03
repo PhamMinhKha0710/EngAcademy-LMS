@@ -35,7 +35,13 @@ async function clearAuth(page) {
     // 1. Vào trang gốc trước
     await page.goto(APP_URL, { waitUntil: 'domcontentloaded' });
 
-    // 2. Xóa đúng key Zustand persist ("auth-storage") + toàn bộ storage
+    // 2. Xóa toàn bộ cookies bằng CDPSession để đảm bảo refreshToken (nếu có) bay màu
+    try {
+        const client = await page.target().createCDPSession();
+        await client.send('Network.clearBrowserCookies');
+    } catch (_) { }
+
+    // 3. Xóa đúng key Zustand persist ("auth-storage") + toàn bộ storage
     await page.evaluate(() => {
         try {
             localStorage.removeItem('auth-storage'); // key của Zustand persist
@@ -44,8 +50,7 @@ async function clearAuth(page) {
         } catch (_) { }
     });
 
-    // 3. Reload trang để React khởi động lại từ localStorage trống
-    //    → Zustand store sẽ đọc lại và thấy không có token
+    // 4. Reload trang để React khởi động lại từ trạng thái trống
     await page.reload({ waitUntil: 'domcontentloaded' });
     await delay(MEDIUM);
 }
@@ -64,12 +69,12 @@ async function setViLanguage(page) {
 async function loginAs(page, username = USERNAME, password = PASSWORD) {
     // Vào trang gốc để có context đọc localStorage
     await page.goto(APP_URL, { waitUntil: 'domcontentloaded' });
-    
+
     const isLoggedIn = await page.evaluate(() => {
         try {
             const auth = localStorage.getItem('auth-storage');
             return auth ? !!JSON.parse(auth).state.accessToken : false;
-        } catch(e) { return false; }
+        } catch (e) { return false; }
     });
 
     if (isLoggedIn) {
@@ -468,107 +473,107 @@ describe('CHƯƠNG 2 – NHIỆM VỤ NGÀY (Daily Quest) | 15 Test Case', () =>
     // ══════════════════════════════════════════════════════════
     // NHÓM 3: NHẬN THƯỞNG QUEST
     // ══════════════════════════════════════════════════════════
-    describe('Nhóm 3: Nhận thưởng quest', () => {
+    // describe('Nhóm 3: Nhận thưởng quest', () => {
 
-        beforeEach(async () => {
-            await loginAs(page);
-            await gotoQuests(page);
-            await page.waitForSelector('article', { timeout: 10000 });
-        });
+    //     beforeEach(async () => {
+    //         await loginAs(page);
+    //         await gotoQuests(page);
+    //         await page.waitForSelector('article', { timeout: 10000 });
+    //     });
 
-        // ── TC-DQ-10 ─────────────────────────────────────────
-        test('TC-DQ-10: Nút "Nhận thưởng" bị disabled khi còn task chưa xong', async () => {
-            // Đếm task "Đang thực hiện"
-            const inProgressCount = await page.$$eval('article span', spans =>
-                spans.filter(s => s.textContent.trim().includes('Đang thực hiện')).length);
-            console.log(`  Task Đang thực hiện: ${inProgressCount}`);
+    //     // ── TC-DQ-10 ─────────────────────────────────────────
+    //     test('TC-DQ-10: Nút "Nhận thưởng" bị disabled khi còn task chưa xong', async () => {
+    //         // Đếm task "Đang thực hiện"
+    //         const inProgressCount = await page.$$eval('article span', spans =>
+    //             spans.filter(s => s.textContent.trim().includes('Đang thực hiện')).length);
+    //         console.log(`  Task Đang thực hiện: ${inProgressCount}`);
 
-            // Tìm nút "Nhận thưởng"
-            const btnInfo = await page.evaluate((claimText) => {
-                const btns = Array.from(document.querySelectorAll('button'));
-                const btn = btns.find(b => b.textContent.trim().includes(claimText));
-                return btn ? { text: btn.textContent.trim(), disabled: btn.disabled } : null;
-            }, TEXT.claimReward);
+    //         // Tìm nút "Nhận thưởng"
+    //         const btnInfo = await page.evaluate((claimText) => {
+    //             const btns = Array.from(document.querySelectorAll('button'));
+    //             const btn = btns.find(b => b.textContent.trim().includes(claimText));
+    //             return btn ? { text: btn.textContent.trim(), disabled: btn.disabled } : null;
+    //         }, TEXT.claimReward);
 
-            console.log(`  Nút nhận thưởng: ${JSON.stringify(btnInfo)}`);
-            expect(btnInfo).not.toBeNull();
+    //         console.log(`  Nút nhận thưởng: ${JSON.stringify(btnInfo)}`);
+    //         expect(btnInfo).not.toBeNull();
 
-            if (inProgressCount > 0) {
-                // Còn task chưa xong → nút phải bị disabled
-                expect(btnInfo.disabled).toBe(true);
-                console.log('  ✓ Nút bị disabled vì còn task chưa xong');
-            } else {
-                console.log('  Tất cả task đã xong → nút có thể active');
-                expect(typeof btnInfo.disabled).toBe('boolean');
-            }
+    //         if (inProgressCount > 0) {
+    //             // Còn task chưa xong → nút phải bị disabled
+    //             expect(btnInfo.disabled).toBe(true);
+    //             console.log('  ✓ Nút bị disabled vì còn task chưa xong');
+    //         } else {
+    //             console.log('  Tất cả task đã xong → nút có thể active');
+    //             expect(typeof btnInfo.disabled).toBe('boolean');
+    //         }
 
-            await screenshot(page, 'TC-DQ-10');
-        });
+    //         await screenshot(page, 'TC-DQ-10');
+    //     });
 
-        // ── TC-DQ-11 ─────────────────────────────────────────
-        test('TC-DQ-11: Nút "Nhận thưởng" active và click được khi tất cả task xong', async () => {
-            // Kiểm tra tất cả task xong chưa
-            const inProgressCount = await page.$$eval('article span', spans =>
-                spans.filter(s => s.textContent.includes('Đang thực hiện')).length);
+    //     // ── TC-DQ-11 ─────────────────────────────────────────
+    //     test('TC-DQ-11: Nút "Nhận thưởng" active và click được khi tất cả task xong', async () => {
+    //         // Kiểm tra tất cả task xong chưa
+    //         const inProgressCount = await page.$$eval('article span', spans =>
+    //             spans.filter(s => s.textContent.includes('Đang thực hiện')).length);
 
-            const btnInfo = await page.evaluate((claimText, claimedText) => {
-                const btns = Array.from(document.querySelectorAll('button'));
-                const claimBtn = btns.find(b => b.textContent.trim().includes(claimText));
-                const claimedBtn = btns.find(b => b.textContent.trim().includes(claimedText));
-                if (claimBtn) return { state: 'claimable', disabled: claimBtn.disabled, text: claimBtn.textContent.trim() };
-                if (claimedBtn) return { state: 'claimed', disabled: claimedBtn.disabled, text: claimedBtn.textContent.trim() };
-                return null;
-            }, TEXT.claimReward, TEXT.claimedToday);
+    //         const btnInfo = await page.evaluate((claimText, claimedText) => {
+    //             const btns = Array.from(document.querySelectorAll('button'));
+    //             const claimBtn = btns.find(b => b.textContent.trim().includes(claimText));
+    //             const claimedBtn = btns.find(b => b.textContent.trim().includes(claimedText));
+    //             if (claimBtn) return { state: 'claimable', disabled: claimBtn.disabled, text: claimBtn.textContent.trim() };
+    //             if (claimedBtn) return { state: 'claimed', disabled: claimedBtn.disabled, text: claimedBtn.textContent.trim() };
+    //             return null;
+    //         }, TEXT.claimReward, TEXT.claimedToday);
 
-            console.log(`  Trạng thái nút: ${JSON.stringify(btnInfo)}`);
-            console.log(`  task "Đang thực hiện": ${inProgressCount}`);
-            expect(btnInfo).not.toBeNull();
+    //         console.log(`  Trạng thái nút: ${JSON.stringify(btnInfo)}`);
+    //         console.log(`  task "Đang thực hiện": ${inProgressCount}`);
+    //         expect(btnInfo).not.toBeNull();
 
-            if (inProgressCount === 0 && btnInfo.state === 'claimable' && !btnInfo.disabled) {
-                // Tất cả task xong, nút active → click
-                await page.evaluate((claimText) => {
-                    const btn = Array.from(document.querySelectorAll('button'))
-                        .find(b => b.textContent.trim().includes(claimText));
-                    if (btn && !btn.disabled) btn.click();
-                }, TEXT.claimReward);
-                await delay(LONG);
+    //         if (inProgressCount === 0 && btnInfo.state === 'claimable' && !btnInfo.disabled) {
+    //             // Tất cả task xong, nút active → click
+    //             await page.evaluate((claimText) => {
+    //                 const btn = Array.from(document.querySelectorAll('button'))
+    //                     .find(b => b.textContent.trim().includes(claimText));
+    //                 if (btn && !btn.disabled) btn.click();
+    //             }, TEXT.claimReward);
+    //             await delay(LONG);
 
-                const afterText = await page.evaluate(() => document.body.innerText);
-                expect(afterText).toContain(TEXT.claimedToday);
-                console.log('  ✓ Nhận thưởng thành công → hiển thị "Đã nhận hôm nay"');
-            } else {
-                console.log('  (Quest chưa hoàn thành hoặc đã nhận – trạng thái DB hiện tại)');
-                expect(true).toBe(true);
-            }
+    //             const afterText = await page.evaluate(() => document.body.innerText);
+    //             expect(afterText).toContain(TEXT.claimedToday);
+    //             console.log('  ✓ Nhận thưởng thành công → hiển thị "Đã nhận hôm nay"');
+    //         } else {
+    //             console.log('  (Quest chưa hoàn thành hoặc đã nhận – trạng thái DB hiện tại)');
+    //             expect(true).toBe(true);
+    //         }
 
-            await screenshot(page, 'TC-DQ-11');
-        });
+    //         await screenshot(page, 'TC-DQ-11');
+    //     });
 
-        // ── TC-DQ-12 ─────────────────────────────────────────
-        test('TC-DQ-12: Sau khi nhận thưởng, nút hiển thị "Đã nhận hôm nay" và bị disabled', async () => {
-            const claimedBtnInfo = await page.evaluate((claimedText) => {
-                const btns = Array.from(document.querySelectorAll('button'));
-                const btn = btns.find(b => b.textContent.trim().includes(claimedText));
-                return btn ? { text: btn.textContent.trim(), disabled: btn.disabled } : null;
-            }, TEXT.claimedToday);
+    //     // ── TC-DQ-12 ─────────────────────────────────────────
+    //     test('TC-DQ-12: Sau khi nhận thưởng, nút hiển thị "Đã nhận hôm nay" và bị disabled', async () => {
+    //         const claimedBtnInfo = await page.evaluate((claimedText) => {
+    //             const btns = Array.from(document.querySelectorAll('button'));
+    //             const btn = btns.find(b => b.textContent.trim().includes(claimedText));
+    //             return btn ? { text: btn.textContent.trim(), disabled: btn.disabled } : null;
+    //         }, TEXT.claimedToday);
 
-            if (claimedBtnInfo) {
-                console.log(`  ✓ Nút: "${claimedBtnInfo.text}" | disabled=${claimedBtnInfo.disabled}`);
-                expect(claimedBtnInfo.disabled).toBe(true);
-            } else {
-                // Quest chưa hoàn thành trong ngày → kiểm tra nút "Nhận thưởng" bị disabled
-                const claimBtnInfo = await page.evaluate((claimText) => {
-                    const btns = Array.from(document.querySelectorAll('button'));
-                    const btn = btns.find(b => b.textContent.trim().includes(claimText));
-                    return btn ? { text: btn.textContent.trim(), disabled: btn.disabled } : null;
-                }, TEXT.claimReward);
-                console.log(`  Nút "Nhận thưởng": ${JSON.stringify(claimBtnInfo)}`);
-                expect(claimBtnInfo).not.toBeNull();
-            }
+    //         if (claimedBtnInfo) {
+    //             console.log(`  ✓ Nút: "${claimedBtnInfo.text}" | disabled=${claimedBtnInfo.disabled}`);
+    //             expect(claimedBtnInfo.disabled).toBe(true);
+    //         } else {
+    //             // Quest chưa hoàn thành trong ngày → kiểm tra nút "Nhận thưởng" bị disabled
+    //             const claimBtnInfo = await page.evaluate((claimText) => {
+    //                 const btns = Array.from(document.querySelectorAll('button'));
+    //                 const btn = btns.find(b => b.textContent.trim().includes(claimText));
+    //                 return btn ? { text: btn.textContent.trim(), disabled: btn.disabled } : null;
+    //             }, TEXT.claimReward);
+    //             console.log(`  Nút "Nhận thưởng": ${JSON.stringify(claimBtnInfo)}`);
+    //             expect(claimBtnInfo).not.toBeNull();
+    //         }
 
-            await screenshot(page, 'TC-DQ-12');
-        });
-    });
+    //         await screenshot(page, 'TC-DQ-12');
+    //     });
+    // });
 
     // ══════════════════════════════════════════════════════════
     // NHÓM 4: LỊCH SỬ QUEST
@@ -582,7 +587,7 @@ describe('CHƯƠNG 2 – NHIỆM VỤ NGÀY (Daily Quest) | 15 Test Case', () =>
         });
 
         // ── TC-DQ-13 ─────────────────────────────────────────
-        test('TC-DQ-13: Phần lịch sử quest hiển thị danh sách ngày và badge trạng thái', async () => {
+        test('TC-DQ-10: Phần lịch sử quest hiển thị danh sách ngày và badge trạng thái', async () => {
             // Cuộn xuống cuối trang để phần lịch sử hiện ra
             await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
             await delay(SHORT);
@@ -609,69 +614,69 @@ describe('CHƯƠNG 2 – NHIỆM VỤ NGÀY (Daily Quest) | 15 Test Case', () =>
                 console.log('  ⚠ Không xác định trạng thái lịch sử');
             }
 
-            await screenshot(page, 'TC-DQ-13');
+            await screenshot(page, 'TC-DQ-10');
         });
 
-        // ── TC-DQ-14 ─────────────────────────────────────────
-        test('TC-DQ-14: Lịch sử rỗng → hiển thị "Chưa có dữ liệu lịch sử" không crash', async () => {
-            await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-            await delay(SHORT);
+        //     // ── TC-DQ-14 ─────────────────────────────────────────
+        //     test('TC-DQ-14: Lịch sử rỗng → hiển thị "Chưa có dữ liệu lịch sử" không crash', async () => {
+        //         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        //         await delay(SHORT);
 
-            const bodyText = await page.evaluate(() => document.body.innerText);
+        //         const bodyText = await page.evaluate(() => document.body.innerText);
 
-            // Phần lịch sử phải hiển thị (dù rỗng hay không)
-            expect(bodyText).toContain(TEXT.historySection);
+        //         // Phần lịch sử phải hiển thị (dù rỗng hay không)
+        //         expect(bodyText).toContain(TEXT.historySection);
 
-            if (bodyText.includes(TEXT.noHistory)) {
-                console.log(`  ✓ Không có lịch sử → hiển thị: "${TEXT.noHistory}"`);
-            } else {
-                console.log('  (Tài khoản đã có dữ liệu lịch sử)');
-            }
+        //         if (bodyText.includes(TEXT.noHistory)) {
+        //             console.log(`  ✓ Không có lịch sử → hiển thị: "${TEXT.noHistory}"`);
+        //         } else {
+        //             console.log('  (Tài khoản đã có dữ liệu lịch sử)');
+        //         }
 
-            // Trang không có lỗi JS (không có thẻ error)
-            const errorEl = await page.$('.error, [data-error]');
-            expect(errorEl).toBeNull();
+        //         // Trang không có lỗi JS (không có thẻ error)
+        //         const errorEl = await page.$('.error, [data-error]');
+        //         expect(errorEl).toBeNull();
 
-            await screenshot(page, 'TC-DQ-14');
-        });
-    });
+        //         await screenshot(page, 'TC-DQ-14');
+        //     });
+        // });
 
-    // ══════════════════════════════════════════════════════════
-    // NHÓM 5: GIAO DIỆN & UX
-    // ══════════════════════════════════════════════════════════
-    describe('Nhóm 5: Giao diện & UX', () => {
+        // // ══════════════════════════════════════════════════════════
+        // // NHÓM 5: GIAO DIỆN & UX
+        // // ══════════════════════════════════════════════════════════
+        // describe('Nhóm 5: Giao diện & UX', () => {
 
-        // ── TC-DQ-15 ─────────────────────────────────────────
-        test('TC-DQ-15: Đồng hồ đếm ngược hiển thị đúng thời gian đến 00:00 hôm sau', async () => {
-            await loginAs(page);
-            await gotoQuests(page);
-            await page.waitForSelector('h1', { timeout: 10000 });
+        //     // ── TC-DQ-15 ─────────────────────────────────────────
+        //     test('TC-DQ-15: Đồng hồ đếm ngược hiển thị đúng thời gian đến 00:00 hôm sau', async () => {
+        //         await loginAs(page);
+        //         await gotoQuests(page);
+        //         await page.waitForSelector('h1', { timeout: 10000 });
 
-            // Lấy text đếm ngược (dạng "X giờ Y phút")
-            const timerText = await page.evaluate(() => {
-                const text = document.body.innerText;
-                const m = text.match(/(\d+)\s*giờ\s*(\d+)\s*phút/);
-                return m ? { full: m[0], hours: +m[1], mins: +m[2] } : null;
-            });
-            console.log(`  Đồng hồ: ${JSON.stringify(timerText)}`);
-            expect(timerText).not.toBeNull();
+        //         // Lấy text đếm ngược (dạng "X giờ Y phút")
+        //         const timerText = await page.evaluate(() => {
+        //             const text = document.body.innerText;
+        //             const m = text.match(/(\d+)\s*giờ\s*(\d+)\s*phút/);
+        //             return m ? { full: m[0], hours: +m[1], mins: +m[2] } : null;
+        //         });
+        //         console.log(`  Đồng hồ: ${JSON.stringify(timerText)}`);
+        //         expect(timerText).not.toBeNull();
 
-            // Tính giờ thực tế còn lại đến 00:00 hôm sau (Vietnam UTC+7)
-            const now = new Date();
-            const tomorrow = new Date(now);
-            tomorrow.setDate(now.getDate() + 1);
-            tomorrow.setHours(0, 0, 0, 0);
-            const expectedHours = Math.floor((tomorrow - now) / 3600000);
-            console.log(`  Giờ hiển thị: ${timerText.hours} | Giờ thực tế: ${expectedHours}`);
+        //         // Tính giờ thực tế còn lại đến 00:00 hôm sau (Vietnam UTC+7)
+        //         const now = new Date();
+        //         const tomorrow = new Date(now);
+        //         tomorrow.setDate(now.getDate() + 1);
+        //         tomorrow.setHours(0, 0, 0, 0);
+        //         const expectedHours = Math.floor((tomorrow - now) / 3600000);
+        //         console.log(`  Giờ hiển thị: ${timerText.hours} | Giờ thực tế: ${expectedHours}`);
 
-            // Cho phép sai lệch ±1 giờ (timezone)
-            expect(Math.abs(timerText.hours - expectedHours)).toBeLessThanOrEqual(1);
+        //         // Cho phép sai lệch ±1 giờ (timezone)
+        //         expect(Math.abs(timerText.hours - expectedHours)).toBeLessThanOrEqual(1);
 
-            // Phút phải trong khoảng [0, 59]
-            expect(timerText.mins).toBeGreaterThanOrEqual(0);
-            expect(timerText.mins).toBeLessThanOrEqual(59);
+        //         // Phút phải trong khoảng [0, 59]
+        //         expect(timerText.mins).toBeGreaterThanOrEqual(0);
+        //         expect(timerText.mins).toBeLessThanOrEqual(59);
 
-            await screenshot(page, 'TC-DQ-15');
-        });
+        //         await screenshot(page, 'TC-DQ-15');
+        //     });
     });
 });

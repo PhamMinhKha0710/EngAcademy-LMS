@@ -32,5 +32,9 @@
   "bugs": {
     "url": "https://github.com/PhamMinhKha0710/weblearnenglish/issues"
   },
-  "homepage": "https://github.com/PhamMinhKha0710/weblearnenglish#readme"
+  "homepage": "https://github.com/PhamMinhKha0710/weblearnenglish#readme",
+  "dependencies": {
+    "imap-simple": "^5.1.0",
+    "mailparser": "^3.9.6"
+  }
 }
