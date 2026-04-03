@@ -1,0 +1,19 @@
+{
+  "login": {
+    "validUser": {
+      "username": "dinhminh4424@gmail.com",
+      "email": "dinhminh4424@gmail.com",
+      "password": "dinhminh4424@gmail.com"
+    },
+    "invalidPassword": "WrongPassword999",
+    "nonexistentUsername": "unknownuser123"
+  },
+  "register": {
+    "validFullName": "Nguyễn Văn A",
+    "validPassword": "Abc@123456",
+    "weakPassword": "123",
+    "emailInvalidFormat": "abc@",
+    "existingUsername": "dinhminh4424@gmail.com",
+    "existingEmail": "dinhminh4424@gmail.com"
+  }
+}

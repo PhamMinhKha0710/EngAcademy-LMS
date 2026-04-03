@@ -1,6 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 
+// ANSI Color Codes
+const colors = {
+    reset: "\x1b[0m",
+    bold: "\x1b[1m",
+    blue: "\x1b[34m",
+    green: "\x1b[32m",
+    red: "\x1b[31m",
+    cyan: "\x1b[36m",
+    yellow: "\x1b[33m",
+    gray: "\x1b[90m"
+};
+
+const logInfo = (msg) => console.log(`${colors.blue}[INFO]${colors.reset} ${msg}`);
+const logBold = (msg) => console.log(`${colors.blue}[INFO]${colors.reset} ${colors.bold}${msg}${colors.reset}`);
+
 /**
  * Extract the body of a specific test case from the test file source.
  */
@@ -59,20 +74,75 @@ class CustomReporter {
     constructor(globalConfig, options) {
         this._globalConfig = globalConfig;
         this._options = options;
+        this._startTime = Date.now();
+    }
+
+    onRunStart(results, options) {
+        logInfo("Scanning for projects...");
+        logInfo(`${colors.blue}-------------------< ${colors.cyan}com.englishlearn:english-learning-frontend ${colors.blue}>-------------------${colors.reset}`);
+        logBold("Building English Learning Platform 1.0.0");
+        logInfo("  from package.json");
+        logInfo(`${colors.blue}--------------------------------[ ${colors.cyan}e2e ${colors.blue}]---------------------------------${colors.reset}`);
+        logInfo("");
+    }
+
+    onTestStart(test) {
+        logInfo(`${colors.blue}--- ${colors.cyan}surefire:3.1.2:test ${colors.reset}${colors.bold}(default-test)${colors.reset}${colors.blue} @ english-learning-frontend ---${colors.reset}`);
+        logInfo(`${colors.bold}T E S T S${colors.reset}`);
+        logInfo(`${colors.blue}-------------------------------------------------------${colors.reset}`);
+        logInfo(`Running ${colors.bold}${path.basename(test.path)}${colors.reset}`);
+    }
+
+    onTestResult(test, testResult) {
+        const time = (testResult.perfStats.end - testResult.perfStats.start) / 1000;
+        const total = testResult.numPassingTests + testResult.numFailingTests + testResult.numPendingTests;
+        logInfo(`Tests run: ${colors.bold}${total}${colors.reset}, Failures: ${colors.red}${testResult.numFailingTests}${colors.reset}, Errors: 0, Skipped: ${testResult.numPendingTests}, Time elapsed: ${time.toFixed(3)} s -- in ${colors.bold}${path.basename(test.path)}${colors.reset}`);
+        logInfo("");
     }
 
     onRunComplete(testContexts, results) {
-        const testFilePath = path.join(__dirname, 'Tests', 'main.e2e.test.js');
         const screenshotDir = path.join(__dirname, 'Screenshots');
 
-        // ── Build row data & Rename Screenshots ───────────────────────────────
+        // ── Print Maven-style Results Summary ──
+        logInfo("Results:");
+        logInfo("");
+        const statusColor = results.numFailedTests > 0 ? colors.red : colors.green;
+        logInfo(`Tests run: ${results.numTotalTests}, Failures: ${statusColor}${results.numFailedTests}${colors.reset}, Errors: 0, Skipped: ${results.numPendingTests}`);
+        logInfo("");
+        logInfo(`${colors.blue}------------------------------------------------------------------------${colors.reset}`);
+        
+        if (results.numFailedTests > 0) {
+            logInfo(`${colors.red}${colors.bold}BUILD FAILURE${colors.reset}`);
+        } else {
+            logInfo(`${colors.green}${colors.bold}BUILD SUCCESS${colors.reset}`);
+        }
+        
+        logInfo(`${colors.blue}------------------------------------------------------------------------${colors.reset}`);
+        
+        const totalTime = (Date.now() - this._startTime) / 1000;
+        logInfo(`Total time:  ${totalTime.toFixed(3)} s`);
+        
+        const now = new Date();
+        const offset = -now.getTimezoneOffset();
+        const diff = offset >= 0 ? '+' : '-';
+        const pad = (num) => String(num).padStart(2, '0');
+        const timestamp = now.getFullYear() +
+            '-' + pad(now.getMonth() + 1) +
+            '-' + pad(now.getDate()) +
+            'T' + pad(now.getHours()) +
+            ':' + pad(now.getMinutes()) +
+            ':' + pad(now.getSeconds()) +
+            diff + pad(Math.floor(Math.abs(offset) / 60)) +
+            ':' + pad(Math.abs(offset) % 60);
+            
+        logInfo(`Finished at: ${timestamp}`);
+        logInfo(`${colors.blue}------------------------------------------------------------------------${colors.reset}`);
+
+        // ── Original HTML logic ──
         const rows = [];
         results.testResults.forEach(suite => {
+            const testFilePath = suite.testFilePath; 
             suite.testResults.forEach(test => {
-                const item = test.ancestorTitles[0] || 'E2E Testing';
-                const subItemRaw = test.ancestorTitles[1] || '';
-                const subItem = subItemRaw.replace(/PHẦN \d+:\s*/, '');
-
                 let id = 'TC-E2E';
                 let description = test.title;
                 const m1 = test.title.match(/\b(TC-[A-Z0-9-]+)\b/);
@@ -81,72 +151,70 @@ class CustomReporter {
                 if (m1) { id = m1[1]; description = test.title.replace(m1[0], '').replace(/^:\s*/, '').trim(); }
                 else if (m2) { id = `TC-${m2[1].padStart(2, '0')}`; description = test.title.replace(m2[0], '').trim(); }
 
-                const execTime = test.duration ? test.duration + ' ms' : '< 1 ms';
                 const isPassed = test.status === 'passed';
                 const statusStr = isPassed ? 'passed' : 'failed';
+                const suffix = isPassed ? '_passed' : '_failed';
 
-                // Vietnamese Expected Output
-                let expectedOutput = isPassed
-                    ? 'Hệ thống xử lý mượt mà, không gặp lỗi kịch bản.'
-                    : 'Các bước thực hiện thành công, dữ liệu được ghi nhận.';
+                // Detect screenshot
+                const screenshotName = `${id}${suffix}.png`;
+                const screenshotPathFull = path.join(screenshotDir, screenshotName);
+                const hasScreenshot = fs.existsSync(screenshotPathFull);
+                const screenshotRelPath = hasScreenshot ? `../Screenshots/${screenshotName}` : null;
 
-                const descLower = description.toLowerCase();
-                if (descLower.includes('đăng nhập thành công') || descLower.includes('luồng người dùng'))
-                    expectedOutput = 'Chuyển hướng thành công, hiển thị thông tin người dùng.';
-                else if (descLower.includes('sai mật khẩu'))
-                    expectedOutput = 'Hiển thị thông báo lỗi, giữ nguyên trang đăng nhập.';
-                else if (descLower.includes('thiếu username') || descLower.includes('thiếu password'))
-                    expectedOutput = 'Trình duyệt ngăn chặn submit, báo lỗi trường trống.';
-                else if (descLower.includes('đăng xuất'))
-                    expectedOutput = 'Xóa session/token, quay về trang chủ hoặc login.';
-                else if (descLower.includes('từ khóa hợp lệ'))
-                    expectedOutput = 'Danh sách kết quả hiển thị khớp với từ khóa.';
-                else if (descLower.includes('không có kết quả') || descLower.includes('ký tự đặc biệt'))
-                    expectedOutput = 'Hiển thị giao diện "Empty State" (không tìm thấy).';
-                else if (descLower.includes('từ khóa trống'))
-                    expectedOutput = 'Hiển thị toàn bộ danh sách hoặc giữ nguyên trạng thái.';
+                // Format execution time (HH:mm:ss)
+                const startTime = new Date(suite.perfStats.start);
+                const testTimeStr = pad(startTime.getHours()) + ":" + pad(startTime.getMinutes()) + ":" + pad(startTime.getSeconds());
 
                 const rawCode = extractTestCode(testFilePath, test.title) || '// Source code not found';
                 const highlightedCode = highlight(rawCode);
 
-                // Rename screenshot file: ID.png -> ID_status.png
-                try {
-                    const oldPath = path.join(screenshotDir, `${id}.png`);
-                    const newPath = path.join(screenshotDir, `${id}_${statusStr}.png`);
-                    if (fs.existsSync(oldPath)) {
-                        if (fs.existsSync(newPath)) fs.unlinkSync(newPath);
-                        fs.renameSync(oldPath, newPath);
-                    }
-                } catch (e) { }
+                const suiteName = path.basename(testFilePath);
+                const titleParts = test.title.split('|');
+                const tcName = titleParts[0].trim();
+                const tcContent = titleParts[1] ? titleParts[1].trim() : "Hệ thống xử lý mượt mà, không gặp lỗi kịch bản.";
 
-                rows.push({ id, statusStr, item: item.replace(/KỊCH BẢN KIỂM THỬ E2E TOÀN DIỆN.*/, 'Toàn bộ E2E'), subItem, description, execTime, expectedOutput, isPassed, highlightedCode });
+                rows.push({ 
+                    id, 
+                    statusStr, 
+                    item: suiteName, 
+                    description: tcName, 
+                    execTime: test.duration ? test.duration + ' ms' : '< 1 ms',
+                    testTime: testTimeStr,
+                    expectedOutput: tcContent, 
+                    isPassed, 
+                    highlightedCode, 
+                    screenshot: screenshotRelPath 
+                });
             });
         });
 
-        // ── Build table rows ──────────────────────────────────────────────────
         let tableRows = '';
+        let globalIndex = 0;
         rows.forEach((r, idx) => {
-            const statusHtml = r.isPassed
-                ? '<span class="badge badge-passed">Đạt</span>'
-                : '<span class="badge badge-failed">Lỗi</span>';
+            const screenshotBtn = r.screenshot 
+                ? `<button class="action-btn" style="background:#10b981;margin-left:5px" onclick="openMedia(${globalIndex}, 'img')">📸 Ảnh</button>`
+                : '';
             tableRows += `
                     <tr>
                         <td><span class="id-badge">${escHtml(r.id)}</span></td>
                         <td style="font-weight:500;font-size:13px">${escHtml(r.item)}</td>
-                        <td class="subitem-col">${escHtml(r.subItem)}</td>
-                        <td class="desc-col">${escHtml(r.description)}</td>
+                        <td class="desc-col" style="font-weight:600">${escHtml(r.description)}</td>
+                        <td style="font-family:monospace;font-size:13px">${r.testTime}</td>
                         <td style="font-family:monospace;font-size:13px">${r.execTime}</td>
-                        <td class="expected-col">${r.expectedOutput}</td>
-                        <td>${statusHtml}</td>
-                        <td><button class="action-btn" onclick="openCode(${idx})">&#128269; Mã Test</button></td>
+                        <td class="expected-col">${escHtml(r.expectedOutput)}</td>
+                        <td><span class="badge badge-${r.statusStr}">${r.isPassed ? 'Đạt' : 'Lỗi'}</span></td>
+                        <td>
+                            <div style="display:flex">
+                                <button class="action-btn" onclick="openMedia(${globalIndex}, 'code')">🔍 Mã</button>
+                                ${screenshotBtn}
+                            </div>
+                        </td>
                     </tr>`;
+            globalIndex++;
         });
 
-        const codeArrayJson = JSON.stringify(
-            rows.map(r => ({ id: r.id, desc: r.description, hl: r.highlightedCode }))
-        );
+        const dataJson = JSON.stringify(rows);
 
-        // ── Full HTML ─────────────────────────────────────────────────────────
         const html = `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -168,24 +236,26 @@ class CustomReporter {
         .table-wrapper{padding:30px;overflow-x:auto}
         table{width:100%;border-collapse:collapse;font-size:14px}
         th,td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);line-height:1.5}
-        th{background:#312e81;color:#fff;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:.5px;white-space:nowrap;position:sticky;top:0}
+        th{background:#312e81;color:#fff;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px;white-space:nowrap;position:sticky;top:0}
         tr:hover td{background:#f8fafc}
         .id-badge{display:inline-block;background:#e0e7ff;color:#3730a3;padding:4px 8px;border-radius:4px;font-weight:600;font-family:monospace;font-size:13px;white-space:nowrap}
         .badge{display:inline-block;padding:5px 10px;border-radius:20px;font-weight:600;font-size:12px;text-align:center;min-width:80px}
         .badge-passed{background:#d1fae5;color:#065f46}.badge-failed{background:#fee2e2;color:#991b1b}
-        .action-btn{display:inline-flex;align-items:center;gap:5px;background:var(--primary);color:#fff;border:none;cursor:pointer;padding:7px 13px;border-radius:6px;font-size:12px;font-weight:600;transition:background .2s,transform .1s;white-space:nowrap}
+        .action-btn{display:inline-flex;align-items:center;gap:5px;background:var(--primary);color:#fff;border:none;cursor:pointer;padding:7px 10px;border-radius:6px;font-size:11px;font-weight:600;transition:background .2s,transform .1s;white-space:nowrap}
         .action-btn:hover{background:#4338ca;transform:translateY(-1px)}.action-btn:active{transform:translateY(0)}
-        .desc-col{max-width:280px}.subitem-col{color:#4338ca;font-weight:500;font-size:13px}.expected-col{font-size:13px;color:var(--muted)}
+        .desc-col{max-width:280px}.expected-col{font-size:13px;color:var(--muted)}
         /* Modal */
-        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center}
+        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center}
         .overlay.open{display:flex}
-        .modal{background:#1e1e2e;border-radius:12px;width:92%;max-width:800px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.45);overflow:hidden}
-        .modal-hd{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:#181825;border-bottom:1px solid #313244}
-        .modal-badge{background:#313244;color:#89b4fa;padding:3px 10px;border-radius:4px;font-size:13px;font-weight:700;font-family:monospace}
-        .modal-title{color:#cdd6f4;font-size:13px;font-weight:600;font-family:monospace;margin-left:10px}
-        .modal-close{background:#45475a;border:none;color:#cdd6f4;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+        .modal{background:#fff;border-radius:12px;width:95%;max-width:1100px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.45);overflow:hidden}
+        .modal-hd{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:#1e1b4b;color:#fff}
+        .modal-badge{background:rgba(255,255,255,.2);color:#fff;padding:3px 10px;border-radius:4px;font-size:13px;font-weight:700;font-family:monospace}
+        .modal-title{color:#fff;font-size:14px;font-weight:600;margin-left:10px}
+        .modal-close{background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
         .modal-close:hover{background:#ef4444;color:#fff}
-        .modal-body{overflow-y:auto;padding:20px}
+        .modal-body{overflow-y:auto;padding:20px;background:#1e1e2e;color:#cdd6f4}
+        .modal-body.img-mode{background:#f3f4f6;display:flex;justify-content:center}
+        .modal-body.img-mode img{max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 6px -1px rgba(0,0,0,.1)}
         pre{background:transparent;color:#cdd6f4;font-family:'Fira Code','Cascadia Code',Consolas,monospace;font-size:13px;line-height:1.75;white-space:pre-wrap;word-break:break-all}
         .ln{color:#45475a;user-select:none;display:inline-block;min-width:36px;text-align:right;margin-right:14px;font-size:12px}
         .kw{color:#cba6f7}.str{color:#a6e3a1}.cmt{color:#6c7086;font-style:italic}.num{color:#fab387}
@@ -195,7 +265,10 @@ class CustomReporter {
 <div class="container">
     <div class="header">
         <h1>Báo cáo Kiểm thử Tự động E2E</h1>
-        <div style="font-size:14px;opacity:.8">Dự án: English Learning System</div>
+        <div style="text-align:right">
+            <div style="font-size:14px;font-weight:600">Dự án: English Learning System</div>
+            <div style="font-size:12px;opacity:.8;margin-top:4px">Ngày xuất: ${now.toLocaleString('vi-VN')}</div>
+        </div>
     </div>
     <div class="summary-cards">
         <div class="card c-total"><div class="card-value">${results.numTotalTests}</div><div class="card-label">Tổng Case</div></div>
@@ -206,13 +279,13 @@ class CustomReporter {
         <table>
             <thead><tr>
                 <th width="8%">Mã TC</th>
-                <th width="12%">Items</th>
-                <th width="15%">Sub-Items</th>
-                <th width="22%">Nội dung kiểm thử</th>
-                <th width="8%">Thời gian</th>
-                <th width="15%">Kết quả mong đợi</th>
-                <th width="10%">Kết quả</th>
-                <th width="10%">Hành động</th>
+                <th width="12%">Tệp Test</th>
+                <th width="15%">Tên Kịch Bản</th>
+                <th width="8%">Giờ Test</th>
+                <th width="8%">Thời lượng</th>
+                <th width="30%">Nội dung thực hiện</th>
+                <th width="8%">Kết quả</th>
+                <th width="11%">Hành động</th>
             </tr></thead>
             <tbody>${tableRows}</tbody>
         </table>
@@ -229,17 +302,26 @@ class CustomReporter {
             </div>
             <button class="modal-close" onclick="closeModal()">&#10005;</button>
         </div>
-        <div class="modal-body"><pre id="mCode"></pre></div>
+        <div class="modal-body" id="mBody"></div>
     </div>
 </div>
 
 <script>
-var DATA = ${codeArrayJson};
-function openCode(i){
+var DATA = ${dataJson};
+function openMedia(i, mode){
     var d=DATA[i]||{};
     document.getElementById('mBadge').textContent=d.id||'TC';
-    document.getElementById('mTitle').textContent=' \u2014 '+d.desc;
-    document.getElementById('mCode').innerHTML=d.hl||'// not found';
+    document.getElementById('mTitle').textContent=' \u2014 '+d.description;
+    var body = document.getElementById('mBody');
+    body.innerHTML = '';
+    body.className = 'modal-body';
+
+    if(mode === 'code'){
+        body.innerHTML = '<pre>' + (d.highlightedCode || '// not found') + '</pre>';
+    } else {
+        body.className = 'modal-body img-mode';
+        body.innerHTML = '<img src="' + d.screenshot + '" alt="Screenshot">';
+    }
     document.getElementById('overlay').classList.add('open');
 }
 function closeModal(){document.getElementById('overlay').classList.remove('open');}
@@ -254,7 +336,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
 
         const reportPath = path.join(reportDir, 'test-report.html');
         fs.writeFileSync(reportPath, html, 'utf8');
-        console.log('\n✅ [CustomReporter] Created custom HTML report at: ' + reportPath + '\n');
+        logInfo(`Created custom HTML report at: ${colors.cyan}${reportPath}${colors.reset}`);
     }
 }
 

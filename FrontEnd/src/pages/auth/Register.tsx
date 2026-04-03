@@ -32,7 +32,8 @@ export default function Register() {
     }, [clearError])
 
     useEffect(() => {
-        if (step === 3) return // Đang hiển thị màn Welcome, không auto navigate
+        // Nếu đã ở bước 2 (đã đăng ký thành công nhưng chờ chọn avatar) hoặc bước 3 (màn welcome) thì không auto navigate
+        if (step === 2 || step === 3) return 
         if (isAuthenticated && user?.roles?.length) {
             navigate(getRoleDashboard(user.roles), { replace: true })
         }
@@ -41,6 +42,24 @@ export default function Register() {
     const validateStep1 = () => {
         setValidationError('')
         clearError()
+
+        if (!fullName.trim()) {
+            setValidationError(t('auth.register.step1.error.fullNameRequired'))
+            return false
+        }
+        if (!username.trim()) {
+            setValidationError(t('auth.register.step1.error.usernameRequired'))
+            return false
+        }
+        if (!email.trim()) {
+            setValidationError(t('auth.register.step1.error.emailRequired'))
+            return false
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(email)) {
+            setValidationError(t('auth.register.step1.error.emailInvalid'))
+            return false
+        }
         if (password.length < 6) {
             setValidationError(t('auth.register.step1.error.passwordLength'))
             return false
@@ -121,23 +140,24 @@ export default function Register() {
                                 <p className="text-slate-600 dark:text-slate-400 mb-8">{t('auth.register.step1.description')}</p>  
 
                                 {displayError && (
-                                    <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-sm">
+                                    <div id="validationError" className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-sm">
                                         {displayError}
                                     </div>
                                 )}
 
-                                <form onSubmit={(e) => { e.preventDefault(); validateStep1() && setStep(2); }} className="space-y-5">
+                                <form noValidate onSubmit={(e) => { e.preventDefault(); validateStep1() && setStep(2); }} className="space-y-5">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1.5">{t('auth.register.step1.fullName')}</label>
                                         <div className="relative">
                                             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
+                                                id="fullName"
                                                 type="text"
                                                 value={fullName}
                                                 onChange={(e) => setFullName(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                                                 placeholder={t('auth.register.step1.fullNamePlaceholder')}  
-                                                required
+                                                
                                             />
                                         </div>
                                     </div>
@@ -146,12 +166,13 @@ export default function Register() {
                                         <div className="relative">
                                             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
+                                                id="username"
                                                 type="text"
                                                 value={username}
                                                 onChange={(e) => setUsername(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                                                 placeholder={t('auth.register.step1.usernamePlaceholder')}  
-                                                required
+                                                
                                             />
                                         </div>
                                     </div>
@@ -160,12 +181,13 @@ export default function Register() {
                                         <div className="relative">
                                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
+                                                id="email"
                                                 type="email"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                                                 placeholder={t('auth.register.step1.parentEmailPlaceholder')}  
-                                                required
+                                                
                                             />
                                         </div>
                                         <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{t('auth.register.step1.parentEmailNote')}</p>  
@@ -175,12 +197,13 @@ export default function Register() {
                                         <div className="relative">
                                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
+                                                id="password"
                                                 type="password"
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                                                 placeholder={t('auth.register.step1.passwordPlaceholder')}  
-                                                required
+                                                
                                             />
                                         </div>
                                     </div>
@@ -189,12 +212,13 @@ export default function Register() {
                                         <div className="relative">
                                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={2} />
                                             <input
+                                                id="confirmPassword"
                                                 type="password"
                                                 value={confirmPassword}
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                                                 placeholder={t('auth.register.step1.confirmPasswordPlaceholder')}  
-                                                required
+                                                
                                             />
                                         </div>
                                     </div>
@@ -202,7 +226,7 @@ export default function Register() {
                                         <Link to="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium transition-colors">
                                             {t('auth.register.step1.back')}
                                         </Link>  
-                                        <button type="submit" className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-primary-500/25 transition-all active:scale-95">
+                                        <button id="nextStep" type="submit" className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-primary-500/25 transition-all active:scale-95">
                                             {t('auth.register.step1.nextStep')}  
                                             <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
                                         </button>
@@ -264,6 +288,7 @@ export default function Register() {
                                 </div>
                                 <div className="flex gap-4 w-full md:w-auto">
                                     <button
+                                        id="backToStep1"
                                         type="button"
                                         onClick={() => setStep(1)}
                                         className="flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -272,6 +297,7 @@ export default function Register() {
                                         {t('auth.register.step2.back')}
                                     </button>
                                     <button
+                                        id="finishSignUp"
                                         type="button"
                                         onClick={handleFinishSignUp}
                                         disabled={isLoading}
@@ -317,6 +343,7 @@ export default function Register() {
                                     </div>
                                     <div className="space-y-4 w-full max-w-xs">
                                         <button
+                                            id="getStarted"
                                             onClick={handleLetsGo}
                                             className="w-full h-16 bg-primary-500 hover:bg-primary-600 text-white rounded-full font-black text-xl shadow-lg shadow-primary-500/30 transition-all active:scale-95 flex items-center justify-center gap-3"
                                         >

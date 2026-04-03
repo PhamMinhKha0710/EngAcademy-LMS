@@ -76,6 +76,7 @@ const Header = ({ showMenuButton, onMenuClick }: HeaderProps) => {
                                 {user?.fullName}
                             </Link>
                             <button
+                                id="logoutButton"
                                 onClick={handleLogout}
                                 className="flex min-w-[84px] cursor-pointer items-center justify-center rounded-full h-10 px-5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
                             >

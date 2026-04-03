@@ -127,7 +127,11 @@
                 "nextStep": "Next step",
                 "error": {
                     "passwordLength": "Password must be at least 6 characters",
-                    "confirmMismatch": "Passwords do not match"
+                    "confirmMismatch": "Passwords do not match",
+                    "fullNameRequired": "Full name is required",
+                    "usernameRequired": "Username is required",
+                    "emailRequired": "Email is required",
+                    "emailInvalid": "Invalid email format"
                 }
             },
             "step2": {

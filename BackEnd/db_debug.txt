@@ -1,4 +1,4 @@
-=== DIAGNOSTIC REPORT - 2026-03-27T23:16:23.073551 ===
+=== DIAGNOSTIC REPORT - 2026-04-02T23:23:19.290569 ===
 
 --- ROLES ---
 ID: 1, Name: ROLE_ADMIN
@@ -7,8 +7,42 @@ ID: 3, Name: ROLE_TEACHER
 ID: 4, Name: ROLE_STUDENT
 
 --- SCHOOLS ---
-WARNING: No schools found. Creating default school.
+ID: 1, Name: Trường THCS Nguyễn Du
+ID: 2, Name: Trường THCS Nguyễn Du
 
 --- USERS & FIXES ---
+User: admin (ID: 1) | Final Roles: [ROLE_ADMIN] | School: NULL
+User: school1 (ID: 2) | Final Roles: [ROLE_SCHOOL] | School: 2
+User: teacher1 (ID: 3) | Final Roles: [ROLE_TEACHER] | School: 2
+User: student1 (ID: 4) | Final Roles: [ROLE_STUDENT] | School: 2
+User: student2 (ID: 5) | Final Roles: [ROLE_STUDENT] | School: 2
+User: student3 (ID: 6) | Final Roles: [ROLE_STUDENT] | School: 2
+User: dinhminh4424@gmail.com (ID: 7) | Final Roles: [ROLE_STUDENT] | School: 1
+User: dinhcongminh4424@gmail.com (ID: 8) | Final Roles: [ROLE_TEACHER] | School: 1
+User: dinhminh4424123@gmail.com (ID: 9) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775054375218 (ID: 10) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775054555783 (ID: 11) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775056113862 (ID: 12) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775056862980 (ID: 13) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775057919627 (ID: 14) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775058074411 (ID: 15) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775058222974 (ID: 16) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775058555277 (ID: 17) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775058754547 (ID: 18) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775058906928 (ID: 19) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775059260587 (ID: 20) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775060042380 (ID: 21) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775060577302 (ID: 22) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775062839776 (ID: 23) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775062952903 (ID: 24) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775063091090 (ID: 25) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775063194283 (ID: 26) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775063588534 (ID: 27) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775063850604 (ID: 28) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775063978855 (ID: 29) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775064122615 (ID: 30) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775064259912 (ID: 31) | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775094349392 (ID: 32) | FIXED: Added School 1 | Final Roles: [ROLE_STUDENT] | School: 1
+User: user_1775094491570 (ID: 33) | FIXED: Added School 1 | Final Roles: [ROLE_STUDENT] | School: 1
 
 === END OF REPORT ===

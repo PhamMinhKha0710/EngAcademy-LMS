@@ -127,7 +127,11 @@
                 "nextStep": "Bước tiếp theo",
                 "error": {
                     "passwordLength": "Mật khẩu phải có ít nhất 6 ký tự",
-                    "confirmMismatch": "Mật khẩu xác nhận không khớp"
+                    "confirmMismatch": "Mật khẩu xác nhận không khớp",
+                    "fullNameRequired": "Vui lòng nhập họ và tên",
+                    "usernameRequired": "Vui lòng nhập tên đăng nhập",
+                    "emailRequired": "Vui lòng nhập email",
+                    "emailInvalid": "Email không hợp lệ"
                 }
             },
             "step2": {
