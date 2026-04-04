@@ -18,6 +18,7 @@
   "scripts": {
     "test:e2e": "jest e2e/Tests/ ",
     "test:daily-quests": "jest e2e/Tests/daily-quests.test.js",
+    "test:forgot-password": "jest e2e/Tests/forgot-password.e2e.test.js",
     "test:main": "jest e2e/Tests/main.e2e.test.js",
     "report:pdf": "node e2e/generate-pdf.js & npm run report:pdf"
   },
