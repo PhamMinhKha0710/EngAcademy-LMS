@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "tsx e2e/register.spec.ts",
+    "test:e2e:teacher": "tsx e2e/teacher-lesson.spec.ts",
+    "test:e2e:all": "tsx e2e/register.spec.ts && tsx e2e/teacher-lesson.spec.ts",
+    "test:e2e:debug": "tsx e2e/register.spec.ts --inspect"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-react": "9.5.0",
@@ -40,11 +44,15 @@
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
+    "dotenv": "^16.3.1",
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.32",
+    "puppeteer": "^24.40.0",
     "tailwindcss": "^3.4.0",
+    "ts-node": "^10.9.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.3.2",
     "vite": "^5.0.8"
   }

@@ -1,6 +1,8 @@
 package com.englishlearn.infrastructure.config;
 
 import com.englishlearn.domain.entity.*;
+import com.englishlearn.domain.enums.CefrLevel;
+import com.englishlearn.domain.enums.PlacementSkill;
 import com.englishlearn.infrastructure.persistence.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,7 @@ public class DevDataSeeder {
         private final QuestionRepository questionRepository;
         private final QuestionOptionRepository questionOptionRepository;
         private final ExamRepository examRepository;
+        private final PlacementQuestionRepository placementQuestionRepository;
         private final PasswordEncoder passwordEncoder;
 
         private static final String SEED_ADMIN_USERNAME = "admin";
@@ -122,10 +125,13 @@ public class DevDataSeeder {
                         if (userRepository.findByUsername(SEED_ADMIN_USERNAME).isPresent()) {
                                 log.info("Dev data present. Integrity check completed. Grammar backfill starting.");
                                 backfillGrammarForExistingLessons();
+                                seedPlacementQuestions();
                                 return;
                         }
 
                         log.info("=== Seeding REAL English Grade 6 data (ILA curriculum) ===");
+
+                        seedPlacementQuestions();
 
                         // ── 1. Roles ──
                         Role roleAdmin = roleRepository.findByName(Role.ADMIN).orElseThrow();
@@ -1035,5 +1041,133 @@ public class DevDataSeeder {
                                                 questionRepository.save(question);
                                         });
                 }
+        }
+
+        // ── Placement Questions ──
+        private void seedPlacementQuestions() {
+                if (placementQuestionRepository.count() > 0) {
+                        log.info("Placement questions already present. Skipping.");
+                        return;
+                }
+                log.info("Seeding 84 placement questions (A1-B1, 4 skills)...");
+
+                // GRAMMAR A1
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A1, 0.1, "She ___ a teacher.", "is", "is", "are", "am", "be");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A1, 0.15, "I ___ to school every day.", "go", "go", "going", "goes", "gone");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A1, 0.2, "The cat is ___ the table.", "on", "on", "in", "at", "to");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A1, 0.25, "___ name is Anna.", "My", "My", "I", "Me", "Mine");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A1, 0.3, "I ___ like coffee.", "do not", "do not", "does not", "am not", "not");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A1, 0.35, "This is ___ apple.", "an", "an", "a", "the", "some");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A1, 0.4, "They ___ playing football now.", "are", "are", "is", "am", "do");
+
+                // GRAMMAR A2
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A2, 0.3, "If I ___ rich, I would travel the world.", "were", "were", "am", "will be", "be");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A2, 0.35, "She has lived here ___ 2010.", "since", "since", "for", "during", "while");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A2, 0.4, "He asked me where I ___.", "lived", "lived", "live", "living", "am living");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A2, 0.45, "The book ___ by millions of people.", "has been read", "has been read", "has read", "is reading", "was read");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A2, 0.5, "I wish I ___ harder at school.", "had studied", "had studied", "study", "studied", "would study");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A2, 0.55, "I need ___ sugar. Can you pass me the ___?", "some, sugar", "some, sugar", "any, sugar", "some, sugars", "a, sugars");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.A2, 0.6, "He was so tired that he ___ asleep immediately.", "fell", "fell", "fall", "was falling", "has fallen");
+
+                // GRAMMAR B1
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.B1, 0.45, "By the time I arrived, they ___ already ___.", "had, left", "had, left", "have, left", "left", "were leaving");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.B1, 0.5, "I suggest ___ the meeting until tomorrow.", "postponing", "postponing", "to postpone", "postpone", "postponed");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.B1, 0.55, "___ he was tired, he finished the project.", "Although", "Although", "Because", "So", "However");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.B1, 0.6, "Had I known about the traffic, I ___ earlier.", "would have left", "would have left", "would leave", "left", "had left");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.B1, 0.65, "The report ___ by the committee before the deadline.", "must be reviewed", "must be reviewed", "can review", "should review", "might reviewed");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.B1, 0.7, "It is essential that every student ___ the exam.", "take", "take", "takes", "took", "taken");
+                savePQ(PlacementSkill.GRAMMAR, CefrLevel.B1, 0.75, "She gave ___ impressive presentation ___ I have ever seen.", "the most, that", "the most, that", "more, which", "most, what", "very, that");
+
+                // VOCABULARY A1
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A1, 0.1, "What is the opposite of HOT?", "cold", "cold", "warm", "big", "small");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A1, 0.15, "How many ___ are there in a week?", "days", "days", "hours", "months", "minutes");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A1, 0.2, "You can buy food at the ___.", "supermarket", "supermarket", "library", "school", "hospital");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A1, 0.25, "The opposite of FAST is ___", "slow", "slow", "quick", "good", "new");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A1, 0.3, "A dog is a type of ___", "animal", "animal", "plant", "food", "city");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A1, 0.35, "When it rains, you should take an ___", "umbrella", "umbrella", "sunglasses", "hat", "shoes");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A1, 0.4, "How do you say buying things as a noun?", "shopping", "shopping", "shop", "shops", "shoping");
+
+                // VOCABULARY A2
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A2, 0.3, "The company announced record ___ this year.", "profits", "profits", "losses", "debts", "costs");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A2, 0.35, "To apply for a job, you need to submit a ___", "resume", "resume", "contract", "salary", "interview");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A2, 0.4, "The car ___ broke down on the highway.", "engine", "engine", "wheel", "seat", "door");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A2, 0.45, "She is very ___ about the new project. She talks about it all the time.", "enthusiastic", "enthusiastic", "bored", "tired", "worried");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A2, 0.5, "We need to ___ our expenses to stay within budget.", "reduce", "reduce", "increase", "multiply", "double");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A2, 0.55, "The medicine had a positive ___ on his health.", "effect", "effect", "affect", "effort", "infect");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.A2, 0.6, "He gave a detailed ___ of the incident.", "account", "account", "report", "story", "tale");
+
+                // VOCABULARY B1
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.B1, 0.45, "The politician tried to ___ public opinion.", "influence", "influence", "ignore", "follow", "copy");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.B1, 0.5, "Her ___ was so poor that nobody understood the presentation.", "articulation", "articulation", "vocabulary", "grammar", "confidence");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.B1, 0.55, "The board reached a unanimous ___ on the matter.", "decision", "decision", "compromise", "discussion", "meeting");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.B1, 0.6, "He was made ___ after 20 years of service.", "redundant", "redundant", "retired", "resigned", "promoted");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.B1, 0.65, "The study showed a significant ___ between smoking and lung disease.", "correlation", "correlation", "difference", "similarity", "contrast");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.B1, 0.7, "The government introduced new ___ to protect the environment.", "legislation", "legislation", "regulation", "both", "neither");
+                savePQ(PlacementSkill.VOCABULARY, CefrLevel.B1, 0.75, "To ___ a meeting means to arrange it.", "convene", "convene", "adjourn", "attend", "cancel");
+
+                // READING A1
+                savePQ(PlacementSkill.READING, CefrLevel.A1, 0.1, "I am going to the store. What is the speaker doing?", "going to the store", "going to the store", "working at home", "sleeping", "studying");
+                savePQ(PlacementSkill.READING, CefrLevel.A1, 0.15, "What does open mean on a door?", "not closed", "not closed", "broken", "locked", "painted");
+                savePQ(PlacementSkill.READING, CefrLevel.A1, 0.2, "A menu listing Soup, Salad, Chicken, Dessert shows:", "choices of food", "choices of food", "prices", "locations", "people");
+                savePQ(PlacementSkill.READING, CefrLevel.A1, 0.25, "If a sign says No Parking, you should ___", "not park there", "not park there", "park quickly", "pay to park", "leave your car");
+                savePQ(PlacementSkill.READING, CefrLevel.A1, 0.3, "A train schedule with Arrive 14:00 means the train ___ at 2 PM.", "arrives", "arrives", "departs", "stops", "cancels");
+                savePQ(PlacementSkill.READING, CefrLevel.A1, 0.35, "What does Sale ends today tell you?", "today is the last day", "today is the last day", "sale starts today", "sale is good", "today only sale");
+                savePQ(PlacementSkill.READING, CefrLevel.A1, 0.4, "Closed for holidays on a shop means the shop is ___", "not open", "not open", "very busy", "hiring staff", "renovating");
+
+                // READING A2
+                savePQ(PlacementSkill.READING, CefrLevel.A2, 0.3, "A weather forecast says Rain expected in the afternoon. What should you bring?", "an umbrella", "an umbrella", "sunglasses", "a coat", "nothing");
+                savePQ(PlacementSkill.READING, CefrLevel.A2, 0.35, "First come, first served means ___", "people are served in arrival order", "people are served in arrival order", "only first customers", "everyone gets served", "no waiting");
+                savePQ(PlacementSkill.READING, CefrLevel.A2, 0.4, "An email ending with Best regards is ___", "formal and polite", "formal and polite", "angry", "very casual", "confidential");
+                savePQ(PlacementSkill.READING, CefrLevel.A2, 0.45, "Subject to availability in an offer means ___", "depends on stock", "depends on stock", "always available", "sold out", "very popular");
+                savePQ(PlacementSkill.READING, CefrLevel.A2, 0.5, "A news headline Economy Grows 3% suggests ___", "positive economic news", "positive economic news", "recession", "unemployment rise", "bankruptcy");
+                savePQ(PlacementSkill.READING, CefrLevel.A2, 0.55, "Strictly no refund means ___", "money cannot be returned", "money cannot be returned", "store credit only", "exchange possible", "guarantee void");
+                savePQ(PlacementSkill.READING, CefrLevel.A2, 0.6, "A recipe instruction fold in the flour gently means ___", "mix carefully", "mix carefully", "stir vigorously", "heat up", "add water");
+
+                // READING B1
+                savePQ(PlacementSkill.READING, CefrLevel.B1, 0.45, "A news article beginning Despite economic challenges implies ___", "economy faced difficulties", "economy faced difficulties", "economy is thriving", "economy is irrelevant", "economy is stable");
+                savePQ(PlacementSkill.READING, CefrLevel.B1, 0.5, "The policy is under review most likely means:", "changes may come", "changes may come", "policy is cancelled", "policy is permanent", "no decision made");
+                savePQ(PlacementSkill.READING, CefrLevel.B1, 0.55, "A contract clause Either party may terminate with 30 days notice allows ___", "ending the contract with notice", "ending the contract with notice", "immediate termination", "no termination", "extension");
+                savePQ(PlacementSkill.READING, CefrLevel.B1, 0.6, "Provisional approval in a document means ___", "conditional agreement", "conditional agreement", "full rejection", "full approval", "pending review");
+                savePQ(PlacementSkill.READING, CefrLevel.B1, 0.65, "A report stating Revenue increased significantly, though costs rose proportionally suggests ___", "profit may not have improved", "profit may not have improved", "company is very profitable", "costs decreased", "both improved equally");
+                savePQ(PlacementSkill.READING, CefrLevel.B1, 0.7, "An instruction Please refer to Appendix B for further details directs you to ___", "look at the additional section", "look at the additional section", "ignore the main text", "contact support", "start from beginning");
+                savePQ(PlacementSkill.READING, CefrLevel.B1, 0.75, "Notwithstanding the above provisions in a contract means ___", "despite the previous section", "despite the previous section", "in addition to", "instead of", "together with");
+
+                // LISTENING A1
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A1, 0.1, "You hear: Turn left at the corner. What should you do?", "go left", "go left", "go right", "go straight", "stop");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A1, 0.15, "You hear: How much is this book? What is being asked?", "the price", "the price", "the title", "the author", "the page count");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A1, 0.2, "You hear: The store opens at 9 AM. When does it open?", "9 oclock in the morning", "9 oclock in the morning", "9 oclock at night", "in 9 minutes", "every 9 hours");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A1, 0.25, "You hear: It is raining outside. What is the weather?", "rainy", "rainy", "sunny", "snowy", "windy");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A1, 0.3, "You hear: I would like a coffee, please. What does the speaker want?", "to order coffee", "to order coffee", "to sell coffee", "to make coffee", "to drink tea");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A1, 0.35, "You hear: She is a doctor. What is her job?", "doctor", "doctor", "teacher", "nurse", "lawyer");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A1, 0.4, "You hear: The meeting is at 3 oclock. When is it?", "3 PM", "3 PM", "3 AM", "in 3 hours", "every 3 hours");
+
+                // LISTENING A2
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A2, 0.3, "You hear: If it rains tomorrow, we will cancel the trip. What happens if it rains?", "trip is cancelled", "trip is cancelled", "trip continues", "trip moves earlier", "trip moves indoors");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A2, 0.35, "You hear: I have been working here for five years. How long?", "5 years", "5 years", "5 months", "since 5 years ago", "5 weeks");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A2, 0.4, "You hear: You are advised to arrive early. What is the recommendation?", "come early", "come early", "come late", "do not come", "come on time");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A2, 0.45, "You hear: Not only did she finish on time, but she also exceeded expectations. This means she ___", "did very well", "did very well", "finished late", "failed expectations", "did average work");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A2, 0.5, "You hear: The book is due back by Friday. What must you do?", "return it by Friday", "return it by Friday", "buy it by Friday", "read it by Friday", "write about it");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A2, 0.55, "You hear: Had I known, I would have helped. What does this mean?", "did not help because did not know", "did not help because did not know", "helped without knowing", "will help now", "wants to help");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.A2, 0.6, "You hear: The project was completed ahead of schedule. What happened?", "finished early", "finished early", "finished late", "on schedule", "cancelled");
+
+                // LISTENING B1
+                savePQ(PlacementSkill.LISTENING, CefrLevel.B1, 0.45, "You hear: While the results are promising, further research is needed. This suggests ___", "results look good but incomplete", "results look good but incomplete", "results are negative", "research is complete", "results are wrong");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.B1, 0.5, "You hear: The management has been accused of negligence. What happened?", "management blamed for carelessness", "management blamed for carelessness", "management praised", "management resigned", "management promoted");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.B1, 0.55, "You hear: On the one hand it is cheaper, on the other hand quality may suffer. The speaker is ___", "weighing pros and cons", "weighing pros and cons", "being decisive", "complaining", "agreeing with both");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.B1, 0.6, "You hear: He failed not because of lack of effort, but rather because of circumstance. This means effort was ___", "not the reason for failure", "not the reason for failure", "the reason for failure", "increased effort needed", "effort was irrelevant");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.B1, 0.65, "You hear: It goes without saying that safety is our top priority. This emphasizes ___", "safety is very important", "safety is very important", "safety is questionable", "safety is secondary", "safety is a habit");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.B1, 0.7, "You hear: Subsequent to the meeting, a decision was made. What happened?", "decision after the meeting", "decision after the meeting", "decision before meeting", "no decision made", "meeting was cancelled");
+                savePQ(PlacementSkill.LISTENING, CefrLevel.B1, 0.75, "You hear: Were the budget to be cut, services would inevitably suffer. This describes ___", "what would happen if budget cut", "what would happen if budget cut", "budget already cut", "budget increased", "services already suffering");
+
+                log.info("Seeded 84 placement questions (A1-B1, 4 skills).");
+        }
+
+        private void savePQ(PlacementSkill skill, CefrLevel band, double weight,
+                        String text, String correct, String a, String b, String c, String d) {
+                placementQuestionRepository.save(PlacementQuestion.builder()
+                                .skill(skill).cefrBand(band).difficultyWeight(weight)
+                                .questionText(text).correctAnswer(correct)
+                                .optionA(a).optionB(b).optionC(c).optionD(d)
+                                .isActive(true).build());
         }
 }

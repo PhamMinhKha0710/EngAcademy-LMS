@@ -61,6 +61,40 @@ public class LessonController {
     }
 
     /**
+     * GET /api/v1/lessons?topicId={topicId}&difficultyLevel={level} - Lọc bài học theo chủ đề và độ khó
+     */
+    @GetMapping(params = {"topicId", "difficultyLevel"})
+    @Operation(summary = "Lọc bài học theo chủ đề và độ khó")
+    public ResponseEntity<ApiResponse<List<LessonResponse>>> getByTopicAndDifficultyLevel(
+            @Parameter(description = "ID của chủ đề") @RequestParam Long topicId,
+            @Parameter(description = "Độ khó (1-5)") @RequestParam Integer difficultyLevel) {
+        List<LessonResponse> lessons = lessonService.getLessonsByTopicAndLevel(topicId, difficultyLevel);
+        return ResponseEntity.ok(ApiResponse.success(lessons));
+    }
+
+    /**
+     * GET /api/v1/lessons?topicId={topicId} - Lọc bài học theo chủ đề
+     */
+    @GetMapping(params = "topicId")
+    @Operation(summary = "Lọc bài học theo chủ đề")
+    public ResponseEntity<ApiResponse<List<LessonResponse>>> getByTopicId(
+            @Parameter(description = "ID của chủ đề") @RequestParam Long topicId) {
+        List<LessonResponse> lessons = lessonService.getLessonsByTopic(topicId);
+        return ResponseEntity.ok(ApiResponse.success(lessons));
+    }
+
+    /**
+     * GET /api/v1/lessons?difficultyLevel={level} - Lọc bài học theo độ khó
+     */
+    @GetMapping(params = "difficultyLevel")
+    @Operation(summary = "Lọc bài học theo độ khó")
+    public ResponseEntity<ApiResponse<List<LessonResponse>>> getByDifficultyLevel(
+            @Parameter(description = "Độ khó (1-5)") @RequestParam Integer difficultyLevel) {
+        List<LessonResponse> lessons = lessonService.getLessonsByDifficultyLevel(difficultyLevel);
+        return ResponseEntity.ok(ApiResponse.success(lessons));
+    }
+
+    /**
      * POST /api/v1/lessons - Tạo bài học mới
      */
     @PostMapping
