@@ -1161,4 +1161,13 @@ public class DevDataSeeder {
 
                 log.info("Seeded 84 placement questions (A1-B1, 4 skills).");
         }
+
+        private void savePQ(PlacementSkill skill, CefrLevel band, double weight,
+                        String text, String correct, String a, String b, String c, String d) {
+                placementQuestionRepository.save(PlacementQuestion.builder()
+                                .skill(skill).cefrBand(band).difficultyWeight(weight)
+                                .questionText(text).correctAnswer(correct)
+                                .optionA(a).optionB(b).optionC(c).optionD(d)
+                                .isActive(true).build());
+        }
 }
