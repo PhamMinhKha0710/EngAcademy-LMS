@@ -321,6 +321,7 @@ export default function TeacherLessonsPage() {
 
         <button
           onClick={openCreate}
+          data-testid="lesson-create-button"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl  text-white font-medium  transition-colors"
           style={{
             backgroundColor: " rgb(244 157 37 / var(--tw-bg-opacity, 1))",
@@ -355,6 +356,7 @@ export default function TeacherLessonsPage() {
               Hủy
             </button>
             <button
+              data-testid="lesson-save-primary"
               onClick={handleSave}
               disabled={saving || !form.title.trim()}
               className="px-10 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold uppercase tracking-widest hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2 shadow-xl shadow-blue-500/20 dark:shadow-2xl dark:shadow-blue-500/30 active:scale-105"
@@ -368,6 +370,7 @@ export default function TeacherLessonsPage() {
           {/* Tab Selector */}
           <div className="flex items-center gap-8 border-b border-slate-200 dark:border-slate-800/50 mb-4 px-2">
             <button
+              data-testid="tab-edit"
               onClick={() => setActiveTab("edit")}
               className={`pb-4 px-4 text-[13px] font-bold tracking-widest transition-all relative group ${
                 activeTab === "edit" ? "text-blue-600 dark:text-blue-400" : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
@@ -379,6 +382,7 @@ export default function TeacherLessonsPage() {
               )}
             </button>
             <button
+              data-testid="tab-review"
               onClick={() => setActiveTab("review")}
               className={`pb-4 px-4 text-[13px] font-bold tracking-widest transition-all relative group ${
                 activeTab === "review" ? "text-blue-600 dark:text-blue-400" : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
@@ -409,6 +413,7 @@ export default function TeacherLessonsPage() {
                         </label>
                         <div className="relative group/input">
                             <input
+                                data-testid="lesson-title-input"
                                 type="text"
                                 placeholder="Nhập tiêu đề bài học ấn tượng..."
                                 value={form.title}
@@ -426,6 +431,7 @@ export default function TeacherLessonsPage() {
                         </label>
                         <div className="relative">
                             <select
+                                data-testid="lesson-difficulty-select"
                                 value={form.difficultyLevel}
                                 onChange={(e) => setForm({ ...form, difficultyLevel: parseInt(e.target.value) })}
                                 className="w-full px-6 py-4 rounded-2xl bg-slate-50 dark:bg-black/40 border-2 border-slate-100 dark:border-slate-800/50 text-slate-900 dark:text-white text-base font-bold outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
@@ -460,6 +466,7 @@ export default function TeacherLessonsPage() {
                         <label className="flex items-center gap-5 cursor-pointer group">
                             <div className="relative">
                                 <input
+                                    data-testid="lesson-publish-checkbox"
                                     type="checkbox"
                                     checked={form.isPublished}
                                     onChange={(e) => setForm({ ...form, isPublished: e.target.checked })}
@@ -1087,12 +1094,14 @@ export default function TeacherLessonsPage() {
         footer={
             <>
                 <button
+                    data-testid="lesson-save-cancel"
                     onClick={() => setShowSaveReview(false)}
                     className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-all active:scale-95"
                 >
                     Quay lại sửa
                 </button>
                 <button
+                    data-testid="lesson-save-confirm"
                     onClick={confirmSave}
                     disabled={saving}
                     className="px-10 py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 dark:shadow-2xl dark:shadow-emerald-500/30 flex items-center gap-2 active:scale-105"
