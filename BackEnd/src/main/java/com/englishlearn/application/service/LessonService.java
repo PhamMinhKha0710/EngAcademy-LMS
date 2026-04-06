@@ -45,6 +45,20 @@ public class LessonService {
                 .collect(Collectors.toList());
     }
 
+    public List<LessonResponse> getLessonsByDifficultyLevel(Integer difficultyLevel) {
+        return lessonRepository.findByDifficultyLevel(difficultyLevel)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<LessonResponse> getLessonsByTopicAndLevel(Long topicId, Integer difficultyLevel) {
+        return lessonRepository.findByTopicIdAndDifficultyLevel(topicId, difficultyLevel)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public List<LessonResponse> getPublishedLessons() {
         return lessonRepository.findByIsPublishedTrueOrderByOrderIndexAsc()
                 .stream()
