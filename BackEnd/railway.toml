@@ -2,7 +2,8 @@
   builder = "DOCKERFILE"
 
 [deploy]
-  startCommand = "java -jar app.jar"
+  # Railway uses Dockerfile ENTRYPOINT which bakes in SPRING_PROFILES_ACTIVE + datasource env vars.
+  # Do NOT set startCommand here — it would override Dockerfile ENTRYPOINT.
   healthcheckPath = "/api/v1/auth/health"
   healthcheckInterval = 60
   restartPolicyType = "ON_FAILURE"

@@ -50,7 +50,6 @@
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
         </dependency>
         
         <!-- H2 Database for Development and Testing only -->
