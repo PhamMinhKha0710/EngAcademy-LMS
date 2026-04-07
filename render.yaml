@@ -51,7 +51,8 @@ services:
       - key: SPRING_DATASOURCE_USERNAME
         value: root
       - key: SPRING_DATASOURCE_PASSWORD
-        value: bmqHwzikMTxdMSEsRaraCWOkJolHMWAD
+        sync: false
+        value: ""
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: none
       - key: SPRING_MAIL_HOST
@@ -62,6 +63,7 @@ services:
         value: dinhminh4424@gmail.com
       - key: SPRING_MAIL_PASSWORD
         sync: false
+        value: ""
       - key: RATE_LIMIT_MAX_ATTEMPTS
         value: 100
       - key: RATE_LIMIT_WINDOW_SECONDS
