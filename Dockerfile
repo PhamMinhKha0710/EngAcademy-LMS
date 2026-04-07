@@ -9,8 +9,8 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 10000
 ENV SPRING_PROFILES_ACTIVE=prod \
-    SPRING_DATASOURCE_URL="jdbc:mysql://mainline.proxy.rlwy.net:53123/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC" \
-    SPRING_DATASOURCE_USERNAME=root \
-    SPRING_DATASOURCE_PASSWORD=bmqHwzikMTxdMSEsRaraCWOkJolHMWAD \
     SPRING_JPA_HIBERNATE_DDL_AUTO=none
-ENTRYPOINT ["sh", "-c", "java -Xmx384m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar app.jar --server.port=${PORT:-10000}"]
+# IMPORTANT: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
+# MUST be provided via Render Dashboard environment variables (sync: false).
+# Do NOT hardcode credentials here — they are sensitive and will be exposed in the image.
+ENTRYPOINT ["sh", "-c", "java -Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar app.jar --server.port=${PORT:-10000}"]

@@ -7,6 +7,7 @@ services:
     port: 3000
     healthCheckPath: /
     envVars:
+      # Must be the public URL of engacademy-backend (API), not the frontend URL, unless the same hostname is attached to the backend service in Render.
       - key: VITE_API_URL
         value: https://engacademy-lms.onrender.com
 
@@ -21,6 +22,8 @@ services:
       - key: VITE_API_URL
         value: https://engacademy-lms.onrender.com
 
+  # Spring Boot + Hibernate cold start can take several minutes on small instances. Render may log "No open ports detected" until Tomcat listens — that is expected.
+  # Free Web Services spin down after idle: the first request after sleep can return 503 until the JVM finishes starting; wait and retry, upgrade plan, or use an external ping.
   - type: web
     name: engacademy-backend
     runtime: docker
@@ -45,7 +48,8 @@ services:
         value: https://engacademy-lms-1.onrender.com,https://engacademy-admin.onrender.com,https://engacademy-lms.onrender.com,http://localhost:3000,http://localhost:3001
       - key: REDIS_URL
         sync: false
-        value: "rediss://default:gQAAAAAAAVTWAAIncDI2ZDk2ZTY2Y2U3OTM0MmM3OWEzNWNlNzJjMDE1Yzg0YnAyODcyNTQ@renewed-tadpole-87254.upstash.io:6379"
+        # Do NOT hardcode the full URL here — set via Render Dashboard Environment Variables.
+        # Format: rediss://default:<password>@<host>:<port>
       - key: SPRING_DATASOURCE_URL
         value: jdbc:mysql://mainline.proxy.rlwy.net:53123/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - key: SPRING_DATASOURCE_USERNAME
