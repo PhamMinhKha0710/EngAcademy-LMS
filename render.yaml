@@ -50,9 +50,10 @@ services:
         value: jdbc:mysql://mainline.proxy.rlwy.net:53123/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - key: SPRING_DATASOURCE_USERNAME
         value: root
+      # Never use value: "" here — it overrides the image ENV and breaks MySQL auth (503).
+      # Set the real Railway MySQL password in Render Dashboard > Environment (sync: false).
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
-        value: ""
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: none
       - key: SPRING_MAIL_HOST
@@ -63,7 +64,6 @@ services:
         value: dinhminh4424@gmail.com
       - key: SPRING_MAIL_PASSWORD
         sync: false
-        value: ""
       - key: RATE_LIMIT_MAX_ATTEMPTS
         value: 100
       - key: RATE_LIMIT_WINDOW_SECONDS
