@@ -55,7 +55,7 @@ services:
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: none
+        value: update
       - key: SPRING_MAIL_HOST
         value: smtp.gmail.com
       - key: SPRING_MAIL_PORT
