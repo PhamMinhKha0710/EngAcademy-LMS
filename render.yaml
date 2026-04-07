@@ -47,11 +47,13 @@ services:
         sync: false
         value: "rediss://default:gQAAAAAAAVTWAAIncDI2ZDk2ZTY2Y2U3OTM0MmM3OWEzNWNlNzJjMDE1Yzg0YnAyODcyNTQ@renewed-tadpole-87254.upstash.io:6379"
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:mysql://hopper.proxy.rlwy.net:56199/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+        value: jdbc:mysql://mainline.proxy.rlwy.net:53123/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - key: SPRING_DATASOURCE_USERNAME
         value: root
       - key: SPRING_DATASOURCE_PASSWORD
-        value: yXZzFdHrRyCrLOJzoqxdPqzPSVlQZoBD
+        value: bmqHwzikMTxdMSEsRaraCWOkJolHMWAD
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: none
       - key: SPRING_MAIL_HOST
         value: smtp.gmail.com
       - key: SPRING_MAIL_PORT
