@@ -14,7 +14,7 @@ public class AbTestingService {
 
     private static final String ASSN_PREFIX = "ab:assn:";
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final @Lazy RedisTemplate<String, Object> redisTemplate;
 
     /**
      * Deterministic variant assignment per user per experiment.

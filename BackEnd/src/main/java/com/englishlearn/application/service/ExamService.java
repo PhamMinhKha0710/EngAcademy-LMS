@@ -50,7 +50,7 @@ public class ExamService {
     private final DailyQuestService dailyQuestService;
     private final NotificationService notificationService;
     private final StudentClassRepository studentClassRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final @Lazy RedisTemplate<String, Object> redisTemplate;
 
     @Transactional(readOnly = true)
     public Page<ExamResponse> getAllExams(Pageable pageable) {

@@ -42,7 +42,7 @@ public class PlacementService {
 
     private final PlacementQuestionRepository questionRepository;
     private final UserLearningProfileRepository profileRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final @Lazy RedisTemplate<String, Object> redisTemplate;
     private final @Lazy LearningPathService learningPathService;
     private final @Lazy ProgressService progressService;
 

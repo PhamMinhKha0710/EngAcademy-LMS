@@ -16,6 +16,7 @@ public class RedisConfig {
     @Value("${spring.data.redis.url:}")
     private String redisUrl;
 
+    @Lazy
     @Bean
     public LettuceClientConfigurationBuilderCustomizer lettuceCustomizer() {
         return builder -> {

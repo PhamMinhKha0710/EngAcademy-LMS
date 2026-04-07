@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RedisLeaderboardService {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final @Lazy RedisTemplate<String, Object> redisTemplate;
 
     private static final String LEADERBOARD_KEY_PREFIX = "leaderboard:coins:";
     private static final long CACHE_TTL_MINUTES = 5;
