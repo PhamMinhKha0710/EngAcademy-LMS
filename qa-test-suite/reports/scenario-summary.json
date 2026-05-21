@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-05-20T09:39:46.505Z",
+  "baseUrl": "http://localhost:8080",
+  "openApiSource": "live_openapi",
+  "openApiFallbackReason": null,
+  "operationCount": 165,
+  "scenarioCount": 34853,
+  "countsByModule": {
+    "Vocabulary": 2730,
+    "Users": 3150,
+    "School Management": 1680,
+    "Question Management": 1470,
+    "Notifications": 1470,
+    "Lessons": 1050,
+    "Learning Profile": 840,
+    "Exam Management": 3990,
+    "ClassRoom Management": 2730,
+    "Test Notifications": 210,
+    "SRS": 497,
+    "Daily Quests": 1050,
+    "Progress": 2940,
+    "Placement": 840,
+    "Mistake Notebook": 1680,
+    "LLM": 210,
+    "Events": 210,
+    "Badges": 2940,
+    "Authentication": 1680,
+    "Topics": 630,
+    "Recommendations": 210,
+    "Public": 210,
+    "Learning Path": 210,
+    "Leaderboard": 1890,
+    "Dashboard": 210,
+    "Anti-Cheat": 81,
+    "WebSocket": 45
+  },
+  "countsByTestType": {
+    "api_contract": 19152,
+    "security": 5775,
+    "concurrency": 4620,
+    "performance": 2016,
+    "exam_workflow": 2793,
+    "sm2": 294,
+    "anti_cheat_attack": 81,
+    "sm2_boundary": 77,
+    "realtime": 45
+  },
+  "countsByPriority": {
+    "P2": 21890,
+    "P1": 6066,
+    "P0": 6897
+  }
+}

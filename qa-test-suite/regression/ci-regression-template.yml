@@ -1,0 +1,18 @@
+name: EngAcademy QA Regression
+on:
+  workflow_dispatch:
+  pull_request:
+jobs:
+  qa-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Generate scenario catalog
+        run: node qa-test-suite/automation/generate-enterprise-scenarios.mjs
+      - name: Run live probes against configured environment
+        env:
+          BASE_URL: ${{ secrets.QA_BASE_URL }}
+        run: node qa-test-suite/automation/run-live-probes.mjs

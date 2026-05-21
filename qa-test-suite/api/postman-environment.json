@@ -1,0 +1,35 @@
+{
+  "name": "EngAcademy LMS Local QA",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "enabled": true
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "studentId",
+      "value": "4",
+      "enabled": true
+    },
+    {
+      "key": "classId",
+      "value": "1",
+      "enabled": true
+    },
+    {
+      "key": "examId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "examResultId",
+      "value": "",
+      "enabled": true
+    }
+  ]
+}
