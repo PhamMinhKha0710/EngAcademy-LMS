@@ -180,7 +180,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[🏠 Trang chủ] --> B[📝 Xem đề thi đang mở cho lớp mình]
-    B --> C[Bắt đầu bài thi: POST /exams/{id}/start]
+    B --> C["Bắt đầu bài thi: POST /exams/{id}/start"]
     C --> D[Hệ thống tạo ExamResult, shuffle câu hỏi/đáp án]
     D --> E[🖥️ Giao diện làm bài thi]
     
@@ -191,7 +191,7 @@ flowchart TD
     F --> F4[Phát hiện DevTools → Log event]
     
     E --> G[Chọn đáp án cho từng câu]
-    G --> H[📤 Nộp bài: POST /exams/{id}/submit-anticheat]
+    G --> H["📤 Nộp bài: POST /exams/{id}/submit-anticheat"]
     H --> I[Hệ thống chấm điểm tự động]
     I --> J[Lưu ExamResult với score, violationCount]
     J --> K{Điểm đã được công bố?}

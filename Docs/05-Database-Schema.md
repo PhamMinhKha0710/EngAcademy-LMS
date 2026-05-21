@@ -14,10 +14,10 @@ erDiagram
     ROLE ||--o{ ROLE_USER : "has"
     USERS ||--o{ ROLE_USER : "has"
     SCHOOL ||--o{ USERS : "belongs to"
-    SCHOOL ||--o{ CLASS : "has"
-    CLASS ||--o{ STUDENT_CLASS : "has"
+    SCHOOL ||--o{ CLASSROOM : "has"
+    CLASSROOM ||--o{ STUDENT_CLASS : "has"
     USERS ||--o{ STUDENT_CLASS : "enrolled"
-    USERS ||--o{ CLASS : "teaches"
+    USERS ||--o{ CLASSROOM : "teaches"
     
     TOPIC ||--o{ LESSON : "contains"
     LESSON ||--o{ VOCABULARY : "has"
@@ -25,7 +25,7 @@ erDiagram
     QUESTION ||--o{ QUESTION_OPTION : "has"
     VOCABULARY ||--o{ QUESTION : "linked"
     
-    CLASS ||--o{ EXAM : "has"
+    CLASSROOM ||--o{ EXAM : "has"
     USERS ||--o{ EXAM : "creates"
     EXAM ||--o{ EXAM_QUESTION : "contains"
     QUESTION ||--o{ EXAM_QUESTION : "included"
@@ -87,7 +87,7 @@ erDiagram
         LocalDateTime created_at
     }
 
-    CLASS {
+    CLASSROOM {
         Long id PK
         String name
         Long school_id FK
