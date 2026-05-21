@@ -64,6 +64,9 @@ public class ProdDataSeeder {
     private final PlacementQuestionRepository placementQuestionRepo;
     private final PasswordEncoder passwordEncoder;
 
+    @org.springframework.beans.factory.annotation.Value("${application.security.admin.password:#{T(java.util.UUID).randomUUID().toString()}}")
+    private String adminPassword;
+
     @Bean
     public CommandLineRunner prodSeedData() {
         return args -> {
@@ -245,7 +248,7 @@ public class ProdDataSeeder {
         User admin = User.builder()
                 .username("admin")
                 .email("admin@engacademy.vn")
-                .passwordHash(passwordEncoder.encode("Admin@123"))
+                .passwordHash(passwordEncoder.encode(adminPassword))
                 .fullName("Administrator")
                 .coins(100)
                 .streakDays(0)
@@ -253,7 +256,7 @@ public class ProdDataSeeder {
                 .roles(adminRole != null ? Set.of(adminRole) : Set.of())
                 .build();
         userRepository.save(admin);
-        log.info("Default admin user created: username=admin, password=Admin@123");
+        log.info("Default admin user created with dynamic/configured password.");
     }
 
     /**

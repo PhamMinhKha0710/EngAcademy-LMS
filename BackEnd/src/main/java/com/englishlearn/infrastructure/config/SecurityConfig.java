@@ -41,6 +41,9 @@ public class SecurityConfig {
     @Value("${application.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
     private String allowedOrigins;
 
+    @Value("${application.security.swagger.enabled:true}")
+    private boolean swaggerEnabled;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -56,20 +59,27 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        List<String> permitAllPaths = new java.util.ArrayList<>(List.of(
+                "/api/v1/auth/**",
+                "/api/v1/public/**",
+                "/ws/**",
+                "/actuator/**",
+                "/error"
+        ));
+
+        if (swaggerEnabled) {
+            permitAllPaths.addAll(List.of(
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**"
+            ));
+        }
+
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/v1/auth/**",
-                                "/api/v1/public/**",
-                                "/ws/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/actuator/**",
-                                "/error"
-                        ).permitAll()
+                        .requestMatchers(permitAllPaths.toArray(new String[0])).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

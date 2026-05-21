@@ -81,7 +81,24 @@ public class ClassRoomController {
         @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
         @Operation(summary = "Get classrooms by teacher")
         public ResponseEntity<ApiResponse<List<ClassRoomResponse>>> getClassRoomsByTeacher(
-                        @PathVariable Long teacherId) {
+                        @PathVariable Long teacherId,
+                        @AuthenticationPrincipal UserDetails userDetails) {
+                var currentUser = userService.getUserByUsername(userDetails.getUsername());
+                if (currentUser.getRoles().contains("ROLE_TEACHER") 
+                                && !currentUser.getRoles().contains("ROLE_SCHOOL")
+                                && !currentUser.getRoles().contains("ROLE_ADMIN")
+                                && !currentUser.getId().equals(teacherId)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                        .body(ApiResponse.error("Bạn không có quyền xem lớp của giáo viên khác"));
+                }
+                if (currentUser.getRoles().contains("ROLE_SCHOOL")
+                                && !currentUser.getRoles().contains("ROLE_ADMIN")) {
+                        var teacher = userService.getUserById(teacherId);
+                        if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(teacher.getSchoolId())) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error("Bạn không có quyền xem lớp của giáo viên trường khác"));
+                        }
+                }
                 List<ClassRoomResponse> classRooms = classRoomService.getClassRoomsByTeacher(teacherId);
                 return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRooms));
         }
@@ -101,7 +118,30 @@ public class ClassRoomController {
                                         .body(ApiResponse.error("Bạn không có quyền xem lớp của học sinh khác"));
                 }
 
+                // BUG-004: Validate school tenant boundaries for School Managers / Teachers looking up students
+                if (currentUser.getRoles().contains("ROLE_TEACHER") || currentUser.getRoles().contains("ROLE_SCHOOL")) {
+                        UserResponse student = userService.getUserById(studentId);
+                        if (currentUser.getSchoolId() == null
+                                        || !currentUser.getSchoolId().equals(student.getSchoolId())) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error("Bạn không có quyền xem lớp của học sinh trường khác"));
+                        }
+                }
+
                 List<ClassRoomResponse> classRooms = classRoomService.getClassRoomsByStudent(studentId);
+
+                // BUG-004: Validate teacher explicit ownership check
+                if (currentUser.getRoles().contains("ROLE_TEACHER") 
+                                && !currentUser.getRoles().contains("ROLE_SCHOOL") 
+                                && !currentUser.getRoles().contains("ROLE_ADMIN")) {
+                        boolean teachesStudent = classRooms.stream()
+                                        .anyMatch(c -> c.getTeacherId() != null && c.getTeacherId().equals(currentUser.getId()));
+                        if (!teachesStudent) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error("Bạn không có quyền xem lớp của học sinh này vì không trực tiếp giảng dạy học sinh"));
+                        }
+                }
+
                 return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học thành công", classRooms));
         }
 
@@ -115,11 +155,21 @@ public class ClassRoomController {
                 UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
                 ClassRoomResponse classRoom = classRoomService.getClassRoomById(id);
 
-                if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
+                // BUG-004: Validate school tenant boundaries for School Managers / Teachers looking up classrooms
+                if (currentUser.getRoles().contains("ROLE_TEACHER") || currentUser.getRoles().contains("ROLE_SCHOOL")) {
                         if (currentUser.getSchoolId() == null
                                         || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
                                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                                 .body(ApiResponse.error("Bạn không có quyền xem lớp của trường khác"));
+                        }
+                }
+
+                // BUG-002: Validate active membership for Student looking up a classroom
+                if (currentUser.getRoles().contains("ROLE_STUDENT")) {
+                        boolean isEnrolled = classRoomService.isStudentEnrolledInClass(currentUser.getId(), id);
+                        if (!isEnrolled) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error("Bạn không có quyền xem thông tin lớp học này vì chưa tham gia"));
                         }
                 }
 

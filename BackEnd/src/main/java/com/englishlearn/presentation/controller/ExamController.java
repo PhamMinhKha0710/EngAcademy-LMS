@@ -11,6 +11,8 @@ import com.englishlearn.application.dto.response.ExamResultResponse;
 import com.englishlearn.application.dto.response.ExamTakeDTO;
 import com.englishlearn.application.service.ExamService;
 import com.englishlearn.application.service.UserService;
+import com.englishlearn.application.service.ClassRoomService;
+import com.englishlearn.application.dto.response.ClassRoomResponse;
 import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.domain.entity.AntiCheatEvent;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +39,7 @@ public class ExamController {
 
     private final ExamService examService;
     private final UserService userService;
+    private final ClassRoomService classRoomService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
@@ -85,11 +88,23 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
-            // Check if class belongs to school
-            // Since we don't have a direct ClassRoomService.getById in the controller (it uses examService),
-            // but we can just use the exams as filtered by service or check class school here.
-            // For simplicity, let's assume we can fetch it.
+        
+        // BUG-003 Fix: For Student role, verify active enrollment in the class
+        if (currentUser.getRoles().contains("ROLE_STUDENT")) {
+            boolean isEnrolled = classRoomService.isStudentEnrolledInClass(currentUser.getId(), classId);
+            if (!isEnrolled) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xem bài thi của lớp này vì chưa tham gia lớp"));
+            }
+        }
+
+        // BUG-003 Fix: For School/Teacher role, verify school tenant boundaries
+        if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
+            ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Bạn không có quyền xem bài thi của lớp thuộc trường khác"));
+            }
         }
 
         Page<ExamResponse> exams = examService.getExamsByClass(classId, pageable);
@@ -305,7 +320,7 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         // Security: Pass authenticated user ID to service for ownership validation
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        examService.logAntiCheatEvent(dto, currentUser.getId());
+        examService.logAntiCheatEvent(examId, dto, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận sự kiện"));
     }
 
