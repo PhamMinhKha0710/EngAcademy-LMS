@@ -15,6 +15,7 @@ import com.englishlearn.domain.exception.ResourceNotFoundException;
 import com.englishlearn.infrastructure.persistence.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -264,6 +265,12 @@ public class ExamService {
 
         Exam exam = examRepository.findById(request.getExamId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", request.getExamId()));
+
+        // BUG-007 Fix: Prevent duplicate submissions for legacy flow
+        boolean alreadySubmitted = examResultRepository.existsByExamIdAndStudentId(request.getExamId(), studentId);
+        if (alreadySubmitted) {
+            throw new DuplicateResourceException("Bạn đã nộp bài kiểm tra này rồi");
+        }
 
         // Calculate score - hỗ trợ MULTIPLE_CHOICE, TRUE_FALSE, FILL_IN_BLANK
         int correctCount = 0;
@@ -647,7 +654,7 @@ public class ExamService {
      * Ghi nhận sự kiện anti-cheat
      */
     @Transactional
-    public void logAntiCheatEvent(AntiCheatEventDTO dto, Long userId) {
+    public void logAntiCheatEvent(Long examId, AntiCheatEventDTO dto, Long userId) {
         ExamResult examResult = examResultRepository.findById(dto.getExamResultId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả thi", "id", dto.getExamResultId()));
 
@@ -656,6 +663,20 @@ public class ExamService {
             log.warn("User {} attempted to log anti-cheat event for exam result {} owned by user {}",
                     userId, dto.getExamResultId(), examResult.getStudent().getId());
             throw new IllegalArgumentException("Bạn không có quyền ghi nhận sự kiện cho bài thi này");
+        }
+
+        // BUG-005 Fix: Validate that path examId matches examResult's exam ID
+        if (!examResult.getExam().getId().equals(examId)) {
+            log.warn("Path examId {} does not match examResult.examId {} for result {}",
+                    examId, examResult.getExam().getId(), dto.getExamResultId());
+            throw new IllegalArgumentException("Mã bài thi trên đường dẫn không khớp với phiên thi của bạn");
+        }
+
+        // BUG-006 Fix: Validate that the eventType is one of the whitelisted event types
+        java.util.Set<String> allowedEventTypes = java.util.Set.of("TAB_SWITCH", "COPY", "PASTE", "BLUR", "RIGHT_CLICK", "DEV_TOOLS");
+        if (!allowedEventTypes.contains(dto.getEventType())) {
+            log.warn("User {} attempted to log invalid anti-cheat event type: {}", userId, dto.getEventType());
+            throw new IllegalArgumentException("Loại sự kiện chống gian lận không hợp lệ: " + dto.getEventType());
         }
 
         if (examResult.getSubmittedAt() != null) {
@@ -682,9 +703,9 @@ public class ExamService {
      * Async log anti-cheat event - for background processing to reduce response time.
      */
     @Async("taskExecutor")
-    public void logAntiCheatEventAsync(AntiCheatEventDTO dto, Long userId) {
+    public void logAntiCheatEventAsync(Long examId, AntiCheatEventDTO dto, Long userId) {
         try {
-            logAntiCheatEvent(dto, userId);
+            logAntiCheatEvent(examId, dto, userId);
             log.debug("Async anti-cheat event logged for examResultId={}", dto.getExamResultId());
         } catch (Exception e) {
             log.error("Failed async anti-cheat event log for examResultId={}: {}", dto.getExamResultId(), e.getMessage());
@@ -696,7 +717,8 @@ public class ExamService {
      */
     @Transactional
     public ExamResultDTO submitExamWithAntiCheat(ExamSubmitDTO dto, Long userId) {
-        ExamResult examResult = examResultRepository.findById(dto.getExamResultId())
+        // BUG-008 Fix: Acquire pessimistic write lock to prevent parallel submit replay race conditions
+        ExamResult examResult = examResultRepository.findByIdForUpdate(dto.getExamResultId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả thi", "id", dto.getExamResultId()));
 
         // Security: Validate ownership

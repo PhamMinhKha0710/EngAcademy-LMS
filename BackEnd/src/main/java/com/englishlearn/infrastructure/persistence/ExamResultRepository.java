@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
@@ -95,4 +97,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     Double averageScoreAll();
 
     long countBySubmittedAtIsNotNull();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT er FROM ExamResult er WHERE er.id = :id")
+    Optional<ExamResult> findByIdForUpdate(@Param("id") Long id);
 }

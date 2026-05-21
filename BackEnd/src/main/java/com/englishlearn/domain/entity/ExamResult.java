@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
     @Index(name = "idx_exam_result_user", columnList = "student_id"),
     @Index(name = "idx_exam_result_exam", columnList = "exam_id"),
     @Index(name = "idx_exam_result_submitted", columnList = "submitted_at")
+}, uniqueConstraints = {
+    @UniqueConstraint(name = "uc_exam_student", columnNames = {"exam_id", "student_id"})
 })
 @Getter
 @Setter

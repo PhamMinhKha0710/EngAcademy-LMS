@@ -79,6 +79,18 @@ public class ClassRoomService {
     }
 
     @Transactional(readOnly = true)
+    public boolean isStudentEnrolledInClass(Long studentId, Long classId) {
+        User student = userRepository.findById(studentId).orElse(null);
+        ClassRoom classRoom = classRoomRepository.findById(classId).orElse(null);
+        if (student == null || classRoom == null) {
+            return false;
+        }
+        return studentClassRepository.findByStudentAndClassRoom(student, classRoom)
+                .map(sc -> "ACTIVE".equalsIgnoreCase(sc.getStatus()))
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
     public ClassRoomResponse getClassRoomById(Long id) {
         ClassRoom classRoom = classRoomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", id));

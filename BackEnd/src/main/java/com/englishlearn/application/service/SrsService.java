@@ -9,6 +9,8 @@ import com.englishlearn.domain.exception.ResourceNotFoundException;
 import com.englishlearn.infrastructure.persistence.FlashcardReviewRepository;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import com.englishlearn.infrastructure.persistence.VocabularyRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,6 +30,9 @@ public class SrsService {
     private final FlashcardReviewRepository reviewRepository;
     private final VocabularyRepository vocabularyRepository;
     private final UserRepository userRepository;
+    
+    @PersistenceContext
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public SrsDueResponse getDueToday(Long userId) {
@@ -74,6 +79,13 @@ public class SrsService {
                         .nextReviewAt(LocalDate.now())
                         .build());
 
+        // BUG-010 Fix: Idempotency check. If already reviewed today, do not advance the card again.
+        if (review.getLastReviewedAt() != null && review.getLastReviewedAt().toLocalDate().equals(LocalDate.now())) {
+            log.info("SRS review already submitted today for user={}, vocab={}. Ignoring duplicate update.",
+                    userId, request.getVocabularyId());
+            throw new com.englishlearn.domain.exception.DuplicateResourceException("Từ vựng này đã được ôn tập hôm nay.");
+        }
+
         try {
             review.applySM2(request.getQuality());
             FlashcardReview saved = reviewRepository.save(review);
@@ -84,8 +96,20 @@ public class SrsService {
             // Concurrent update — retry once by re-fetching
             log.warn("Optimistic lock conflict on SRS review for user={}, vocab={}. Retrying...",
                     userId, request.getVocabularyId());
+            
+            // BUG-010 Fix: Clear persistence context to evict stale entities from the first-level JPA cache.
+            entityManager.clear();
+            
             FlashcardReview retry = reviewRepository.findByUserIdAndVocabularyId(userId, request.getVocabularyId())
                     .orElseThrow(() -> new ResourceNotFoundException("Vocabulary not in review queue"));
+            
+            // BUG-010 Fix: Check again in the retry block if the refetched record was already updated today.
+            if (retry.getLastReviewedAt() != null && retry.getLastReviewedAt().toLocalDate().equals(LocalDate.now())) {
+                log.info("SRS review already submitted today for user={}, vocab={} during retry. Ignoring duplicate update.",
+                        userId, request.getVocabularyId());
+                throw new com.englishlearn.domain.exception.DuplicateResourceException("Từ vựng này đã được ôn tập hôm nay.");
+            }
+
             retry.applySM2(request.getQuality());
             reviewRepository.save(retry);
         }
