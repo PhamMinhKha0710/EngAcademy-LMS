@@ -75,10 +75,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
-        log.error("Access denied: {}", ex.getMessage());
+        log.warn("Access denied: {}", ex.getMessage());
+        String message = ex.getMessage();
+        if (message == null || message.isBlank()) {
+            message = "Bạn không có quyền truy cập tài nguyên này";
+        }
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("Bạn không có quyền truy cập tài nguyên này"));
+                .body(ApiResponse.error(message));
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)

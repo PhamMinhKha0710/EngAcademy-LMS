@@ -39,8 +39,11 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
-        ApiResponse<Void> apiResponse = ApiResponse.error(
-                "Bạn không có quyền truy cập tài nguyên này");
+        String message = accessDeniedException.getMessage();
+        if (message == null || message.isBlank()) {
+            message = "Bạn không có quyền truy cập tài nguyên này";
+        }
+        ApiResponse<Void> apiResponse = ApiResponse.error(message);
 
         objectMapper.writeValue(response.getOutputStream(), apiResponse);
     }

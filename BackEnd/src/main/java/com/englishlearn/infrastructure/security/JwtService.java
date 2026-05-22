@@ -35,6 +35,8 @@ public class JwtService {
 
     private final StringRedisTemplate redisTemplate;
     private final Map<String, String> fallbackActiveRefreshJti = new ConcurrentHashMap<>();
+    /** jti -> epoch millis when blacklist entry expires (used when Redis is unavailable) */
+    private final Map<String, Long> fallbackBlacklistedJtiUntil = new ConcurrentHashMap<>();
 
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
@@ -196,7 +198,8 @@ public class JwtService {
             redisTemplate.opsForValue().set(BLACKLIST_PREFIX + jti, "1", ttlSeconds, TimeUnit.SECONDS);
             log.debug("JTI blacklisted: {}, TTL: {}s", jti, ttlSeconds);
         } catch (Exception e) {
-            log.warn("Redis unavailable for blacklist jti, refresh rotation may be weaker: {}", e.getMessage());
+            log.warn("Redis unavailable for blacklist jti, using in-memory fallback: {}", e.getMessage());
+            fallbackBlacklistedJtiUntil.put(jti, System.currentTimeMillis() + ttlSeconds * 1000);
         }
     }
 
@@ -204,9 +207,21 @@ public class JwtService {
         try {
             return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + jti));
         } catch (Exception e) {
-            log.warn("Redis unavailable for blacklist check: {}", e.getMessage());
+            log.warn("Redis unavailable for blacklist check, using in-memory fallback: {}", e.getMessage());
+            return isJtiBlacklistedInMemory(jti);
+        }
+    }
+
+    private boolean isJtiBlacklistedInMemory(String jti) {
+        Long until = fallbackBlacklistedJtiUntil.get(jti);
+        if (until == null) {
             return false;
         }
+        if (until < System.currentTimeMillis()) {
+            fallbackBlacklistedJtiUntil.remove(jti);
+            return false;
+        }
+        return true;
     }
 
     private void storeActiveRefreshJti(String username, String jti) {

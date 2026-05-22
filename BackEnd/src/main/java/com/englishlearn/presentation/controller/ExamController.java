@@ -207,7 +207,11 @@ public class ExamController {
     @PostMapping("/{id}/publish")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Publish an exam")
-    public ResponseEntity<ApiResponse<ExamResponse>> publishExam(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<ExamResponse>> publishExam(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        assertStaffCanAccessExam(currentUser, id);
         ExamResponse exam = examService.publishExam(id);
         return ResponseEntity.ok(ApiResponse.success("Công bố bài kiểm tra thành công", exam));
     }
@@ -215,7 +219,11 @@ public class ExamController {
     @PostMapping("/{id}/close")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Close an exam")
-    public ResponseEntity<ApiResponse<ExamResponse>> closeExam(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<ExamResponse>> closeExam(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        assertStaffCanAccessExam(currentUser, id);
         ExamResponse exam = examService.closeExam(id);
         return ResponseEntity.ok(ApiResponse.success("Đóng bài kiểm tra thành công", exam));
     }
@@ -223,7 +231,11 @@ public class ExamController {
     @PostMapping("/{id}/publish-scores")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Publish exam scores for students")
-    public ResponseEntity<ApiResponse<ExamResponse>> publishScores(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<ExamResponse>> publishScores(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        assertStaffCanAccessExam(currentUser, id);
         ExamResponse exam = examService.publishScores(id);
         return ResponseEntity.ok(ApiResponse.success("Công bố điểm thành công", exam));
     }
@@ -334,7 +346,7 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         // Security: Pass authenticated user ID to service for ownership validation
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        ExamResultDTO result = examService.submitExamWithAntiCheat(dto, currentUser.getId());
+        ExamResultDTO result = examService.submitExamWithAntiCheat(examId, dto, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Nộp bài thành công", result));
     }
 

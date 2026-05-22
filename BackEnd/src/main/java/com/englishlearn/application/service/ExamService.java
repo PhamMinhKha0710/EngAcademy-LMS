@@ -736,7 +736,7 @@ public class ExamService {
      * Submit bài thi với anti-cheat validation
      */
     @Transactional
-    public ExamResultDTO submitExamWithAntiCheat(ExamSubmitDTO dto, Long userId) {
+    public ExamResultDTO submitExamWithAntiCheat(Long examId, ExamSubmitDTO dto, Long userId) {
         // BUG-008 Fix: Acquire pessimistic write lock to prevent parallel submit replay race conditions
         ExamResult examResult = examResultRepository.findByIdForUpdate(dto.getExamResultId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả thi", "id", dto.getExamResultId()));
@@ -746,6 +746,12 @@ public class ExamService {
             log.warn("User {} attempted to submit exam result {} owned by user {}",
                     userId, dto.getExamResultId(), examResult.getStudent().getId());
             throw new IllegalArgumentException("Bạn không có quyền nộp bài thi này");
+        }
+
+        if (!examResult.getExam().getId().equals(examId)) {
+            log.warn("Path examId {} does not match examResult.examId {} for submit",
+                    examId, examResult.getExam().getId());
+            throw new IllegalArgumentException("Mã bài thi trên đường dẫn không khớp với phiên thi của bạn");
         }
 
         assertStudentEnrolledInExamClass(userId, examResult.getExam());
