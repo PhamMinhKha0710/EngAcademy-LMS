@@ -3,6 +3,7 @@ package com.englishlearn.presentation.controller;
 import com.englishlearn.application.dto.request.MistakeNotebookRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.MistakeNotebookDTO;
+import com.englishlearn.application.security.SchoolTenantGuard;
 import com.englishlearn.application.service.MistakeNotebookService;
 import com.englishlearn.application.service.UserService;
 import com.englishlearn.domain.entity.User;
@@ -37,6 +38,7 @@ public class MistakeNotebookController {
     private final MistakeNotebookService mistakeNotebookService;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final SchoolTenantGuard schoolTenantGuard;
 
     // ========== STUDENT: /me endpoints ==========
 
@@ -85,10 +87,12 @@ public class MistakeNotebookController {
      * GET /api/v1/mistakes/user/{userId} - Lấy danh sách lỗi sai của user (TEACHER/ADMIN)
      */
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
-    @Operation(summary = "Lấy danh sách lỗi sai của người dùng (Teacher/Admin)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Lấy danh sách lỗi sai của người dùng (Staff)")
     public ResponseEntity<ApiResponse<List<MistakeNotebookDTO>>> getMistakesByUser(
-            @Parameter(description = "ID của người dùng") @PathVariable Long userId) {
+            @Parameter(description = "ID của người dùng") @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         List<MistakeNotebookDTO> mistakes = mistakeNotebookService.getMistakesByUserId(userId);
         return ResponseEntity.ok(ApiResponse.success(mistakes));
     }
@@ -97,10 +101,12 @@ public class MistakeNotebookController {
      * GET /api/v1/mistakes/user/{userId}/top - Lấy top 10 lỗi sai nhiều nhất (TEACHER/ADMIN)
      */
     @GetMapping("/user/{userId}/top")
-    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
-    @Operation(summary = "Lấy top 10 lỗi sai nhiều nhất của người dùng (Teacher/Admin)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Lấy top 10 lỗi sai nhiều nhất của người dùng (Staff)")
     public ResponseEntity<ApiResponse<List<MistakeNotebookDTO>>> getTopMistakes(
-            @Parameter(description = "ID của người dùng") @PathVariable Long userId) {
+            @Parameter(description = "ID của người dùng") @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         List<MistakeNotebookDTO> mistakes = mistakeNotebookService.getTopMistakes(userId);
         return ResponseEntity.ok(ApiResponse.success(mistakes));
     }
@@ -109,10 +115,12 @@ public class MistakeNotebookController {
      * GET /api/v1/mistakes/user/{userId}/count - Đếm số lỗi sai (TEACHER/ADMIN)
      */
     @GetMapping("/user/{userId}/count")
-    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
-    @Operation(summary = "Đếm số lỗi sai của người dùng (Teacher/Admin)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL', 'TEACHER')")
+    @Operation(summary = "Đếm số lỗi sai của người dùng (Staff)")
     public ResponseEntity<ApiResponse<Long>> countMistakes(
-            @Parameter(description = "ID của người dùng") @PathVariable Long userId) {
+            @Parameter(description = "ID của người dùng") @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         long count = mistakeNotebookService.countMistakes(userId);
         return ResponseEntity.ok(ApiResponse.success(count));
     }
@@ -156,5 +164,10 @@ public class MistakeNotebookController {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getId();
+    }
+
+    private void assertStaffCanAccessUser(UserDetails userDetails, Long targetUserId) {
+        Long callerId = userService.getUserByUsername(userDetails.getUsername()).getId();
+        schoolTenantGuard.assertCanAccessUser(callerId, targetUserId);
     }
 }
