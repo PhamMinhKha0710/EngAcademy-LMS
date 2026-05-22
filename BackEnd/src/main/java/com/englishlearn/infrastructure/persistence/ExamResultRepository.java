@@ -101,4 +101,11 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT er FROM ExamResult er WHERE er.id = :id")
     Optional<ExamResult> findByIdForUpdate(@Param("id") Long id);
+
+    @Query("SELECT er FROM ExamResult er "
+            + "JOIN FETCH er.exam e "
+            + "JOIN FETCH e.classRoom cr "
+            + "JOIN FETCH cr.school "
+            + "WHERE er.id = :id")
+    Optional<ExamResult> findByIdWithExamSchool(@Param("id") Long id);
 }

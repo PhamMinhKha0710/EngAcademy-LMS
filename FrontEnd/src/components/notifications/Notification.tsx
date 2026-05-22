@@ -16,7 +16,7 @@ interface Notification {
 
 const NotificationComponent = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, accessToken } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -28,14 +28,21 @@ const NotificationComponent = () => {
     fetchNotifications();
     fetchUnreadCount();
 
+    if (!accessToken || !user?.username) {
+      return;
+    }
+
     // WebSocket setup
     const socket = new SockJS('/ws');
     const stompClient = new Client({
       webSocketFactory: () => socket,
+      connectHeaders: {
+        Authorization: `Bearer ${accessToken}`,
+      },
       onConnect: (frame) => {
         console.log('Connected to STOMP broker:', frame);
 
-        const destination = `/topic/notifications/${user?.username}`;
+        const destination = '/user/queue/notifications';
         console.log('Subscribing to:', destination);
 
         stompClient.subscribe(destination, (message) => {
@@ -74,7 +81,7 @@ const NotificationComponent = () => {
       stompClient.deactivate();
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [user?.username]);
+  }, [user?.username, accessToken]);
 
   const fetchNotifications = async () => {
     try {

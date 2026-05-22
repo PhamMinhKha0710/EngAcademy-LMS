@@ -51,6 +51,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Value("${rate-limit.enabled:true}")
     private boolean enabled;
 
+    /** SEC-HIGH-004: only trust X-Forwarded-For behind a configured reverse proxy */
+    @Value("${rate-limit.trust-proxy-headers:false}")
+    private boolean trustProxyHeaders;
+
     private final Map<String, RateLimitEntry> attempts = new ConcurrentHashMap<>();
     private final Map<String, RateLimitEntry> otpAttempts = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
@@ -157,6 +161,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
+        if (!trustProxyHeaders) {
+            return request.getRemoteAddr();
+        }
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
             return xForwardedFor.split(",")[0].trim();

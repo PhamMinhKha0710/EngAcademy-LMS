@@ -7,6 +7,7 @@ import com.englishlearn.application.dto.response.AuthResponse;
 import com.englishlearn.domain.entity.PasswordResetToken;
 import com.englishlearn.domain.entity.Role;
 import com.englishlearn.domain.entity.User;
+import com.englishlearn.domain.exception.ApiException;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
 import com.englishlearn.infrastructure.persistence.PasswordResetTokenRepository;
@@ -15,7 +16,10 @@ import com.englishlearn.infrastructure.persistence.UserRepository;
 import com.englishlearn.infrastructure.security.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -31,9 +36,13 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final Set<String> KNOWN_SEED_USERNAMES = Set.of(
+            "admin", "school1", "teacher1", "student1", "student2");
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -43,6 +52,9 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final AuditLogService auditLogService;
+
+    @Value("${application.security.seed-login.enabled:false}")
+    private boolean seedLoginEnabled;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -75,6 +87,8 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
+        assertSeedLoginAllowed(request.getUsername());
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -93,18 +107,29 @@ public class AuthService {
 
     @Transactional
     public AuthResponse refreshToken(String refreshToken) {
-        String username = jwtService.extractUsername(refreshToken);
+        String username;
+        try {
+            username = jwtService.extractUsername(refreshToken);
+        } catch (Exception e) {
+            throw ApiException.unauthorized("Refresh token không hợp lệ hoặc đã hết hạn");
+        }
+
         var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản", "username", username));
+                .orElseThrow(() -> ApiException.unauthorized("Refresh token không hợp lệ hoặc đã hết hạn"));
 
         var userDetails = buildUserDetails(user);
 
-        if (!jwtService.isTokenValid(refreshToken, userDetails)) {
-            throw new RuntimeException("Refresh token không hợp lệ hoặc đã hết hạn");
+        if (!jwtService.isRefreshTokenValid(refreshToken, userDetails)) {
+            String jti = jwtService.extractJti(refreshToken);
+            if (jti != null && jwtService.isTokenBlacklisted(refreshToken)) {
+                jwtService.revokeRefreshTokensForUser(username);
+                log.warn("Refresh token reuse detected for user {}", username);
+            }
+            throw ApiException.unauthorized("Refresh token không hợp lệ, đã hết hạn hoặc đã bị thu hồi");
         }
 
         var newAccessToken = jwtService.generateToken(userDetails);
-        var newRefreshToken = jwtService.generateRefreshToken(userDetails);
+        var newRefreshToken = jwtService.rotateRefreshToken(userDetails, refreshToken);
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
@@ -146,8 +171,14 @@ public class AuthService {
      * Reset mật khẩu bằng OTP
      */
     @Transactional
-    public void logout(String token) {
-        jwtService.blacklistToken(token);
+    public void logout(String accessToken) {
+        jwtService.blacklistToken(accessToken);
+        try {
+            String username = jwtService.extractUsername(accessToken);
+            jwtService.revokeRefreshTokensForUser(username);
+        } catch (Exception e) {
+            log.warn("Could not revoke refresh tokens on logout: {}", e.getMessage());
+        }
     }
 
     @Transactional
@@ -181,6 +212,7 @@ public class AuthService {
         User user = token.getUser();
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+        jwtService.revokeRefreshTokensForUser(user.getUsername());
 
         // Đánh dấu token đã dùng
         token.setUsed(true);
@@ -261,6 +293,16 @@ public class AuthService {
                 .email(user.getEmail())
                 .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
                 .build();
+    }
+
+    private void assertSeedLoginAllowed(String username) {
+        if (seedLoginEnabled || username == null) {
+            return;
+        }
+        if (KNOWN_SEED_USERNAMES.contains(username.toLowerCase())) {
+            throw new BadCredentialsException(
+                    "Tài khoản seed chỉ dùng cho môi trường dev khi bật application.security.seed-login.enabled=true");
+        }
     }
 
     private org.springframework.security.core.userdetails.User buildUserDetails(User user) {

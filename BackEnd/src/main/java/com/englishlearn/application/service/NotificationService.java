@@ -94,10 +94,11 @@ public class NotificationService {
         Notification saved = notificationRepository.save(notification);
         NotificationResponse response = mapToResponse(saved);
 
-        String destination = "/topic/notifications/" + notification.getUser().getUsername();
-
-        // Push notification to specific topic for the user
-        messagingTemplate.convertAndSend(destination, response);
+        // SEC-BLOCKER-001: Private notifications via user destination (not guessable /topic/{username})
+        messagingTemplate.convertAndSendToUser(
+                notification.getUser().getUsername(),
+                "/queue/notifications",
+                response);
     }
 
     @Transactional

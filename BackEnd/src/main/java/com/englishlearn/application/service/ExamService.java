@@ -10,6 +10,7 @@ import com.englishlearn.application.dto.response.ExamResultDTO;
 import com.englishlearn.application.dto.response.ExamResultResponse;
 import com.englishlearn.application.dto.response.ExamTakeDTO;
 import com.englishlearn.domain.entity.*;
+import com.englishlearn.domain.exception.ApiException;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
 import com.englishlearn.infrastructure.persistence.*;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,11 +80,17 @@ public class ExamService {
     }
 
     @Transactional(readOnly = true)
-    public List<ExamResponse> getActiveExamsForStudent(Long classId) {
+    public List<ExamResponse> getActiveExamsByClass(Long classId) {
         return examRepository.findActiveExamsByClassId(classId, LocalDateTime.now())
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamResponse> getActiveExamsForStudent(Long classId, Long studentId) {
+        assertStudentEnrolledInClass(studentId, classId);
+        return getActiveExamsByClass(classId);
     }
 
     /**
@@ -102,21 +110,23 @@ public class ExamService {
      * Ẩn isCorrect và explanation để chống gian lận.
      */
     @Transactional(readOnly = true)
-    public ExamResponse getExamForStudent(Long id) {
+    public ExamResponse getExamForStudent(Long id, Long studentId) {
         Exam exam = examRepository.findByIdWithQuestions(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", id));
 
+        assertStudentEnrolledInExamClass(studentId, exam);
+
         if (!"PUBLISHED".equals(exam.getStatus())) {
-            throw new IllegalStateException("Bài kiểm tra chưa được công bố");
+            throw ApiException.badRequest("Bài kiểm tra chưa được công bố");
         }
 
         // Enforce exam availability window for student preview/take flow.
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(exam.getStartTime())) {
-            throw new IllegalStateException("Bài thi chưa bắt đầu. Thời gian bắt đầu: " + exam.getStartTime());
+            throw ApiException.badRequest("Bài thi chưa bắt đầu. Thời gian bắt đầu: " + exam.getStartTime());
         }
         if (now.isAfter(exam.getEndTime())) {
-            throw new IllegalStateException("Bài thi đã kết thúc. Thời gian kết thúc: " + exam.getEndTime());
+            throw ApiException.badRequest("Bài thi đã kết thúc. Thời gian kết thúc: " + exam.getEndTime());
         }
 
         return mapToResponseWithQuestions(exam, true);
@@ -266,6 +276,8 @@ public class ExamService {
         Exam exam = examRepository.findById(request.getExamId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", request.getExamId()));
 
+        assertStudentEnrolledInExamClass(studentId, exam);
+
         // BUG-007 Fix: Prevent duplicate submissions for legacy flow
         boolean alreadySubmitted = examResultRepository.existsByExamIdAndStudentId(request.getExamId(), studentId);
         if (alreadySubmitted) {
@@ -372,13 +384,17 @@ public class ExamService {
 
     @Transactional(readOnly = true)
     public ExamResultResponse getStudentExamResult(Long examId, Long studentId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", examId));
+        assertStudentEnrolledInExamClass(studentId, exam);
+
         ExamResult result = examResultRepository
                 .findTopByExamIdAndStudentIdWithExamAndStudent(examId, studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả bài thi", "examId", examId));
 
         // Học sinh chỉ xem chi tiết sau khi giáo viên công bố điểm
         if (!Boolean.TRUE.equals(result.getExam().getScorePublished())) {
-            throw new IllegalStateException("Giáo viên chưa công bố kết quả bài thi");
+            throw ApiException.forbidden("Giáo viên chưa công bố kết quả bài thi");
         }
 
         return mapToResultResponse(result);
@@ -555,18 +571,20 @@ public class ExamService {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sinh viên", "id", studentId));
 
+        assertStudentEnrolledInExamClass(studentId, exam);
+
         // Kiểm tra thời gian bài thi
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(exam.getStartTime())) {
-            throw new IllegalStateException("Bài thi chưa bắt đầu. Thời gian bắt đầu: " + exam.getStartTime());
+            throw ApiException.badRequest("Bài thi chưa bắt đầu. Thời gian bắt đầu: " + exam.getStartTime());
         }
         if (now.isAfter(exam.getEndTime())) {
-            throw new IllegalStateException("Bài thi đã kết thúc. Thời gian kết thúc: " + exam.getEndTime());
+            throw ApiException.badRequest("Bài thi đã kết thúc. Thời gian kết thúc: " + exam.getEndTime());
         }
 
         // Kiểm tra trạng thái bài thi
         if (!"PUBLISHED".equals(exam.getStatus())) {
-            throw new IllegalStateException("Bài thi chưa được công bố");
+            throw ApiException.badRequest("Bài thi chưa được công bố");
         }
 
         // Nếu đã có bản ghi đã nộp trước đó thì không cho làm lại
@@ -574,7 +592,7 @@ public class ExamService {
                 .findTopByExamIdAndStudentIdAndSubmittedAtIsNotNullOrderBySubmittedAtDescIdDesc(examId, studentId)
                 .isPresent();
         if (alreadySubmitted) {
-            throw new IllegalStateException("Bạn đã hoàn thành bài thi này");
+            throw ApiException.conflict("Bạn đã hoàn thành bài thi này");
         }
 
         // Lấy phiên làm bài đang mở gần nhất (nếu có), tránh lỗi duplicate dữ liệu cũ.
@@ -665,6 +683,8 @@ public class ExamService {
             throw new IllegalArgumentException("Bạn không có quyền ghi nhận sự kiện cho bài thi này");
         }
 
+        assertStudentEnrolledInExamClass(userId, examResult.getExam());
+
         // BUG-005 Fix: Validate that path examId matches examResult's exam ID
         if (!examResult.getExam().getId().equals(examId)) {
             log.warn("Path examId {} does not match examResult.examId {} for result {}",
@@ -728,8 +748,11 @@ public class ExamService {
             throw new IllegalArgumentException("Bạn không có quyền nộp bài thi này");
         }
 
+        assertStudentEnrolledInExamClass(userId, examResult.getExam());
+
         if (examResult.getSubmittedAt() != null) {
-            throw new IllegalStateException("Bài thi đã được nộp trước đó");
+            log.info("Idempotent submit-anticheat for examResultId={}", dto.getExamResultId());
+            return buildExamResultDtoFromSubmitted(examResult, resolveSubmittedStatus(examResult));
         }
 
         Exam exam = examResult.getExam();
@@ -815,6 +838,23 @@ public class ExamService {
                 : 0;
         String grade = calculateGrade(score);
 
+        return buildExamResultDto(examResult, exam, score, correctCount, percentage, grade, now, status);
+    }
+
+    private ExamResultDTO buildExamResultDtoFromSubmitted(ExamResult examResult, String status) {
+        Exam exam = examResult.getExam();
+        BigDecimal score = examResult.getScore() != null ? examResult.getScore() : BigDecimal.ZERO;
+        int correctCount = examResult.getCorrectCount() != null ? examResult.getCorrectCount() : 0;
+        double percentage = examResult.getTotalQuestions() != null && examResult.getTotalQuestions() > 0
+                ? (double) correctCount / examResult.getTotalQuestions() * 100
+                : 0;
+        String grade = calculateGrade(score);
+        return buildExamResultDto(examResult, exam, score, correctCount, percentage, grade,
+                examResult.getSubmittedAt(), status);
+    }
+
+    private ExamResultDTO buildExamResultDto(ExamResult examResult, Exam exam, BigDecimal score, int correctCount,
+            double percentage, String grade, LocalDateTime submittedAt, String status) {
         return ExamResultDTO.builder()
                 .id(examResult.getId())
                 .examId(exam.getId())
@@ -826,10 +866,24 @@ public class ExamService {
                 .totalQuestions(examResult.getTotalQuestions())
                 .percentage(percentage)
                 .grade(grade)
-                .submittedAt(now)
+                .submittedAt(submittedAt)
                 .violationCount(examResult.getViolationCount())
                 .status(status)
                 .build();
+    }
+
+    private String resolveSubmittedStatus(ExamResult examResult) {
+        if (examResult.getViolationCount() != null && examResult.getViolationCount() >= 3) {
+            return "FLAGGED";
+        }
+        Exam exam = examResult.getExam();
+        if (examResult.getSubmittedAt() != null && exam.getDurationMinutes() != null) {
+            LocalDateTime deadline = exam.getStartTime().plusMinutes(exam.getDurationMinutes()).plusMinutes(1);
+            if (examResult.getSubmittedAt().isAfter(deadline)) {
+                return "LATE";
+            }
+        }
+        return "COMPLETED";
     }
 
     private void trackMistakeFromWrongAnswer(Long userId, Question question, Long selectedOptionId, String answerText) {
@@ -904,5 +958,66 @@ public class ExamService {
     @Transactional(readOnly = true)
     public List<AntiCheatEvent> getAntiCheatEvents(Long examResultId) {
         return antiCheatEventRepository.findByExamResultIdOrderByEventTimeAsc(examResultId);
+    }
+
+    /**
+     * BUG-BLOCKER-001: Student must have active enrollment in the exam's class before any take/start/submit path.
+     */
+    private void assertStudentEnrolledInExamClass(Long studentId, Exam exam) {
+        if (exam.getClassRoom() == null) {
+            throw new AccessDeniedException("Bài thi không thuộc lớp học hợp lệ");
+        }
+        assertStudentEnrolledInClass(studentId, exam.getClassRoom().getId());
+    }
+
+    /**
+     * BUG-BLOCKER-002: School/teacher staff may only access exams belonging to their tenant.
+     */
+    @Transactional(readOnly = true)
+    public void assertStaffCanAccessExamSchool(Long examId, Long callerSchoolId, boolean callerIsAdmin) {
+        if (callerIsAdmin) {
+            return;
+        }
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bài kiểm tra", "id", examId));
+        Long examSchoolId = exam.getClassRoom() != null && exam.getClassRoom().getSchool() != null
+                ? exam.getClassRoom().getSchool().getId()
+                : null;
+        if (callerSchoolId == null || examSchoolId == null || !callerSchoolId.equals(examSchoolId)) {
+            log.warn("Staff denied exam {} access: callerSchoolId={} examSchoolId={}", examId, callerSchoolId, examSchoolId);
+            throw new AccessDeniedException("Bạn không có quyền truy cập bài thi của trường khác");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void assertStaffCanAccessExamResultSchool(Long examResultId, Long callerSchoolId, boolean callerIsAdmin) {
+        if (callerIsAdmin) {
+            return;
+        }
+        ExamResult examResult = examResultRepository.findByIdWithExamSchool(examResultId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kết quả thi", "id", examResultId));
+        Long examSchoolId = examResult.getExam().getClassRoom() != null
+                && examResult.getExam().getClassRoom().getSchool() != null
+                ? examResult.getExam().getClassRoom().getSchool().getId()
+                : null;
+        if (callerSchoolId == null || examSchoolId == null || !callerSchoolId.equals(examSchoolId)) {
+            log.warn("Staff denied exam result {} access: callerSchoolId={} examSchoolId={}",
+                    examResultId, callerSchoolId, examSchoolId);
+            throw new AccessDeniedException("Bạn không có quyền truy cập kết quả thi của trường khác");
+        }
+    }
+
+    private void assertStudentEnrolledInClass(Long studentId, Long classId) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Học sinh", "id", studentId));
+        ClassRoom classRoom = classRoomRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", classId));
+        boolean enrolled = studentClassRepository.findByStudentAndClassRoom(student, classRoom)
+                .map(sc -> "ACTIVE".equalsIgnoreCase(sc.getStatus()))
+                .orElse(false);
+        if (!enrolled) {
+            log.warn("Student {} denied exam access: not enrolled in class {}", studentId, classId);
+            throw new AccessDeniedException("Bạn không có quyền truy cập bài thi của lớp này vì chưa tham gia lớp");
+        }
     }
 }

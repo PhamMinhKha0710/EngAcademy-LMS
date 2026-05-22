@@ -1,6 +1,7 @@
 package com.englishlearn.infrastructure.config;
 
 import com.englishlearn.infrastructure.security.JwtService;
+import com.englishlearn.infrastructure.security.StompSubscribeAuthorizationInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final StompSubscribeAuthorizationInterceptor stompSubscribeAuthorizationInterceptor;
 
     @Value("${application.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
     private String allowedOrigins;
@@ -75,6 +77,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     } else {
                         throw new MessageDeliveryException("WebSocket authentication token missing");
                     }
+                }
+                if (accessor != null && StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+                    return stompSubscribeAuthorizationInterceptor.preSend(message, channel);
                 }
                 return message;
             }

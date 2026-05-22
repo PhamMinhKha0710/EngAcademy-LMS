@@ -137,6 +137,34 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    /**
+     * BUG-HIGH-001 / CONC-HIGH-001: Map domain state violations to 4xx instead of 500.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalStateException(IllegalStateException ex) {
+        String message = ex.getMessage() != null ? ex.getMessage() : "Trạng thái không hợp lệ";
+        HttpStatus status = resolveBusinessStateStatus(message);
+        log.warn("Business state violation ({}): {}", status.value(), message);
+        return ResponseEntity
+                .status(status)
+                .body(ApiResponse.error(message));
+    }
+
+    private HttpStatus resolveBusinessStateStatus(String message) {
+        String lower = message.toLowerCase();
+        if (lower.contains("đã được nộp")
+                || lower.contains("đã hoàn thành")
+                || lower.contains("đã nộp bài")
+                || lower.contains("phiên đang được xử lý")) {
+            return HttpStatus.CONFLICT;
+        }
+        if (lower.contains("chưa công bố kết quả")
+                || lower.contains("không có quyền")) {
+            return HttpStatus.FORBIDDEN;
+        }
+        return HttpStatus.BAD_REQUEST;
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
         log.error("Lỗi runtime: ", ex);

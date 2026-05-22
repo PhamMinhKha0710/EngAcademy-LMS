@@ -41,6 +41,16 @@ public class ExamController {
     private final UserService userService;
     private final ClassRoomService classRoomService;
 
+    private static boolean isAdmin(UserResponse user) {
+        return user.getRoles().contains("ROLE_ADMIN");
+    }
+
+    private void assertStaffCanAccessExam(UserResponse user, Long examId) {
+        if (!isAdmin(user)) {
+            examService.assertStaffCanAccessExamSchool(examId, user.getSchoolId(), false);
+        }
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Lấy danh sách bài thi (Admin lấy hết, School lấy theo trường)")
@@ -114,8 +124,23 @@ public class ExamController {
     @GetMapping("/class/{classId}/active")
     @PreAuthorize("hasAnyRole('TEACHER', 'STUDENT')")
     @Operation(summary = "Get active exams for student")
-    public ResponseEntity<ApiResponse<List<ExamResponse>>> getActiveExams(@PathVariable Long classId) {
-        List<ExamResponse> exams = examService.getActiveExamsForStudent(classId);
+    public ResponseEntity<ApiResponse<List<ExamResponse>>> getActiveExams(
+            @PathVariable Long classId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+
+        if (currentUser.getRoles().contains("ROLE_STUDENT")) {
+            List<ExamResponse> exams = examService.getActiveExamsForStudent(classId, currentUser.getId());
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài kiểm tra đang mở thành công", exams));
+        }
+
+        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+        if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Bạn không có quyền xem bài thi của lớp thuộc trường khác"));
+        }
+
+        List<ExamResponse> exams = examService.getActiveExamsByClass(classId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài kiểm tra đang mở thành công", exams));
     }
 
@@ -127,23 +152,19 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        assertStaffCanAccessExam(currentUser, id);
         ExamResponse exam = examService.getExamById(id);
-
-        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
-            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(exam.getSchoolId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền xem bài thi của trường khác"));
-            }
-        }
-
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin bài kiểm tra thành công", exam));
     }
 
     @GetMapping("/{id}/take")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Get exam for student to take - shuffles questions/answers, hides correct answers")
-    public ResponseEntity<ApiResponse<ExamResponse>> getExamForStudent(@PathVariable Long id) {
-        ExamResponse exam = examService.getExamForStudent(id);
+    public ResponseEntity<ApiResponse<ExamResponse>> getExamForStudent(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        ExamResponse exam = examService.getExamForStudent(id, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success("Lấy đề thi thành công", exam));
     }
 
@@ -178,15 +199,7 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        ExamResponse existing = examService.getExamById(id);
-
-        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
-            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(existing.getSchoolId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền cập nhật bài thi của trường khác"));
-            }
-        }
-
+        assertStaffCanAccessExam(currentUser, id);
         ExamResponse exam = examService.updateExam(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật bài kiểm tra thành công", exam));
     }
@@ -239,15 +252,7 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        ExamResponse exam = examService.getExamById(id);
-
-        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
-            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(exam.getSchoolId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền xem kết quả của trường khác"));
-            }
-        }
-
+        assertStaffCanAccessExam(currentUser, id);
         List<ExamResultResponse> results = examService.getExamResults(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy kết quả bài kiểm tra thành công", results));
     }
@@ -271,15 +276,7 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        ExamResponse existing = examService.getExamById(id);
-
-        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
-            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(existing.getSchoolId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền xóa bài thi của trường khác"));
-            }
-        }
-
+        assertStaffCanAccessExam(currentUser, id);
         examService.deleteExam(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa bài kiểm tra thành công", null));
     }
@@ -352,13 +349,9 @@ public class ExamController {
             @Parameter(description = "ID của kết quả thi") @PathVariable Long examResultId,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        // Ownership check for SCHOOL role
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
-            // Need to check the school of the exam related to this result
-            // This is becoming complex, but necessary.
-            // For now, let's at least allow the role. 
-            // Better would be to fetch the result and check its school.
+        if (!isAdmin(currentUser)) {
+            examService.assertStaffCanAccessExamResultSchool(examResultId, currentUser.getSchoolId(), false);
         }
 
         List<AntiCheatEvent> events = examService.getAntiCheatEvents(examResultId);
