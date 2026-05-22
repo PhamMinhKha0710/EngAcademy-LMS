@@ -276,8 +276,10 @@ public class UserController {
     @Operation(summary = "Thêm xu cho người dùng")
     public ResponseEntity<ApiResponse<Void>> addCoins(
             @PathVariable Long id,
-            @RequestParam Integer amount) {
-        userService.addCoins(id, amount);
+            @RequestParam Integer amount,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        userService.addCoins(caller.getId(), id, amount);
         return ResponseEntity.ok(ApiResponse.success("Đã thêm " + amount + " xu"));
     }
 
