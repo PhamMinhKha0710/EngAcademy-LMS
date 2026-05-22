@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.englishlearn.infrastructure.jackson.UtcAwareLocalDateTimeDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,9 +26,11 @@ public class ExamRequest {
     private Long classId;
 
     @NotNull(message = "Thời gian bắt đầu không được để trống")
+    @JsonDeserialize(using = UtcAwareLocalDateTimeDeserializer.class)
     private LocalDateTime startTime;
 
     @NotNull(message = "Thời gian kết thúc không được để trống")
+    @JsonDeserialize(using = UtcAwareLocalDateTimeDeserializer.class)
     private LocalDateTime endTime;
 
     @NotNull(message = "Thời gian làm bài không được để trống")

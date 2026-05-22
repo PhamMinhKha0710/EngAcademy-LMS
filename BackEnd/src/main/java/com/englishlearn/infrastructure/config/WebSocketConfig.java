@@ -1,6 +1,7 @@
 package com.englishlearn.infrastructure.config;
 
 import com.englishlearn.infrastructure.security.JwtService;
+import com.englishlearn.infrastructure.security.StompPrincipal;
 import com.englishlearn.infrastructure.security.StompSubscribeAuthorizationInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,9 +63,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             if (username != null) {
                                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                            userDetails, null, userDetails.getAuthorities());
-                                    accessor.setUser(authToken);
+                                    accessor.setUser(new StompPrincipal(username));
                                 } else {
                                     throw new MessageDeliveryException("Invalid WebSocket authentication token");
                                 }

@@ -3,7 +3,9 @@ package com.englishlearn.presentation.controller;
 import com.englishlearn.application.dto.request.BroadcastNotificationRequest;
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.NotificationResponse;
+import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.application.service.NotificationService;
+import com.englishlearn.application.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.util.List;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final UserService userService;
 
     /**
      * GET /api/v1/notifications/me - Lấy danh sách thông báo của người dùng hiện tại
@@ -89,8 +92,11 @@ public class NotificationController {
     @PostMapping("/broadcast")
     @PreAuthorize("hasAnyRole('ADMIN', 'SCHOOL')")
     @Operation(summary = "Gửi thông báo đến một nhóm người dùng (Toàn bộ, Vai trò, Trường học, Lớp học)")
-    public ResponseEntity<ApiResponse<Void>> broadcastNotification(@RequestBody BroadcastNotificationRequest request) {
-        notificationService.broadcastNotification(request);
+    public ResponseEntity<ApiResponse<Void>> broadcastNotification(
+            @RequestBody BroadcastNotificationRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        notificationService.broadcastNotification(caller.getId(), request);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
@@ -101,8 +107,10 @@ public class NotificationController {
             @PathVariable Long userId,
             @RequestParam String title,
             @RequestParam String message,
-            @RequestParam(required = false) String imageUrl) {
-        notificationService.sendNotification(userId, title, message, imageUrl);
+            @RequestParam(required = false) String imageUrl,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        notificationService.sendNotification(caller.getId(), userId, title, message, imageUrl);
         return ResponseEntity.ok(ApiResponse.success("Gửi thông báo thành công", null));
     }
 }

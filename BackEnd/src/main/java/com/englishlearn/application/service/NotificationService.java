@@ -2,6 +2,7 @@ package com.englishlearn.application.service;
 
 import com.englishlearn.application.dto.request.BroadcastNotificationRequest;
 import com.englishlearn.application.dto.response.NotificationResponse;
+import com.englishlearn.domain.entity.ClassRoom;
 import com.englishlearn.domain.entity.Notification;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
@@ -101,11 +102,27 @@ public class NotificationService {
                 response);
     }
 
+    /**
+     * BUG-BLOCKER-001: Direct send from staff — caller must share school with target (admin exempt).
+     */
+    @Transactional
+    public void sendNotification(Long callerId, Long targetUserId, String title, String message, String imageUrl) {
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + callerId));
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + targetUserId));
+        assertSameSchoolForNotification(caller, target);
+        sendNotificationToUser(target, title, message, imageUrl);
+    }
+
     @Transactional
     public void sendNotification(Long userId, String title, String message, String imageUrl) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        sendNotificationToUser(user, title, message, imageUrl);
+    }
 
+    private void sendNotificationToUser(User user, String title, String message, String imageUrl) {
         Notification notification = Notification.builder()
                 .user(user)
                 .title(title)
@@ -116,47 +133,14 @@ public class NotificationService {
         sendNotification(notification);
     }
 
+    /**
+     * BUG-BLOCKER-001: Broadcast scoped to caller's school unless admin.
+     */
     @Transactional
-    public void broadcastNotification(BroadcastNotificationRequest request) {
-        List<User> targetUsers = new ArrayList<>();
-
-        if ("SYSTEM".equalsIgnoreCase(request.getScope())) {
-            targetUsers.addAll(userRepository.findAllByRolesName("ROLE_SCHOOL"));
-        } else {
-            switch (request.getScope().toUpperCase()) {
-                case "ALL":
-                    targetUsers.addAll(userRepository.findAll());
-                    break;
-                case "ROLE":
-                    if (request.getTargetRole() != null) {
-                        targetUsers.addAll(userRepository.findAllByRolesName(request.getTargetRole()));
-                    }
-                    break;
-                case "SCHOOL":
-                    if (request.getSchoolId() != null) {
-                        targetUsers.addAll(userRepository.findAllBySchoolId(request.getSchoolId()));
-                    }
-                    break;
-                case "CLASS":
-                    if (request.getClassId() != null) {
-                        // Add students
-                        List<User> students = studentClassRepository.findActiveStudentsByClassId(request.getClassId())
-                                .stream()
-                                .map(sc -> sc.getStudent())
-                                .collect(Collectors.toList());
-                        targetUsers.addAll(students);
-
-                        // Add teacher
-                        classRoomRepository.findById(request.getClassId())
-                                .ifPresent(cr -> {
-                                    if (cr.getTeacher() != null) {
-                                        targetUsers.add(cr.getTeacher());
-                                    }
-                                });
-                    }
-                    break;
-            }
-        }
+    public void broadcastNotification(Long callerId, BroadcastNotificationRequest request) {
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + callerId));
+        List<User> targetUsers = resolveBroadcastTargets(caller, request);
 
         for (User user : targetUsers) {
             Notification notification = Notification.builder()
@@ -168,6 +152,95 @@ public class NotificationService {
                     .build();
             sendNotification(notification);
         }
+    }
+
+    private List<User> resolveBroadcastTargets(User caller, BroadcastNotificationRequest request) {
+        if (request.getScope() == null || request.getScope().isBlank()) {
+            throw new org.springframework.security.access.AccessDeniedException("Phạm vi broadcast không hợp lệ");
+        }
+        String scope = request.getScope().toUpperCase();
+        boolean admin = isAdmin(caller);
+        Long callerSchoolId = caller.getSchool() != null ? caller.getSchool().getId() : null;
+
+        if ("SYSTEM".equals(scope)) {
+            if (!admin) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Chỉ quản trị hệ thống mới được gửi broadcast SYSTEM");
+            }
+            return new ArrayList<>(userRepository.findAllByRolesName("ROLE_SCHOOL"));
+        }
+
+        if ("ALL".equals(scope) || "ROLE".equals(scope)) {
+            if (!admin) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Chỉ quản trị hệ thống mới được gửi broadcast ALL hoặc ROLE");
+            }
+            if ("ALL".equals(scope)) {
+                return new ArrayList<>(userRepository.findAll());
+            }
+            if (request.getTargetRole() != null) {
+                return new ArrayList<>(userRepository.findAllByRolesName(request.getTargetRole()));
+            }
+            return List.of();
+        }
+
+        if ("SCHOOL".equals(scope)) {
+            Long schoolId = request.getSchoolId();
+            if (!admin) {
+                if (callerSchoolId == null) {
+                    throw new org.springframework.security.access.AccessDeniedException(
+                            "Tài khoản không thuộc trường, không thể broadcast theo trường");
+                }
+                if (schoolId != null && !schoolId.equals(callerSchoolId)) {
+                    throw new org.springframework.security.access.AccessDeniedException(
+                            "Không thể broadcast sang trường khác");
+                }
+                schoolId = callerSchoolId;
+            } else if (schoolId == null) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "schoolId là bắt buộc cho broadcast SCHOOL");
+            }
+            return new ArrayList<>(userRepository.findAllBySchoolId(schoolId));
+        }
+
+        if ("CLASS".equals(scope)) {
+            if (request.getClassId() == null) {
+                throw new org.springframework.security.access.AccessDeniedException("classId là bắt buộc cho broadcast CLASS");
+            }
+            ClassRoom classRoom = classRoomRepository.findById(request.getClassId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Lớp học", "id", request.getClassId()));
+            Long classSchoolId = classRoom.getSchool() != null ? classRoom.getSchool().getId() : null;
+            if (!admin && (callerSchoolId == null || classSchoolId == null || !callerSchoolId.equals(classSchoolId))) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Không thể broadcast tới lớp thuộc trường khác");
+            }
+            List<User> targetUsers = new ArrayList<>();
+            studentClassRepository.findActiveStudentsByClassId(request.getClassId()).stream()
+                    .map(sc -> sc.getStudent())
+                    .forEach(targetUsers::add);
+            if (classRoom.getTeacher() != null) {
+                targetUsers.add(classRoom.getTeacher());
+            }
+            return targetUsers;
+        }
+
+        throw new org.springframework.security.access.AccessDeniedException("Phạm vi broadcast không được hỗ trợ: " + scope);
+    }
+
+    private void assertSameSchoolForNotification(User caller, User target) {
+        if (isAdmin(caller)) {
+            return;
+        }
+        Long callerSchoolId = caller.getSchool() != null ? caller.getSchool().getId() : null;
+        Long targetSchoolId = target.getSchool() != null ? target.getSchool().getId() : null;
+        if (callerSchoolId == null || targetSchoolId == null || !callerSchoolId.equals(targetSchoolId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Không thể gửi thông báo cho người dùng thuộc trường khác");
+        }
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRoles().stream().anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
     }
 
     private NotificationResponse mapToResponse(Notification notification) {

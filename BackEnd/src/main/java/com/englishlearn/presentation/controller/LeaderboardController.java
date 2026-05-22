@@ -2,9 +2,12 @@ package com.englishlearn.presentation.controller;
 
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.LeaderboardResponse;
+import com.englishlearn.application.dto.response.UserResponse;
 import com.englishlearn.application.service.LeaderboardService;
+import com.englishlearn.application.service.UserService;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.infrastructure.persistence.UserRepository;
+import org.springframework.security.access.AccessDeniedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -39,16 +42,21 @@ public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     /**
      * GET /api/v1/leaderboard/coins - Bảng xếp hạng theo coins
      */
     @GetMapping("/coins")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Lấy bảng xếp hạng theo coins")
     public ResponseEntity<ApiResponse<Page<LeaderboardResponse>>> getLeaderboardByCoins(
             @RequestParam(required = false) Long schoolId,
-            Pageable pageable) {
-        Page<LeaderboardResponse> response = leaderboardService.getLeaderboardByCoins(schoolId, pageable);
+            Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        Long scopedSchoolId = resolveSchoolId(caller, schoolId);
+        Page<LeaderboardResponse> response = leaderboardService.getLeaderboardByCoins(scopedSchoolId, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -97,9 +105,9 @@ public class LeaderboardController {
     public ResponseEntity<ApiResponse<LeaderboardResponse>> getMyRank(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) Long schoolId) {
-        User user = userRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        LeaderboardResponse response = leaderboardService.getUserRank(user.getId(), schoolId);
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        Long scopedSchoolId = resolveSchoolId(caller, schoolId);
+        LeaderboardResponse response = leaderboardService.getUserRank(caller.getId(), scopedSchoolId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -111,8 +119,12 @@ public class LeaderboardController {
     @Operation(summary = "Lấy vị trí (rank) của user theo ID")
     public ResponseEntity<ApiResponse<LeaderboardResponse>> getUserRank(
             @PathVariable Long userId,
-            @RequestParam(required = false) Long schoolId) {
-        LeaderboardResponse response = leaderboardService.getUserRank(userId, schoolId);
+            @RequestParam(required = false) Long schoolId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        assertCanViewLeaderboardUser(caller, userId);
+        Long scopedSchoolId = resolveSchoolId(caller, schoolId);
+        LeaderboardResponse response = leaderboardService.getUserRank(userId, scopedSchoolId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -126,9 +138,9 @@ public class LeaderboardController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) Long schoolId,
             @RequestParam(defaultValue = "10") int rangeSize) {
-        User user = userRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        List<LeaderboardResponse> response = leaderboardService.getLeaderboardAroundUser(user.getId(), schoolId,
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        Long scopedSchoolId = resolveSchoolId(caller, schoolId);
+        List<LeaderboardResponse> response = leaderboardService.getLeaderboardAroundUser(caller.getId(), scopedSchoolId,
                 rangeSize);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -143,8 +155,12 @@ public class LeaderboardController {
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> getLeaderboardAroundUser(
             @PathVariable Long userId,
             @RequestParam(required = false) Long schoolId,
-            @RequestParam(defaultValue = "10") int rangeSize) {
-        List<LeaderboardResponse> response = leaderboardService.getLeaderboardAroundUser(userId, schoolId, rangeSize);
+            @RequestParam(defaultValue = "10") int rangeSize,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        assertCanViewLeaderboardUser(caller, userId);
+        Long scopedSchoolId = resolveSchoolId(caller, schoolId);
+        List<LeaderboardResponse> response = leaderboardService.getLeaderboardAroundUser(userId, scopedSchoolId, rangeSize);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -156,9 +172,44 @@ public class LeaderboardController {
     @Operation(summary = "So sánh vị trí của nhiều users")
     public ResponseEntity<ApiResponse<List<LeaderboardResponse>>> compareUsers(
             @RequestParam(required = false) Long schoolId,
-            @RequestParam List<Long> userIds) {
-        List<LeaderboardResponse> response = leaderboardService.compareUsers(userIds, schoolId);
+            @RequestParam List<Long> userIds,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponse caller = userService.getUserByUsername(userDetails.getUsername());
+        for (Long userId : userIds) {
+            assertCanViewLeaderboardUser(caller, userId);
+        }
+        Long scopedSchoolId = resolveSchoolId(caller, schoolId);
+        List<LeaderboardResponse> response = leaderboardService.compareUsers(userIds, scopedSchoolId);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    private boolean isAdmin(UserResponse user) {
+        return user.getRoles() != null && user.getRoles().contains("ROLE_ADMIN");
+    }
+
+    /** BUG-BLOCKER-002: Non-admin must use their school; null schoolId means caller's school, not global. */
+    private Long resolveSchoolId(UserResponse caller, Long requestedSchoolId) {
+        if (isAdmin(caller)) {
+            return requestedSchoolId;
+        }
+        if (caller.getSchoolId() == null) {
+            throw new AccessDeniedException("Tài khoản không thuộc trường, không thể xem bảng xếp hạng");
+        }
+        if (requestedSchoolId != null && !requestedSchoolId.equals(caller.getSchoolId())) {
+            throw new AccessDeniedException("Không thể xem bảng xếp hạng của trường khác");
+        }
+        return caller.getSchoolId();
+    }
+
+    private void assertCanViewLeaderboardUser(UserResponse caller, Long targetUserId) {
+        if (isAdmin(caller)) {
+            return;
+        }
+        UserResponse target = userService.getUserById(targetUserId);
+        if (caller.getSchoolId() == null || target.getSchoolId() == null
+                || !caller.getSchoolId().equals(target.getSchoolId())) {
+            throw new AccessDeniedException("Không thể xem bảng xếp hạng của người dùng thuộc trường khác");
+        }
     }
 
 }

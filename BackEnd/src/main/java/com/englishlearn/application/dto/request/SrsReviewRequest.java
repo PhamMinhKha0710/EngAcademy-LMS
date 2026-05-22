@@ -11,7 +11,8 @@ public class SrsReviewRequest {
     @NotNull
     private Long vocabularyId;
 
+    @NotNull(message = "Quality không được để trống (0–5)")
     @Min(0)
     @Max(5)
-    private int quality; // SM-2 quality 0–5
+    private Integer quality; // SM-2 quality 0–5
 }

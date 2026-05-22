@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,9 @@ import com.englishlearn.application.dto.response.QuestionResponse;
 @Service
 @RequiredArgsConstructor
 public class ExamService {
+
+    /** Exam schedule times are stored and compared as UTC wall-clock (see BUG-CRITICAL-001). */
+    private static final ZoneOffset EXAM_SCHEDULE_ZONE = ZoneOffset.UTC;
 
     private final ExamRepository examRepository;
     private final ClassRoomRepository classRoomRepository;
@@ -81,7 +85,7 @@ public class ExamService {
 
     @Transactional(readOnly = true)
     public List<ExamResponse> getActiveExamsByClass(Long classId) {
-        return examRepository.findActiveExamsByClassId(classId, LocalDateTime.now())
+        return examRepository.findActiveExamsByClassId(classId, examScheduleNow())
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -121,7 +125,7 @@ public class ExamService {
         }
 
         // Enforce exam availability window for student preview/take flow.
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = examScheduleNow();
         if (now.isBefore(exam.getStartTime())) {
             throw ApiException.badRequest("Bài thi chưa bắt đầu. Thời gian bắt đầu: " + exam.getStartTime());
         }
@@ -574,7 +578,7 @@ public class ExamService {
         assertStudentEnrolledInExamClass(studentId, exam);
 
         // Kiểm tra thời gian bài thi
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = examScheduleNow();
         if (now.isBefore(exam.getStartTime())) {
             throw ApiException.badRequest("Bài thi chưa bắt đầu. Thời gian bắt đầu: " + exam.getStartTime());
         }
@@ -701,14 +705,22 @@ public class ExamService {
 
         if (examResult.getSubmittedAt() != null) {
             log.warn("Attempt to log anti-cheat event after submission for result {}", dto.getExamResultId());
-            return;
+            throw ApiException.conflict("Bài thi đã được nộp, không thể ghi thêm sự kiện chống gian lận");
+        }
+
+        String details = dto.getDetails();
+        if (dto.getTimestamp() != null) {
+            String clientTs = dto.getTimestamp().toString();
+            details = (details == null || details.isBlank())
+                    ? "clientTimestamp=" + clientTs
+                    : details + " | clientTimestamp=" + clientTs;
         }
 
         AntiCheatEvent event = AntiCheatEvent.builder()
                 .examResult(examResult)
                 .eventType(dto.getEventType())
-                .eventTime(dto.getTimestamp() != null ? dto.getTimestamp() : LocalDateTime.now())
-                .details(dto.getDetails())
+                .eventTime(examScheduleNow())
+                .details(details)
                 .build();
         antiCheatEventRepository.save(event);
 
@@ -757,12 +769,12 @@ public class ExamService {
         assertStudentEnrolledInExamClass(userId, examResult.getExam());
 
         if (examResult.getSubmittedAt() != null) {
-            log.info("Idempotent submit-anticheat for examResultId={}", dto.getExamResultId());
-            return buildExamResultDtoFromSubmitted(examResult, resolveSubmittedStatus(examResult));
+            log.info("Duplicate submit-anticheat rejected for examResultId={}", dto.getExamResultId());
+            throw ApiException.conflict("Bài thi đã được nộp");
         }
 
         Exam exam = examResult.getExam();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = examScheduleNow();
 
         // Validation thời gian
         LocalDateTime deadline = exam.getStartTime().plusMinutes(exam.getDurationMinutes());
@@ -1011,6 +1023,10 @@ public class ExamService {
                     examResultId, callerSchoolId, examSchoolId);
             throw new AccessDeniedException("Bạn không có quyền truy cập kết quả thi của trường khác");
         }
+    }
+
+    private static LocalDateTime examScheduleNow() {
+        return LocalDateTime.now(EXAM_SCHEDULE_ZONE);
     }
 
     private void assertStudentEnrolledInClass(Long studentId, Long classId) {
