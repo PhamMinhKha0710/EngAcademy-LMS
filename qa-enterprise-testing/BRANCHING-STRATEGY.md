@@ -1,103 +1,97 @@
-# Chiến lược nhánh fix QA (từ `dev`)
+# Chiến lược nhánh fix QA — Wave 4 (live retest 2026-05-22)
 
-Base branch: **`dev`**  
-Merge target sau review: **`dev`** → khi hết blocker + retest → `main`
+Base branch: **`dev`** (`b1b7f82` trở lên)  
+Merge target: **`dev`** → sau retest → `main`
 
-## Quy ước tên nhánh
+Báo cáo: `reports/enterprise-qa-final-report.md`  
+Checklist: `reports/regression/regression-retest-checklist.md`
+
+## Wave 1–3 (đã merge `dev`)
+
+Các nhánh cũ (`fix/blocker-001-cross-school-exam-isolation`, `fix/sec-high-001-refresh-token-replay`, …) xử lý exam isolation, WS topic leak, refresh rotation. **Đã pass** trong live log wave 4 (exam/class read 403).
+
+## Wave 4 — NO-GO hiện tại
+
+### Blocker (P0)
+
+| Nhánh | Bug ID | Báo cáo |
+|-------|--------|---------|
+| `fix/blocker-001-cross-school-notification-write` | BUG-BLOCKER-001 | `reports/blocker-bugs/BUG-BLOCKER-001-cross-school-notification-write-broadcast.md` |
+| `fix/blocker-002-cross-school-leaderboard-leak` | BUG-BLOCKER-002 | `reports/blocker-bugs/BUG-BLOCKER-002-cross-school-leaderboard-leak.md` |
+
+### Critical (P0)
+
+| Nhánh | Bug ID | Báo cáo |
+|-------|--------|---------|
+| `fix/critical-001-exam-utc-timezone` | BUG-CRITICAL-001 | `reports/critical-bugs/BUG-CRITICAL-001-exam-utc-timezone-breaks-availability.md` |
+| `fix/critical-002-anticheat-server-timestamp` | AC-CRITICAL-001 | `reports/anti-cheat/AC-CRITICAL-001-client-timestamp-accepted.md` |
+
+### High (P1)
+
+| Nhánh | Bug ID | Báo cáo |
+|-------|--------|---------|
+| `fix/high-conc-001-submit-idempotent-409` | CONC-HIGH-001 | `reports/concurrency/CONC-HIGH-001-duplicate-concurrent-submit-returns-success.md` |
+| `fix/high-ac-002-post-submit-anticheat-reject` | AC-HIGH-002 | `reports/anti-cheat/AC-HIGH-002-post-submit-events-return-200-without-persisting.md` |
+| `fix/high-sm2-001-quality-required` | SM2-HIGH-001 | `reports/sm2/SM2-HIGH-001-missing-quality-defaults-to-zero.md` |
+| `fix/high-ws-001-user-queue-delivery` | WS-HIGH-001 | `reports/websocket/WS-HIGH-001-user-queue-notification-not-delivered.md` |
+| `fix/high-api-001-malformed-json-400` | API-HIGH-001 | `reports/business-logic/API-HIGH-001-malformed-json-returns-500.md` |
+
+### Security / runtime (P1 — chủ yếu profile & deploy)
+
+| Nhánh | Bug ID | Báo cáo | Ghi chú |
+|-------|--------|---------|---------|
+| `fix/sec-high-001-prod-runtime-profile` | SEC-HIGH-001 | `reports/security/SEC-HIGH-001-swagger-openapi-public-dev-profile-seed-login.md` | Xác nhận prod profile + Redis; không chạy QA trên `dev` profile |
+
+### Không tạo nhánh code (vận hành)
+
+- `PERF-MED-001` — tối ưu sau P0
+- `PROD-HIGH-001` — FE reachability / deploy
+
+## Thứ tự merge đề xuất
 
 ```text
-fix/<mức-độ>-<mã-bug>-<mô-tả-ngắn>
+Wave 4a (blocker, song song):
+  fix/blocker-001-cross-school-notification-write
+  fix/blocker-002-cross-school-leaderboard-leak
+
+Wave 4b (critical, có thể song song):
+  fix/critical-001-exam-utc-timezone
+  fix/critical-002-anticheat-server-timestamp
+
+Wave 4c (high):
+  fix/high-conc-001-submit-idempotent-409
+  fix/high-ac-002-post-submit-anticheat-reject
+  fix/high-sm2-001-quality-required
+  fix/high-ws-001-user-queue-delivery
+  fix/high-api-001-malformed-json-400
 ```
 
-| Tiền tố | Ý nghĩa |
-|---------|---------|
-| `fix/blocker-*` | P0 — chặn release (multi-school, WS leak) |
-| `fix/sec-*` | Bảo mật High / Blocker |
-| `fix/high-*` | High không chặn GO một mình |
-| `fix/perf-*` | Performance |
-
-## Sơ đồ
-
-```text
-dev
- ├── fix/blocker-001-cross-school-exam-isolation
- ├── fix/blocker-002-cross-tenant-exam-reads
- ├── fix/sec-blocker-001-ws-notification-leak
- ├── fix/sec-high-001-refresh-token-replay
- ├── fix/sec-high-002-openapi-swagger-gate
- ├── fix/sec-high-003-seed-credentials
- ├── fix/sec-high-004-rate-limit-xff
- ├── fix/high-001-business-errors-4xx
- ├── fix/high-concurrency-duplicate-submit-409
- ├── fix/high-ws-subscribe-authorization
- └── fix/high-anti-cheat-scope-validation
-```
-
-## Nhánh ↔ Bug QA
-
-| Nhánh | Bug ID | File báo cáo |
-|-------|--------|----------------|
-| `fix/blocker-001-cross-school-exam-isolation` | BUG-BLOCKER-001 | `reports/blocker-bugs/BUG-BLOCKER-001-*.md` |
-| `fix/blocker-002-cross-tenant-exam-reads` | BUG-BLOCKER-002 | `reports/blocker-bugs/BUG-BLOCKER-002-*.md` |
-| `fix/sec-blocker-001-ws-notification-leak` | SEC-BLOCKER-001 | `reports/blocker-bugs/SEC-BLOCKER-001-*.md` |
-| `fix/sec-high-001-refresh-token-replay` | SEC-HIGH-001 | `reports/security/SEC-HIGH-001-*.md` |
-| `fix/sec-high-002-openapi-swagger-gate` | SEC-HIGH-002 | `reports/security/SEC-HIGH-002-*.md` |
-| `fix/sec-high-003-seed-credentials` | SEC-HIGH-003 | `reports/security/SEC-HIGH-003-*.md` |
-| `fix/sec-high-004-rate-limit-xff` | SEC-HIGH-004 | `reports/security/SEC-HIGH-004-*.md` |
-| `fix/high-001-business-errors-4xx` | BUG-HIGH-001 | `reports/business-logic/BUG-HIGH-001-*.md` |
-| `fix/high-concurrency-duplicate-submit-409` | CONC-HIGH-001 | `reports/concurrency/CONC-HIGH-001-*.md` |
-| `fix/high-ws-subscribe-authorization` | WS-HIGH-001 | `reports/websocket/WS-HIGH-001-*.md` |
-| `fix/high-anti-cheat-scope-validation` | ANTI-CHEAT-HIGH-001 | `reports/anti-cheat/ANTI-CHEAT-HIGH-001-*.md` |
-
-**Không tạo nhánh code** (vận hành / môi trường):
-
-- `PROD-HIGH-001` — chạy FrontEnd/Admin local (`npm run dev`)
-- `PERF-MED-001` — tối ưu sau khi P0 xong; có thể nhánh `fix/perf-med-001-questions-latency` khi bắt đầu
-
-## Thứ tự ưu tiên & phụ thuộc
-
-### Wave 1 — Blocker (song song tối đa 3 dev)
-
-1. `fix/blocker-001-*` — enrollment + school boundary trên exam take/start/active  
-2. `fix/blocker-002-*` — authorize exam/result/anti-cheat reads theo school/class  
-3. `fix/sec-blocker-001-*` — private notification chỉ `/user/queue/...`, bỏ topic theo username  
-
-**Gợi ý merge:** 001 → 002 (cùng `ExamController` / `ExamService`). 003 độc lập, merge bất kỳ lúc nào.
-
-### Wave 2 — High security (song song)
-
-4. `fix/sec-high-001-*`  
-5. `fix/sec-high-002-*`  
-6. `fix/sec-high-003-*`  
-7. `fix/sec-high-004-*`  
-
-### Wave 3 — High hành vi / WS
-
-8. `fix/high-001-*` + `fix/high-concurrency-*` (cùng error mapping — nên một PR hoặc merge 001 trước)  
-9. `fix/high-ws-subscribe-*` (sau hoặc cùng SEC-BLOCKER-001)  
-10. `fix/high-anti-cheat-*` (sau blocker-001)
+**Phụ thuộc:** `high-ac-002` sau `critical-002` (cùng `ExamService.logAntiCheatEvent`).  
+`high-ws-001` độc lập (cùng module notification với blocker-001 nhưng khác layer).
 
 ## Lệnh làm việc
 
 ```bash
-# Đồng bộ dev
 git checkout dev
 git pull origin dev
 
-# Tạo nhánh fix (đã tạo sẵn — hoặc tạo lại)
-git checkout -b fix/blocker-001-cross-school-exam-isolation dev
+# Tạo nhánh (đã chạy script / tạo sẵn — xem bên dưới)
+git checkout -b fix/blocker-001-cross-school-notification-write
 
-# Làm xong → push & PR vào dev
-git push -u origin fix/blocker-001-cross-school-exam-isolation
+# Sau khi fix + test
+git push -u origin fix/blocker-001-cross-school-notification-write
+# PR → dev, review, merge
+
+# Retest
+node qa-enterprise-testing/artifacts/qa-retest-after-fix.mjs   # nếu có
+# + checklist: reports/regression/regression-retest-checklist.md
 ```
 
-## Retest sau merge vào `dev`
+## Phân biệt ID bug cũ vs mới
 
-Chạy checklist: `reports/regression/regression-retest-checklist.md`  
-Probe: `node qa-enterprise-testing/artifacts/ws-notification-leak-probe.mjs` (và các script trong `artifacts/`)
+| ID | Wave 1–3 (resolved) | Wave 4 (open) |
+|----|---------------------|---------------|
+| BUG-BLOCKER-001 | Exam cross-school take/start | **Notification write/broadcast** |
+| BUG-BLOCKER-002 | Teacher exam/results read | **Leaderboard around-user leak** |
 
-## Tiêu chí merge vào `main`
-
-- Cả 3 blocker + SEC-BLOCKER retest PASS trên tenant 2 trường mới  
-- Regression checklist PASS  
-- FE reachable (PROD-HIGH-001) cho smoke UI
+File báo cáo cũ (exam) đã xóa khỏi tree; chỉ dùng file tên mới trong `reports/blocker-bugs/`.
