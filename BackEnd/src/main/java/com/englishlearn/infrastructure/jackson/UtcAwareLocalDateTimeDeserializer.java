@@ -7,14 +7,15 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 
 /**
- * Parses ISO-8601 instants with offset/Z into UTC wall-clock LocalDateTime for storage.
- * BUG-CRITICAL-001: plain LocalDateTime parsing drops zone and breaks exam windows.
+ * Parses ISO-8601 with offset/Z into application schedule-zone local time; naive strings stay as-is.
  */
 public class UtcAwareLocalDateTimeDeserializer extends JsonDeserializer<LocalDateTime> {
+
+    private static final ZoneId DEFAULT_EXAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     @Override
     public LocalDateTime deserialize(JsonParser parser, DeserializationContext context) throws IOException {
@@ -23,7 +24,7 @@ public class UtcAwareLocalDateTimeDeserializer extends JsonDeserializer<LocalDat
             return null;
         }
         try {
-            return OffsetDateTime.parse(text).withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime();
+            return OffsetDateTime.parse(text).atZoneSameInstant(DEFAULT_EXAM_ZONE).toLocalDateTime();
         } catch (DateTimeParseException ignored) {
             return LocalDateTime.parse(text);
         }

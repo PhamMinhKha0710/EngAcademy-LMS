@@ -13,6 +13,7 @@ import com.englishlearn.domain.entity.*;
 import com.englishlearn.domain.exception.ApiException;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
+import com.englishlearn.infrastructure.config.ExamScheduleProperties;
 import com.englishlearn.infrastructure.persistence.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,10 +40,8 @@ import com.englishlearn.application.dto.response.QuestionResponse;
 @RequiredArgsConstructor
 public class ExamService {
 
-    /** Exam schedule times are stored and compared as UTC wall-clock (see BUG-CRITICAL-001). */
-    private static final ZoneOffset EXAM_SCHEDULE_ZONE = ZoneOffset.UTC;
-
     private final ExamRepository examRepository;
+    private final ExamScheduleProperties examScheduleProperties;
     private final ClassRoomRepository classRoomRepository;
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
@@ -1025,8 +1023,8 @@ public class ExamService {
         }
     }
 
-    private static LocalDateTime examScheduleNow() {
-        return LocalDateTime.now(EXAM_SCHEDULE_ZONE);
+    private LocalDateTime examScheduleNow() {
+        return examScheduleProperties.now();
     }
 
     private void assertStudentEnrolledInClass(Long studentId, Long classId) {
