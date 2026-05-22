@@ -95,3 +95,32 @@ node qa-enterprise-testing/artifacts/qa-retest-after-fix.mjs   # nếu có
 | BUG-BLOCKER-002 | Teacher exam/results read | **Leaderboard around-user leak** |
 
 File báo cáo cũ (exam) đã xóa khỏi tree; chỉ dùng file tên mới trong `reports/blocker-bugs/`.
+
+## Wave 5 — merged `dev` (2026-05-22)
+
+Base: `734e8f7` (wave 4) → merge target `dev`
+
+### Blocker / Critical
+
+| Nhánh | Bug ID | Báo cáo |
+|-------|--------|---------|
+| `fix/blocker-003-gamification-tenant-isolation` | BUG-BLOCKER-003, CONC-CRITICAL-002 | `reports/blocker-bugs/BUG-BLOCKER-003-...md`, `reports/concurrency/CONC-CRITICAL-002-...md` |
+| `fix/blocker-004-classroom-teacher-school-validation` | BUG-BLOCKER-004 | `reports/blocker-bugs/BUG-BLOCKER-004-...md` |
+| `fix/critical-002-exam-schedule-zone` | BUG-CRITICAL-002 | `reports/critical-bugs/BUG-CRITICAL-002-...md` |
+
+### Medium (WebSocket)
+
+| Nhánh | Bug ID | Báo cáo |
+|-------|--------|---------|
+| `fix/ws-med-002-leaderboard-topic-subscribe` | WS-MED-002 | `reports/websocket/WS-MED-002-...md` |
+
+### Thứ tự merge
+
+```text
+fix/blocker-003-gamification-tenant-isolation   # SchoolTenantGuard + coins/badges/progress
+  → fix/blocker-004-classroom-teacher-school-validation  # phụ thuộc guard
+  → fix/critical-002-exam-schedule-zone
+  → fix/ws-med-002-leaderboard-topic-subscribe
+```
+
+**Cấu hình:** `application.exam.schedule-zone=Asia/Ho_Chi_Minh` (mặc định trong `ExamScheduleProperties`).
