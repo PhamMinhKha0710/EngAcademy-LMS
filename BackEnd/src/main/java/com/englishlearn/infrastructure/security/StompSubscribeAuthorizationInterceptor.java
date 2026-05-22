@@ -93,6 +93,10 @@ public class StompSubscribeAuthorizationInterceptor implements ChannelIntercepto
             throw new MessageDeliveryException("Only administrators may subscribe to /topic/global");
         }
 
+        if ("/topic/leaderboard".equals(destination)) {
+            return;
+        }
+
         if (destination.startsWith("/topic/")) {
             throw new MessageDeliveryException("Unauthorized topic subscription: " + destination);
         }
