@@ -124,3 +124,10 @@ fix/blocker-003-gamification-tenant-isolation   # SchoolTenantGuard + coins/badg
 ```
 
 **Cấu hình:** `application.exam.schedule-zone=Asia/Ho_Chi_Minh` (mặc định trong `ExamScheduleProperties`).
+
+## Wave 6 — tenant scope (đang merge)
+
+| Nhánh | Bug ID | Mô tả |
+|-------|--------|--------|
+| `fix/high-mistake-001-tenant-isolation` | (mở rộng BLOCKER-003) | `MistakeNotebookController` `/user/{userId}` dùng `SchoolTenantGuard` |
+| `fix/high-class-002-teacher-class-roster` | BUG-004 (phần roster) | Giáo viên chỉ xem HS lớp mình phụ trách (`GET .../students`) |
