@@ -2,6 +2,10 @@
 # English Learning Platform - .gitignore
 # ==================================
 
+# ===== QA local only (không đẩy git — báo cáo & probe chạy máy dev) =====
+qa-enterprise-testing/
+qa-test-suite/
+
 # ===== Plans & Documentation =====
 Plans/
 docs/
