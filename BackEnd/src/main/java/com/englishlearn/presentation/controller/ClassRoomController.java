@@ -328,12 +328,20 @@ public class ClassRoomController {
                         @AuthenticationPrincipal UserDetails userDetails) {
 
                 var currentUser = userService.getUserByUsername(userDetails.getUsername());
-                if (currentUser.getRoles().contains("ROLE_SCHOOL") || currentUser.getRoles().contains("ROLE_TEACHER")) {
-                        ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+                ClassRoomResponse classRoom = classRoomService.getClassRoomById(classId);
+                if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
                         if (currentUser.getSchoolId() == null
                                         || !currentUser.getSchoolId().equals(classRoom.getSchoolId())) {
                                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                                 .body(ApiResponse.error("Bạn không có quyền xem danh sách này"));
+                        }
+                } else if (currentUser.getRoles().contains("ROLE_TEACHER")
+                                && !currentUser.getRoles().contains("ROLE_SCHOOL")
+                                && !currentUser.getRoles().contains("ROLE_ADMIN")) {
+                        if (classRoom.getTeacherId() == null
+                                        || !classRoom.getTeacherId().equals(currentUser.getId())) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                                .body(ApiResponse.error("Bạn chỉ có thể xem học sinh của lớp mà bạn phụ trách"));
                         }
                 }
 
