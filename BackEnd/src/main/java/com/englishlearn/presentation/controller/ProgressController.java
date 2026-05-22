@@ -2,7 +2,9 @@ package com.englishlearn.presentation.controller;
 
 import com.englishlearn.application.dto.response.ApiResponse;
 import com.englishlearn.application.dto.response.ProgressResponse;
+import com.englishlearn.application.security.SchoolTenantGuard;
 import com.englishlearn.application.service.ProgressService;
+import com.englishlearn.application.service.UserService;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.infrastructure.persistence.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,6 +27,8 @@ public class ProgressController {
 
     private final ProgressService progressService;
     private final UserRepository userRepository;
+    private final UserService userService;
+    private final SchoolTenantGuard schoolTenantGuard;
 
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
@@ -39,7 +43,10 @@ public class ProgressController {
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Lấy tất cả tiến độ học tập của user (Teacher/Admin)")
-    public ResponseEntity<ApiResponse<List<ProgressResponse>>> getProgressByUser(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<List<ProgressResponse>>> getProgressByUser(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         List<ProgressResponse> progress = progressService.getProgressByUser(userId);
         return ResponseEntity.ok(ApiResponse.success("Lấy tiến độ học tập thành công", progress));
     }
@@ -57,7 +64,10 @@ public class ProgressController {
     @GetMapping("/user/{userId}/completed")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Lấy các bài học đã hoàn thành của user (Teacher/Admin)")
-    public ResponseEntity<ApiResponse<List<ProgressResponse>>> getCompletedLessons(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<List<ProgressResponse>>> getCompletedLessons(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         List<ProgressResponse> progress = progressService.getCompletedLessons(userId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài học đã hoàn thành thành công", progress));
     }
@@ -75,7 +85,10 @@ public class ProgressController {
     @GetMapping("/user/{userId}/in-progress")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Lấy các bài học đang học của user (Teacher/Admin)")
-    public ResponseEntity<ApiResponse<List<ProgressResponse>>> getInProgressLessons(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<List<ProgressResponse>>> getInProgressLessons(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         List<ProgressResponse> progress = progressService.getInProgressLessons(userId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài học đang học thành công", progress));
     }
@@ -95,7 +108,10 @@ public class ProgressController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Lấy tiến độ bài học cụ thể của user (Teacher/Admin)")
     public ResponseEntity<ApiResponse<ProgressResponse>> getProgressForLesson(
-            @PathVariable Long userId, @PathVariable Long lessonId) {
+            @PathVariable Long userId,
+            @PathVariable Long lessonId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         ProgressResponse progress = progressService.getProgressForLesson(userId, lessonId);
         return ResponseEntity.ok(ApiResponse.success("Lấy tiến độ bài học thành công", progress));
     }
@@ -118,7 +134,9 @@ public class ProgressController {
     public ResponseEntity<ApiResponse<ProgressResponse>> updateProgress(
             @PathVariable Long userId,
             @PathVariable Long lessonId,
-            @RequestParam Integer percentage) {
+            @RequestParam Integer percentage,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         ProgressResponse progress = progressService.updateProgress(userId, lessonId, percentage);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật tiến độ thành công", progress));
     }
@@ -138,7 +156,10 @@ public class ProgressController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Đánh dấu bài học hoàn thành cho user (Teacher/Admin)")
     public ResponseEntity<ApiResponse<ProgressResponse>> completeLesson(
-            @PathVariable Long userId, @PathVariable Long lessonId) {
+            @PathVariable Long userId,
+            @PathVariable Long lessonId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         ProgressResponse progress = progressService.completeLesson(userId, lessonId);
         return ResponseEntity.ok(ApiResponse.success("Hoàn thành bài học thành công", progress));
     }
@@ -155,7 +176,10 @@ public class ProgressController {
     @GetMapping("/user/{userId}/stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @Operation(summary = "Lấy thống kê học tập của user (Teacher/Admin)")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserStats(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserStats(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         return getStatsResponse(userId);
     }
 
@@ -179,5 +203,10 @@ public class ProgressController {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getId();
+    }
+
+    private void assertStaffCanAccessUser(UserDetails userDetails, Long targetUserId) {
+        Long callerId = userService.getUserByUsername(userDetails.getUsername()).getId();
+        schoolTenantGuard.assertCanAccessUser(callerId, targetUserId);
     }
 }

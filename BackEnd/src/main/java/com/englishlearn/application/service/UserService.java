@@ -12,6 +12,7 @@ import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.exception.ApiException;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.infrastructure.persistence.ClassRoomRepository;
+import com.englishlearn.application.security.SchoolTenantGuard;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.SchoolRepository;
 import com.englishlearn.infrastructure.persistence.StudentClassRepository;
@@ -35,6 +36,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final SchoolTenantGuard schoolTenantGuard;
     private final SchoolRepository schoolRepository;
     private final ClassRoomRepository classRoomRepository;
     private final StudentClassRepository studentClassRepository;
@@ -195,12 +197,16 @@ public class UserService {
     }
 
     @Transactional
-    public void addCoins(Long userId, Integer coins) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
-        user.setCoins((user.getCoins() != null ? user.getCoins() : 0) + coins);
-        userRepository.save(user);
-        log.info("Added {} coins to user {}", coins, userId);
+    public void addCoins(Long callerId, Long targetUserId, Integer coins) {
+        if (coins == null || coins <= 0) {
+            throw ApiException.badRequest("Số xu phải lớn hơn 0");
+        }
+        schoolTenantGuard.assertCanAccessUser(callerId, targetUserId);
+        if (!userRepository.existsById(targetUserId)) {
+            throw ApiException.notFound("Không tìm thấy người dùng");
+        }
+        userRepository.addCoinsToUser(targetUserId, coins);
+        log.info("Added {} coins to user {} by caller {}", coins, targetUserId, callerId);
     }
 
     @Transactional

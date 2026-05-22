@@ -6,7 +6,9 @@ import com.englishlearn.application.dto.response.BadgeDTO;
 import com.englishlearn.application.dto.response.BadgeProgressDTO;
 import com.englishlearn.application.dto.response.BadgeResponse;
 import com.englishlearn.application.dto.response.CheckBadgeResponse;
+import com.englishlearn.application.security.SchoolTenantGuard;
 import com.englishlearn.application.service.BadgeCheckService;
+import com.englishlearn.application.service.UserService;
 import com.englishlearn.application.service.BadgeDefinitionService;
 import com.englishlearn.application.service.BadgeProgressService;
 import com.englishlearn.application.service.BadgeService;
@@ -44,6 +46,8 @@ public class BadgeController {
     private final BadgeProgressService badgeProgressService;
     private final BadgeCheckService badgeCheckService;
     private final UserRepository userRepository;
+    private final UserService userService;
+    private final SchoolTenantGuard schoolTenantGuard;
 
     // ========== STUDENT: /me endpoints ==========
 
@@ -95,7 +99,9 @@ public class BadgeController {
     @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     @Operation(summary = "Lấy danh sách huy hiệu của người dùng (Teacher/Admin)")
     public ResponseEntity<ApiResponse<List<BadgeResponse>>> getUserBadges(
-            @PathVariable Long userId) {
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         List<BadgeResponse> response = badgeService.getUserBadges(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -107,7 +113,9 @@ public class BadgeController {
     @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     @Operation(summary = "Đếm số huy hiệu của người dùng (Teacher/Admin)")
     public ResponseEntity<ApiResponse<Integer>> getBadgeCount(
-            @PathVariable Long userId) {
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         Integer count = badgeService.getBadgeCount(userId);
         return ResponseEntity.ok(ApiResponse.success(count));
     }
@@ -119,7 +127,9 @@ public class BadgeController {
     @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     @Operation(summary = "Lấy badge đã đạt của người dùng (Teacher/Admin)")
     public ResponseEntity<ApiResponse<List<BadgeDTO>>> getUserEarnedBadges(
-            @PathVariable Long userId) {
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         List<BadgeDTO> response = badgeDefinitionService.getUserEarnedBadges(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -131,7 +141,9 @@ public class BadgeController {
     @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     @Operation(summary = "Lấy tiến trình badge chưa đạt của người dùng (Teacher/Admin)")
     public ResponseEntity<ApiResponse<List<BadgeProgressDTO>>> getUserBadgeProgress(
-            @PathVariable Long userId) {
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         List<BadgeProgressDTO> response = badgeProgressService.getAllProgress(userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -188,7 +200,9 @@ public class BadgeController {
             @PathVariable Long userId,
             @PathVariable String badgeName,
             @RequestParam String description,
-            @RequestParam(required = false) String iconUrl) {
+            @RequestParam(required = false) String iconUrl,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        assertStaffCanAccessUser(userDetails, userId);
         BadgeResponse response = badgeService.awardBadge(userId, badgeName, description, iconUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
@@ -239,5 +253,10 @@ public class BadgeController {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getId();
+    }
+
+    private void assertStaffCanAccessUser(UserDetails userDetails, Long targetUserId) {
+        Long callerId = userService.getUserByUsername(userDetails.getUsername()).getId();
+        schoolTenantGuard.assertCanAccessUser(callerId, targetUserId);
     }
 }
