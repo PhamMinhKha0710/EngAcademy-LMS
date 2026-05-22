@@ -9,6 +9,7 @@ import com.englishlearn.domain.entity.StudentClass;
 import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.domain.exception.ResourceNotFoundException;
+import com.englishlearn.application.security.SchoolTenantGuard;
 import com.englishlearn.infrastructure.persistence.ClassRoomRepository;
 import com.englishlearn.infrastructure.persistence.SchoolRepository;
 import com.englishlearn.infrastructure.persistence.StudentClassRepository;
@@ -33,6 +34,7 @@ public class ClassRoomService {
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
     private final StudentClassRepository studentClassRepository;
+    private final SchoolTenantGuard schoolTenantGuard;
 
     @Transactional(readOnly = true)
     public List<ClassRoomResponse> getAllClassRooms() {
@@ -115,6 +117,7 @@ public class ClassRoomService {
         if (request.getTeacherId() != null) {
             teacher = userRepository.findById(request.getTeacherId())
                     .orElseThrow(() -> new ResourceNotFoundException("Giáo viên", "id", request.getTeacherId()));
+            schoolTenantGuard.assertTeacherBelongsToSchool(teacher.getId(), school.getId());
         }
 
         ClassRoom classRoom = ClassRoom.builder()
@@ -148,6 +151,7 @@ public class ClassRoomService {
         if (request.getTeacherId() != null) {
             teacher = userRepository.findById(request.getTeacherId())
                     .orElseThrow(() -> new ResourceNotFoundException("Giáo viên", "id", request.getTeacherId()));
+            schoolTenantGuard.assertTeacherBelongsToSchool(teacher.getId(), classRoom.getSchool().getId());
         }
 
         classRoom.setName(request.getName());
@@ -173,6 +177,7 @@ public class ClassRoomService {
 
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Giáo viên", "id", teacherId));
+        schoolTenantGuard.assertTeacherBelongsToSchool(teacherId, classRoom.getSchool().getId());
 
         classRoom.setTeacher(teacher);
         classRoomRepository.save(classRoom);
