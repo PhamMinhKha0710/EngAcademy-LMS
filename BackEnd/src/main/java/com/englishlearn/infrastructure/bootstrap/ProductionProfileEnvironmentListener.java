@@ -25,7 +25,17 @@ public class ProductionProfileEnvironmentListener implements ApplicationListener
                     "Production (prod): set REDIS_URL in Render (Upstash). "
                             + "If it is unset, Spring defaults to Redis on localhost and the app will not work in Docker.");
         }
-        String dbUrl = env.getProperty("spring.datasource.url");
+        String rawDbUrl = env.getProperty("spring.datasource.url");
+        if (StringUtils.hasText(rawDbUrl)) {
+            String trimmed = rawDbUrl.trim();
+            if ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
+                    || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+                throw new IllegalStateException(
+                        "Production (prod): SPRING_DATASOURCE_URL must not include surrounding quotes on Render. "
+                                + "Use jdbc:mysql://... only, without leading/trailing \" characters.");
+            }
+        }
+        String dbUrl = stripSurroundingQuotes(rawDbUrl);
         if (!StringUtils.hasText(dbUrl)) {
             throw new IllegalStateException(
                     "Production (prod): set SPRING_DATASOURCE_URL in Render Dashboard (Aiven MySQL JDBC URL, e.g. "
@@ -39,5 +49,17 @@ public class ProductionProfileEnvironmentListener implements ApplicationListener
                     "Production (prod): set SPRING_DATASOURCE_PASSWORD in Render Dashboard (Aiven MySQL password). "
                             + "sync: false in render.yaml means it is not in Git — you must enter it manually; empty breaks JDBC.");
         }
+    }
+
+    private static String stripSurroundingQuotes(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        String trimmed = value.trim();
+        if ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
+                || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+            return trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 }
