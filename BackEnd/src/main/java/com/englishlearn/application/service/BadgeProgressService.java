@@ -50,7 +50,7 @@ public class BadgeProgressService {
                     .build();
         }
 
-        UserStudyStats stats = userStudyStatsService.refreshStats(userId);
+        UserStudyStats stats = userStudyStatsService.getStatsForRead(userId);
         var values = getCurrentAndRequired(badgeKey, stats);
         int current = values[0];
         int required = values[1];
@@ -70,7 +70,7 @@ public class BadgeProgressService {
     /**
      * Lấy tiến trình tất cả badge chưa đạt (bỏ qua badge đã có, bỏ qua badge bí mật nếu chưa đạt).
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public List<BadgeProgressDTO> getAllProgress(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "id", userId));

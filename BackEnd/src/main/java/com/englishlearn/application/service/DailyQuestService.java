@@ -39,16 +39,7 @@ public class DailyQuestService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
 
-        LocalDate today = LocalDate.now();
-        DailyQuest quest = dailyQuestRepository.findByUserAndQuestDate(user, today)
-                .orElse(null);
-
-        if (quest == null) {
-            quest = createDefaultDailyQuest(user, today);
-        } else {
-            quest = ensureDefaultTasks(quest);
-        }
-
+        DailyQuest quest = findOrCreateTodayQuest(user, LocalDate.now());
         return mapToResponse(quest);
     }
 
@@ -102,7 +93,7 @@ public class DailyQuestService {
         LocalDate today = LocalDate.now();
 
         // Check if quest already exists for today
-        if (dailyQuestRepository.findByUserAndQuestDate(user, today).isPresent()) {
+        if (!findTodayQuests(user, today).isEmpty()) {
             throw ApiException.conflict("Bạn đã có quest cho hôm nay rồi");
         }
 
@@ -176,7 +167,7 @@ public class DailyQuestService {
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
 
         LocalDate today = LocalDate.now();
-        DailyQuest quest = dailyQuestRepository.findByUserAndQuestDate(user, today)
+        DailyQuest quest = findTodayQuestCanonical(user, today)
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy quest hôm nay"));
 
         // Check if all tasks are completed
@@ -217,7 +208,7 @@ public class DailyQuestService {
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng"));
 
         LocalDate today = LocalDate.now();
-        Optional<DailyQuest> questOpt = dailyQuestRepository.findByUserAndQuestDate(user, today);
+        Optional<DailyQuest> questOpt = findTodayQuestCanonical(user, today);
         if (questOpt.isEmpty()) return false;
 
         DailyQuest quest = questOpt.get();
@@ -266,6 +257,38 @@ public class DailyQuestService {
         return dailyQuestRepository.findByUserOrderByQuestDateDesc(user).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    private List<DailyQuest> findTodayQuests(User user, LocalDate date) {
+        return dailyQuestRepository.findAllByUserAndQuestDateOrderByIdDesc(user, date);
+    }
+
+    private Optional<DailyQuest> findTodayQuestCanonical(User user, LocalDate date) {
+        List<DailyQuest> quests = findTodayQuests(user, date);
+        if (quests.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(dedupeTodayQuests(quests));
+    }
+
+    private DailyQuest findOrCreateTodayQuest(User user, LocalDate date) {
+        List<DailyQuest> quests = findTodayQuests(user, date);
+        if (quests.isEmpty()) {
+            return createDefaultDailyQuest(user, date);
+        }
+        return ensureDefaultTasks(dedupeTodayQuests(quests));
+    }
+
+    private DailyQuest dedupeTodayQuests(List<DailyQuest> quests) {
+        DailyQuest canonical = quests.get(0);
+        if (quests.size() > 1) {
+            for (int i = 1; i < quests.size(); i++) {
+                dailyQuestRepository.delete(quests.get(i));
+            }
+            log.warn("Removed {} duplicate daily quest row(s) for user {} on {}",
+                    quests.size() - 1, canonical.getUser().getId(), canonical.getQuestDate());
+        }
+        return canonical;
     }
 
     /**
@@ -336,7 +359,8 @@ public class DailyQuestService {
      * Map DailyQuest entity to response DTO
      */
     private DailyQuestResponse mapToResponse(DailyQuest quest) {
-        List<DailyQuestResponse.DailyQuestTaskResponse> taskResponses = quest.getTasks().stream()
+        List<DailyQuestTask> tasks = dailyQuestTaskRepository.findByDailyQuest(quest);
+        List<DailyQuestResponse.DailyQuestTaskResponse> taskResponses = tasks.stream()
                 .map(task -> DailyQuestResponse.DailyQuestTaskResponse.builder()
                         .id(task.getId())
                         .taskType(task.getTaskType())
@@ -360,7 +384,7 @@ public class DailyQuestService {
      * Calculate total coins for a quest
      */
     private Integer calculateTotalCoins(DailyQuest quest) {
-        int total = quest.getTasks().stream()
+        int total = dailyQuestTaskRepository.findByDailyQuest(quest).stream()
                 .filter(DailyQuestTask::getIsCompleted)
                 .mapToInt(task -> calculateCoinsForTask(task.getTaskType()))
                 .sum();

@@ -18,6 +18,8 @@ public interface DailyQuestRepository extends JpaRepository<DailyQuest, Long> {
 
     Optional<DailyQuest> findByUserAndQuestDate(User user, LocalDate questDate);
 
+    List<DailyQuest> findAllByUserAndQuestDateOrderByIdDesc(User user, LocalDate questDate);
+
     List<DailyQuest> findByUserId(Long userId);
 
     List<DailyQuest> findByUserOrderByQuestDateDesc(User user);

@@ -5,7 +5,9 @@ services:
   - type: web
     name: engacademy-backend
     runtime: docker
-    dockerfilePath: Dockerfile
+    # Root Directory: repo root (empty). Do NOT set Dashboard rootDir to B or BackEnd.
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     region: singapore
     plan: free
     port: 10000

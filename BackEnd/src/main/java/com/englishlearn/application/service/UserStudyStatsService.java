@@ -8,6 +8,7 @@ import com.englishlearn.infrastructure.persistence.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -33,25 +34,23 @@ public class UserStudyStatsService {
     private final LeaderboardService leaderboardService;
 
     /**
+     * Đọc stats đã lưu (không ghi DB) — dùng trong transaction read-only.
+     */
+    @Transactional(readOnly = true)
+    public UserStudyStats getStatsForRead(Long userId) {
+        return userStudyStatsRepository.findByUserId(userId)
+                .orElseGet(() -> UserStudyStats.builder()
+                        .user(userRepository.findById(userId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "id", userId)))
+                        .build());
+    }
+
+    /**
      * Làm mới hoặc tạo UserStudyStats cho user từ dữ liệu hiện có.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public UserStudyStats refreshStats(Long userId) {
-        try {
-            return doRefreshStats(userId);
-        } catch (Exception e) {
-            log.error("Error refreshing stats for user {}: {}", userId, e.getMessage(), e);
-            // Return a basic stats object to avoid 500 error
-            User user = userRepository.findById(userId).orElse(null);
-            if (user == null) {
-                throw new ResourceNotFoundException("Người dùng", "id", userId);
-            }
-            UserStudyStats stats = userStudyStatsRepository.findByUserId(userId).orElse(null);
-            if (stats == null) {
-                stats = UserStudyStats.builder().user(user).build();
-            }
-            return stats;
-        }
+        return doRefreshStats(userId);
     }
 
     private UserStudyStats doRefreshStats(Long userId) {

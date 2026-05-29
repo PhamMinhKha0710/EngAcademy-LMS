@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import axios from 'axios'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -61,7 +62,7 @@ export default function StudentDashboard() {
         vocabularyApi.getRandomFlashcards(1, { signal: controller.signal })
             .then((words) => { if (words.length > 0) setDailyWord(words[0]) })
             .catch((err) => {
-                if (err?.name !== 'AbortError') {
+                if (!axios.isCancel(err)) {
                     console.warn('Failed to load daily word:', err)
                 }
             })
@@ -120,7 +121,7 @@ export default function StudentDashboard() {
                     setDailyQuest(dailyQuestData.value ?? null)
                 }
             } catch (err) {
-                if (err instanceof Error && err.name === 'AbortError') return
+                if (axios.isCancel(err)) return
                 addToast({ type: 'error', message: 'Không thể tải dữ liệu dashboard. Vui lòng thử lại.' })
                 console.error('Dashboard fetch failed:', err)
             } finally {
