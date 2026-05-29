@@ -19,13 +19,10 @@ public class ProductionProfileEnvironmentListener implements ApplicationListener
         if (!Arrays.asList(env.getActiveProfiles()).contains("prod")) {
             return;
         }
-        String redisUrl = env.getProperty("spring.data.redis.url");
-        if (!StringUtils.hasText(redisUrl)) {
-            throw new IllegalStateException(
-                    "Production (prod): set REDIS_URL in Render (Upstash). "
-                            + "If it is unset, Spring defaults to Redis on localhost and the app will not work in Docker.");
-        }
-        String rawDbUrl = env.getProperty("spring.datasource.url");
+        requireText("REDIS_URL", env.getProperty("spring.data.redis.url"), System.getenv("REDIS_URL"),
+                "Production (prod): set REDIS_URL in Render (Upstash rediss://...). "
+                        + "If it is unset, Spring defaults to Redis on localhost and the app will not work in Docker.");
+        String rawDbUrl = firstNonBlank(System.getenv("SPRING_DATASOURCE_URL"), env.getProperty("spring.datasource.url"));
         if (StringUtils.hasText(rawDbUrl)) {
             String trimmed = rawDbUrl.trim();
             if ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
@@ -36,19 +33,39 @@ public class ProductionProfileEnvironmentListener implements ApplicationListener
             }
         }
         String dbUrl = stripSurroundingQuotes(rawDbUrl);
-        if (!StringUtils.hasText(dbUrl)) {
+        if (!StringUtils.hasText(dbUrl) || dbUrl.contains("${")) {
             throw new IllegalStateException(
                     "Production (prod): set SPRING_DATASOURCE_URL in Render Dashboard (Aiven MySQL JDBC URL, e.g. "
                             + "jdbc:mysql://<HOST>:<PORT>/<DB>?useSSL=true&requireSSL=true&serverTimezone=UTC). "
                             + "sync: false in render.yaml means it is not in Git — you must enter it manually; "
                             + "without it Hibernate cannot read JDBC metadata and fails with 'Unable to determine Dialect'.");
         }
-        String dbPassword = env.getProperty("spring.datasource.password");
-        if (!StringUtils.hasText(dbPassword)) {
+        if (!dbUrl.startsWith("jdbc:mysql://")) {
             throw new IllegalStateException(
-                    "Production (prod): set SPRING_DATASOURCE_PASSWORD in Render Dashboard (Aiven MySQL password). "
-                            + "sync: false in render.yaml means it is not in Git — you must enter it manually; empty breaks JDBC.");
+                    "Production (prod): SPRING_DATASOURCE_URL must start with jdbc:mysql:// (got: "
+                            + dbUrl.substring(0, Math.min(dbUrl.length(), 40)) + "...).");
         }
+        requireText("SPRING_DATASOURCE_PASSWORD", env.getProperty("spring.datasource.password"),
+                System.getenv("SPRING_DATASOURCE_PASSWORD"),
+                "Production (prod): set SPRING_DATASOURCE_PASSWORD in Render Dashboard (Aiven MySQL password). "
+                        + "sync: false in render.yaml means it is not in Git — you must enter it manually; empty breaks JDBC.");
+    }
+
+    private static void requireText(String name, String propertyValue, String envValue, String message) {
+        String value = firstNonBlank(envValue, propertyValue);
+        if (!StringUtils.hasText(value) || value.contains("${")) {
+            throw new IllegalStateException(message);
+        }
+    }
+
+    private static String firstNonBlank(String first, String second) {
+        if (StringUtils.hasText(first) && !first.contains("${")) {
+            return first;
+        }
+        if (StringUtils.hasText(second) && !second.contains("${")) {
+            return second;
+        }
+        return StringUtils.hasText(first) ? first : second;
     }
 
     private static String stripSurroundingQuotes(String value) {
