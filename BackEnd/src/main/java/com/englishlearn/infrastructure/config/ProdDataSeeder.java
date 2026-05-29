@@ -67,8 +67,8 @@ public class ProdDataSeeder {
     @org.springframework.beans.factory.annotation.Value("${application.security.admin.password:#{T(java.util.UUID).randomUUID().toString()}}")
     private String adminPassword;
 
-    @org.springframework.beans.factory.annotation.Value("${application.prod.seed.curriculum.enabled:true}")
-    private boolean curriculumSeedEnabled;
+    @org.springframework.beans.factory.annotation.Value("${application.prod.seed.curriculum.enabled:}")
+    private String curriculumSeedEnabledRaw;
 
     @Bean
     public CommandLineRunner prodSeedData() {
@@ -78,8 +78,9 @@ public class ProdDataSeeder {
             seedCoreRoles();
             seedDefaultAdmin();
 
-            if (!curriculumSeedEnabled) {
-                log.info("ProdDataSeeder: curriculum seeding is disabled (application.prod.seed.curriculum.enabled=false).");
+            boolean seedEnabled = isCurriculumSeedEnabled();
+            if (!seedEnabled) {
+                log.info("ProdDataSeeder: curriculum seeding is disabled (application.prod.seed.curriculum.enabled=false or running on Render).");
                 return;
             }
 
@@ -98,6 +99,34 @@ public class ProdDataSeeder {
 
             log.info("ProdDataSeeder completed. Core roles and Grade 6 curriculum are present.");
         };
+    }
+
+    private boolean isCurriculumSeedEnabled() {
+        // Explicit override wins
+        if (curriculumSeedEnabledRaw != null && !curriculumSeedEnabledRaw.isBlank()) {
+            return Boolean.parseBoolean(curriculumSeedEnabledRaw.trim());
+        }
+
+        // Render free tier (512MB) frequently crashes during heavy JPA seeding.
+        // Auto-disable curriculum seeding on Render unless explicitly enabled.
+        if (isRunningOnRender()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static boolean isRunningOnRender() {
+        // Render injects at least one of these in most runtimes.
+        return hasEnv("RENDER")
+                || hasEnv("RENDER_SERVICE_ID")
+                || hasEnv("RENDER_EXTERNAL_URL")
+                || hasEnv("RENDER_INSTANCE_ID");
+    }
+
+    private static boolean hasEnv(String name) {
+        String v = System.getenv(name);
+        return v != null && !v.isBlank();
     }
 
     private void seedPlacementQuestions() {
