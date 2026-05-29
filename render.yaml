@@ -38,9 +38,9 @@ services:
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: update
+        value: none
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
-        value: "10"
+        value: "3"
       - key: RATE_LIMIT_TRUST_PROXY_HEADERS
         value: "true"
       - key: RATE_LIMIT_MAX_ATTEMPTS

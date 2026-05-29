@@ -13,4 +13,4 @@ ENV SPRING_PROFILES_ACTIVE=prod \
 # IMPORTANT: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
 # MUST be provided via Render Dashboard environment variables (sync: false).
 # Do NOT hardcode credentials here — they are sensitive and will be exposed in the image.
-ENTRYPOINT ["sh", "-c", "java -Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar app.jar --server.port=${PORT:-10000}"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=25.0 -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar app.jar --server.port=${PORT:-10000}"]
