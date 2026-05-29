@@ -25,6 +25,14 @@ public class ProductionProfileEnvironmentListener implements ApplicationListener
                     "Production (prod): set REDIS_URL in Render (Upstash). "
                             + "If it is unset, Spring defaults to Redis on localhost and the app will not work in Docker.");
         }
+        String dbUrl = env.getProperty("spring.datasource.url");
+        if (!StringUtils.hasText(dbUrl)) {
+            throw new IllegalStateException(
+                    "Production (prod): set SPRING_DATASOURCE_URL in Render Dashboard (Aiven MySQL JDBC URL, e.g. "
+                            + "jdbc:mysql://<HOST>:<PORT>/<DB>?useSSL=true&requireSSL=true&serverTimezone=UTC). "
+                            + "sync: false in render.yaml means it is not in Git — you must enter it manually; "
+                            + "without it Hibernate cannot read JDBC metadata and fails with 'Unable to determine Dialect'.");
+        }
         String dbPassword = env.getProperty("spring.datasource.password");
         if (!StringUtils.hasText(dbPassword)) {
             throw new IllegalStateException(
