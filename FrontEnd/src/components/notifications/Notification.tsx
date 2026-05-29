@@ -5,6 +5,9 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "../../store/authStore";
 import api from "../../services/api/axios";
+import { unwrapPageData } from "../../utils/apiPage";
+
+const wsBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 interface Notification {
   id: number;
@@ -23,44 +26,28 @@ const NotificationComponent = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('Setting up WebSocket for user:', user?.username);
-    // Initial fetch
     fetchNotifications();
     fetchUnreadCount();
 
-    if (!accessToken || !user?.username) {
+    if (!accessToken || !user?.username || !wsBase) {
       return;
     }
 
-    // WebSocket setup
-    const socket = new SockJS('/ws');
+    const socket = new SockJS(`${wsBase}/ws`);
     const stompClient = new Client({
       webSocketFactory: () => socket,
       connectHeaders: {
         Authorization: `Bearer ${accessToken}`,
       },
-      onConnect: (frame) => {
-        console.log('Connected to STOMP broker:', frame);
-
-        const destination = '/user/queue/notifications';
-        console.log('Subscribing to:', destination);
-
-        stompClient.subscribe(destination, (message) => {
-          console.log('Received notification message:', message.body);
+      onConnect: () => {
+        stompClient.subscribe('/user/queue/notifications', (message) => {
           const newNotification = JSON.parse(message.body);
           setNotifications((prev) => [newNotification, ...prev]);
           setUnreadCount((prev) => prev + 1);
         });
       },
       onStompError: (frame) => {
-        console.error('STOMP Error:', frame.headers['message']);
-        console.error('STOMP Details:', frame.body);
-      },
-      onWebSocketClose: () => {
-        console.log('WebSocket connection closed');
-      },
-      debug: (str) => {
-        console.log('STOMP Debug:', str);
+        console.error('STOMP Error:', frame.headers['message'], frame.body);
       },
     });
 
@@ -87,7 +74,7 @@ const NotificationComponent = () => {
     try {
       const response = await api.get('/notifications/me');
       if (response.data.success) {
-        setNotifications(response.data.data);
+        setNotifications(unwrapPageData(response.data.data));
       }
     } catch (error) {
       console.error("Failed to fetch notifications", error);

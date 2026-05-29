@@ -28,7 +28,7 @@ public class ProductionProfileEnvironmentListener implements ApplicationListener
         String dbPassword = env.getProperty("spring.datasource.password");
         if (!StringUtils.hasText(dbPassword)) {
             throw new IllegalStateException(
-                    "Production (prod): set SPRING_DATASOURCE_PASSWORD in Render Dashboard (Railway MySQL password). "
+                    "Production (prod): set SPRING_DATASOURCE_PASSWORD in Render Dashboard (Aiven MySQL password). "
                             + "sync: false in render.yaml means it is not in Git — you must enter it manually; empty breaks JDBC.");
         }
     }

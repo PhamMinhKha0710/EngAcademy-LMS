@@ -8,11 +8,13 @@ import com.englishlearn.infrastructure.persistence.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Profile("!prod")
 @RequestMapping("/api/v1/test-notifications")
 @RequiredArgsConstructor
 @Tag(name = "Test Notifications", description = "API để test thông báo real-time")

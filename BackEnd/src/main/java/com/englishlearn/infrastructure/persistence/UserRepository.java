@@ -47,6 +47,30 @@ public interface UserRepository extends JpaRepository<User, Long> {
   @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT' AND (:schoolId IS NULL OR u.school.id = :schoolId) ORDER BY u.coins DESC, u.streakDays DESC")
   List<User> findAllStudentsBySchool(@Param("schoolId") Long schoolId);
 
+  @Query("""
+      SELECT COUNT(u) FROM User u JOIN u.roles r
+      WHERE r.name = 'ROLE_STUDENT'
+        AND (:schoolId IS NULL OR u.school.id = :schoolId)
+        AND (
+          u.coins > :coins
+          OR (u.coins = :coins AND u.streakDays > :streakDays)
+          OR (u.coins = :coins AND u.streakDays = :streakDays AND u.id < :userId)
+        )
+      """)
+  long countStudentsRankedAbove(
+      @Param("schoolId") Long schoolId,
+      @Param("coins") Integer coins,
+      @Param("streakDays") Integer streakDays,
+      @Param("userId") Long userId);
+
+  @Query("""
+      SELECT u FROM User u JOIN u.roles r
+      WHERE r.name = 'ROLE_STUDENT'
+        AND (:schoolId IS NULL OR u.school.id = :schoolId)
+        AND u.id IN :userIds
+      """)
+  List<User> findStudentsBySchoolAndIdIn(@Param("schoolId") Long schoolId, @Param("userIds") List<Long> userIds);
+
   // Count only ROLE_STUDENT users
   @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.name = 'ROLE_STUDENT'")
   long countStudents();

@@ -6,10 +6,12 @@ import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.entity.ClassRoom;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
+@Profile("dev")
 public class DataCheckRunner implements CommandLineRunner {
     @Autowired private UserRepository userRepository;
     @Autowired private ClassRoomRepository classRoomRepository;

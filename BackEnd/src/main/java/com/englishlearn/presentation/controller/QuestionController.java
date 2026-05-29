@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,9 +28,12 @@ public class QuestionController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    @Operation(summary = "Get all questions")
-    public ResponseEntity<ApiResponse<List<QuestionResponse>>> getAllQuestions() {
-        List<QuestionResponse> questions = questionService.getAllQuestions();
+    @Operation(summary = "List questions (paginated)")
+    public ResponseEntity<ApiResponse<Page<QuestionResponse>>> getQuestions(
+            @RequestParam(required = false) Long lessonId,
+            @RequestParam(required = false) String questionType,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<QuestionResponse> questions = questionService.getQuestionsPage(lessonId, questionType, pageable);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi thành công", questions));
     }
 

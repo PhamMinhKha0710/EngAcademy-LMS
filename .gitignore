@@ -156,6 +156,8 @@ coverage/
 
 # Test results
 TestResults.xml
+FrontEnd/e2e/screenshots/
+FrontEnd/e2e/puppeteer-report.html
 
 # Secrets & credentials
 *.pem

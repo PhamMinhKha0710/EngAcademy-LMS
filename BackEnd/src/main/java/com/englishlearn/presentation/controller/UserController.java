@@ -169,7 +169,7 @@ public class UserController {
             request.setSchoolId(currentUser.getSchoolId());
         }
 
-        UserResponse user = userService.createUser(request);
+        UserResponse user = userService.createUser(currentUser.getId(), request);
 
         // Log action
         auditLogService.log(currentUser.getId(), "CREATE_USER", "Tạo người dùng mới: " + user.getUsername(),
@@ -229,7 +229,7 @@ public class UserController {
             }
         }
 
-        UserResponse user = userService.updateUser(id, request);
+        UserResponse user = userService.updateUser(currentUser.getId(), id, request);
 
         // Log action
         auditLogService.log(currentUser.getId(), "UPDATE_USER", "Cập nhật người dùng: " + user.getUsername(),

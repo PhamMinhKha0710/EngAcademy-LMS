@@ -3,6 +3,7 @@ package com.englishlearn.infrastructure.config;
 import com.englishlearn.infrastructure.security.JwtService;
 import com.englishlearn.infrastructure.security.StompPrincipal;
 import com.englishlearn.infrastructure.security.StompSubscribeAuthorizationInterceptor;
+import com.englishlearn.infrastructure.security.WebSocketConnectionLimiter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +23,8 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import java.security.Principal;
+
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
@@ -30,6 +33,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final StompSubscribeAuthorizationInterceptor stompSubscribeAuthorizationInterceptor;
+    private final WebSocketConnectionLimiter webSocketConnectionLimiter;
 
     @Value("${application.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
     private String allowedOrigins;
@@ -63,6 +67,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             if (username != null) {
                                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                                 if (jwtService.isTokenValid(jwt, userDetails)) {
+                                    webSocketConnectionLimiter.registerConnect(username);
                                     accessor.setUser(new StompPrincipal(username));
                                 } else {
                                     throw new MessageDeliveryException("Invalid WebSocket authentication token");
@@ -75,6 +80,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         }
                     } else {
                         throw new MessageDeliveryException("WebSocket authentication token missing");
+                    }
+                }
+                if (accessor != null && StompCommand.DISCONNECT.equals(accessor.getCommand())) {
+                    Principal user = accessor.getUser();
+                    if (user != null) {
+                        webSocketConnectionLimiter.registerDisconnect(user.getName());
                     }
                 }
                 if (accessor != null && StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {

@@ -6,18 +6,6 @@
   "devCommand": "npm run dev",
   "rewrites": [
     {
-      "source": "/api/v1/(.*)",
-      "destination": "https://engacademy-lms.onrender.com/api/v1/$1"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "https://engacademy-lms.onrender.com/api/$1"
-    },
-    {
-      "source": "/ws/(.*)",
-      "destination": "https://engacademy-lms.onrender.com/ws/$1"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

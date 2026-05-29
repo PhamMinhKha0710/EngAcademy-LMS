@@ -43,6 +43,23 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     @Query("SELECT e FROM Exam e WHERE e.classRoom.id = :classId AND e.status = 'PUBLISHED' AND e.startTime <= :now AND e.endTime >= :now")
     List<Exam> findActiveExamsByClassId(@Param("classId") Long classId, @Param("now") LocalDateTime now);
 
+    @Query("""
+            SELECT e FROM Exam e
+            JOIN FETCH e.classRoom cr
+            LEFT JOIN FETCH cr.school
+            JOIN FETCH e.teacher
+            WHERE e.classRoom.id = :classId
+              AND e.status = 'PUBLISHED'
+              AND e.startTime <= :now
+              AND e.endTime >= :now
+            """)
+    List<Exam> findActiveExamsByClassIdWithDetails(
+            @Param("classId") Long classId,
+            @Param("now") LocalDateTime now);
+
+    @Query(value = "SELECT COUNT(*) FROM EXAM_QUESTION WHERE exam_id = :examId", nativeQuery = true)
+    long countQuestionsByExamId(@Param("examId") Long examId);
+
     @Query("SELECT e FROM Exam e WHERE e.teacher.id = :teacherId AND e.status = :status")
     List<Exam> findByTeacherIdAndStatus(@Param("teacherId") Long teacherId, @Param("status") String status);
 

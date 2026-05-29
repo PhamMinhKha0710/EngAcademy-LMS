@@ -83,9 +83,9 @@ public class ExamService {
 
     @Transactional(readOnly = true)
     public List<ExamResponse> getActiveExamsByClass(Long classId) {
-        return examRepository.findActiveExamsByClassId(classId, examScheduleNow())
+        return examRepository.findActiveExamsByClassIdWithDetails(classId, examScheduleNow())
                 .stream()
-                .map(this::mapToResponse)
+                .map(this::mapToActiveExamSummary)
                 .collect(Collectors.toList());
     }
 
@@ -409,6 +409,35 @@ public class ExamService {
         }
         examRepository.deleteById(id);
         log.info("Deleted exam with ID: {}", id);
+    }
+
+    /** Lightweight mapper for list endpoints — avoids loading exam questions. */
+    private ExamResponse mapToActiveExamSummary(Exam exam) {
+        long questionCount = examRepository.countQuestionsByExamId(exam.getId());
+        return ExamResponse.builder()
+                .id(exam.getId())
+                .title(exam.getTitle())
+                .status(exam.getStatus())
+                .scorePublished(exam.getScorePublished())
+                .schoolId(exam.getClassRoom() != null && exam.getClassRoom().getSchool() != null
+                        ? exam.getClassRoom().getSchool().getId() : null)
+                .schoolName(exam.getClassRoom() != null && exam.getClassRoom().getSchool() != null
+                        ? exam.getClassRoom().getSchool().getName() : null)
+                .classId(exam.getClassRoom().getId())
+                .className(exam.getClassRoom().getName())
+                .teacherId(exam.getTeacher().getId())
+                .teacherName(exam.getTeacher().getFullName())
+                .startTime(exam.getStartTime())
+                .endTime(exam.getEndTime())
+                .durationMinutes(exam.getDurationMinutes())
+                .shuffleQuestions(exam.getShuffleQuestions())
+                .shuffleAnswers(exam.getShuffleAnswers())
+                .antiCheatEnabled(exam.getAntiCheatEnabled())
+                .questionCount((int) questionCount)
+                .totalPoints(null)
+                .submittedCount(null)
+                .averageScore(null)
+                .build();
     }
 
     private ExamResponse mapToResponse(Exam exam) {

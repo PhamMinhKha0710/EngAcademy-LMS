@@ -9,6 +9,7 @@ import com.englishlearn.application.dto.response.ExamResponse;
 import com.englishlearn.application.dto.response.ExamResultDTO;
 import com.englishlearn.application.dto.response.ExamResultResponse;
 import com.englishlearn.application.dto.response.ExamTakeDTO;
+import com.englishlearn.application.security.RoleAuthorizationGuard;
 import com.englishlearn.application.service.ExamService;
 import com.englishlearn.application.service.UserService;
 import com.englishlearn.application.service.ClassRoomService;
@@ -40,6 +41,7 @@ public class ExamController {
     private final ExamService examService;
     private final UserService userService;
     private final ClassRoomService classRoomService;
+    private final RoleAuthorizationGuard roleAuthorizationGuard;
 
     private static boolean isAdmin(UserResponse user) {
         return user.getRoles().contains("ROLE_ADMIN");
@@ -78,13 +80,7 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
-        if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
-            UserResponse teacher = userService.getUserById(teacherId);
-            if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(teacher.getSchoolId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("Bạn không có quyền xem bài thi của giáo viên trường khác"));
-            }
-        }
+        roleAuthorizationGuard.assertTeacherCanViewTeacherData(currentUser.getId(), teacherId);
 
         Page<ExamResponse> exams = examService.getExamsByTeacher(teacherId, pageable);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài kiểm tra thành công", exams));
@@ -177,6 +173,7 @@ public class ExamController {
             @AuthenticationPrincipal UserDetails userDetails) {
         
         UserResponse currentUser = userService.getUserByUsername(userDetails.getUsername());
+        roleAuthorizationGuard.assertTeacherIdMatchesCaller(currentUser.getId(), teacherId);
         if (currentUser.getRoles().contains("ROLE_SCHOOL")) {
             UserResponse teacher = userService.getUserById(teacherId);
             if (currentUser.getSchoolId() == null || !currentUser.getSchoolId().equals(teacher.getSchoolId())) {

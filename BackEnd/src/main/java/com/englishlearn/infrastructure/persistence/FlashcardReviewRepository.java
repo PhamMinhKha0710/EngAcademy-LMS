@@ -23,6 +23,18 @@ public interface FlashcardReviewRepository extends JpaRepository<FlashcardReview
             @Param("today") LocalDate today);
 
     @Query("""
+        SELECT r FROM FlashcardReview r
+        LEFT JOIN FETCH r.vocabulary
+        LEFT JOIN FETCH r.grammar
+        WHERE r.user.id = :userId
+          AND r.nextReviewAt <= :today
+        ORDER BY r.nextReviewAt ASC, r.easinessFactor ASC
+        """)
+    List<FlashcardReview> findDueTodayWithContent(
+            @Param("userId") Long userId,
+            @Param("today") LocalDate today);
+
+    @Query("""
         SELECT COUNT(r) FROM FlashcardReview r
         WHERE r.user.id = :userId
           AND r.nextReviewAt <= :today

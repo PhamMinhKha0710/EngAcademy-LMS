@@ -12,6 +12,7 @@ import com.englishlearn.domain.entity.User;
 import com.englishlearn.domain.exception.ApiException;
 import com.englishlearn.domain.exception.DuplicateResourceException;
 import com.englishlearn.infrastructure.persistence.ClassRoomRepository;
+import com.englishlearn.application.security.RoleAuthorizationGuard;
 import com.englishlearn.application.security.SchoolTenantGuard;
 import com.englishlearn.infrastructure.persistence.RoleRepository;
 import com.englishlearn.infrastructure.persistence.SchoolRepository;
@@ -37,6 +38,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final SchoolTenantGuard schoolTenantGuard;
+    private final RoleAuthorizationGuard roleAuthorizationGuard;
     private final SchoolRepository schoolRepository;
     private final ClassRoomRepository classRoomRepository;
     private final StudentClassRepository studentClassRepository;
@@ -59,7 +61,8 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse createUser(CreateUserRequest request) {
+    public UserResponse createUser(Long callerId, CreateUserRequest request) {
+        roleAuthorizationGuard.assertCallerCanAssignRoles(callerId, request.getRoles());
         // Validate username uniqueness
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new DuplicateResourceException("Tài khoản", "username", request.getUsername());
@@ -135,7 +138,14 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse updateUser(Long userId, UpdateUserRequest request) {
+    public UserResponse updateUser(Long callerId, Long userId, UpdateUserRequest request) {
+        boolean changingRoles = request.getRoles() != null && !request.getRoles().isEmpty();
+        boolean changingCoins = request.getCoins() != null;
+        roleAuthorizationGuard.assertCallerCanModifyUserFields(callerId, changingRoles, changingCoins);
+        if (changingRoles) {
+            roleAuthorizationGuard.assertCallerCanAssignRoles(callerId, request.getRoles());
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("Không tìm thấy người dùng với ID: " + userId));
 

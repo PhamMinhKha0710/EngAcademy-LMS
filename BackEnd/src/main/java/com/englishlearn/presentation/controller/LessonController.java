@@ -25,6 +25,7 @@ import java.util.List;
 @RequestMapping("/api/v1/lessons")
 @RequiredArgsConstructor
 @Tag(name = "Lessons", description = "API quản lý bài học")
+@PreAuthorize("isAuthenticated()")
 public class LessonController {
 
     private final LessonService lessonService;

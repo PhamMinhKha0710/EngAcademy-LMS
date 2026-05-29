@@ -8,10 +8,29 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
+
+    @Query("""
+            SELECT q.id FROM Question q
+            WHERE (:lessonId IS NULL OR q.lesson.id = :lessonId)
+              AND (:questionType IS NULL OR q.questionType = :questionType)
+            """)
+    Page<Long> findQuestionIds(
+            @Param("lessonId") Long lessonId,
+            @Param("questionType") String questionType,
+            Pageable pageable);
+
+    @Query("""
+            SELECT DISTINCT q FROM Question q
+            LEFT JOIN FETCH q.lesson
+            LEFT JOIN FETCH q.vocabulary
+            WHERE q.id IN :ids
+            """)
+    List<Question> findByIdsWithLessonAndVocabulary(@Param("ids") Collection<Long> ids);
 
     List<Question> findByLessonId(Long lessonId);
 

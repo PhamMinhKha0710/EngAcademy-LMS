@@ -1,5 +1,8 @@
 import api from './axios'
+import { unwrapPageData } from '../../utils/apiPage'
+
 interface ApiResponse<T> { success: boolean; message: string; data: T }
+interface PageResponse<T> { content: T[]; totalElements?: number }
 
 export interface QuestionOption { id: number; optionText: string; isCorrect: boolean }
 export interface QuestionResponse {
@@ -12,9 +15,14 @@ export interface QuestionRequest {
 }
 
 export const questionApi = {
-    getAll: async () => {
-        const r = await api.get<ApiResponse<QuestionResponse[]>>('/questions')
-        return r.data.data
+    getAll: async (params?: { page?: number; size?: number; lessonId?: number; questionType?: string }) => {
+        const q = new URLSearchParams()
+        q.set('page', String(params?.page ?? 0))
+        q.set('size', String(params?.size ?? 500))
+        if (params?.lessonId != null) q.set('lessonId', String(params.lessonId))
+        if (params?.questionType) q.set('questionType', params.questionType)
+        const r = await api.get<ApiResponse<PageResponse<QuestionResponse>>>(`/questions?${q}`)
+        return unwrapPageData(r.data.data)
     },
     getByLesson: async (lessonId: number) => {
         const r = await api.get<ApiResponse<QuestionResponse[]>>(`/questions/lesson/${lessonId}`)

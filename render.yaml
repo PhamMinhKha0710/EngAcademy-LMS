@@ -1,34 +1,13 @@
+# Render Blueprint — BackEnd only (FrontEnd on Vercel, Admin optional local/Vercel)
+# Set secrets in Dashboard: Aiven SPRING_DATASOURCE_*, Upstash REDIS_URL, CORS (see render.env.example, docs/aiven-mysql-setup.md)
+
 services:
-  - type: web
-    name: engacademy-frontend
-    runtime: docker
-    dockerfilePath: FrontEnd/Dockerfile
-    region: singapore
-    port: 3000
-    healthCheckPath: /
-    envVars:
-      # Must be the public URL of engacademy-backend (API), not the frontend URL, unless the same hostname is attached to the backend service in Render.
-      - key: VITE_API_URL
-        value: https://engacademy-lms.onrender.com
-
-  - type: web
-    name: engacademy-admin
-    runtime: docker
-    dockerfilePath: Admin/Dockerfile
-    region: singapore
-    port: 3001
-    healthCheckPath: /
-    envVars:
-      - key: VITE_API_URL
-        value: https://engacademy-lms.onrender.com
-
-  # Spring Boot + Hibernate cold start can take several minutes on small instances. Render may log "No open ports detected" until Tomcat listens — that is expected.
-  # Free Web Services spin down after idle: the first request after sleep can return 503 until the JVM finishes starting; wait and retry, upgrade plan, or use an external ping.
   - type: web
     name: engacademy-backend
     runtime: docker
     dockerfilePath: Dockerfile
     region: singapore
+    plan: free
     port: 10000
     healthCheckPath: /api/v1/auth/health
     envVars:
@@ -45,32 +24,34 @@ services:
       - key: APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION
         value: 604800000
       - key: APPLICATION_CORS_ALLOWED_ORIGINS
-        value: https://engacademy-lms-1.onrender.com,https://engacademy-admin.onrender.com,https://engacademy-lms.onrender.com,http://localhost:3000,http://localhost:3001
+        sync: false
+        # e.g. https://your-app.vercel.app,http://localhost:3000
       - key: REDIS_URL
         sync: false
-        # Do NOT hardcode the full URL here — set via Render Dashboard Environment Variables.
-        # Format: rediss://default:<password>@<host>:<port>
+        # Upstash: rediss://default:TOKEN@HOST:PORT
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:mysql://mainline.proxy.rlwy.net:53123/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+        sync: false
       - key: SPRING_DATASOURCE_USERNAME
-        value: root
-      # Never use value: "" here — it overrides the image ENV and breaks MySQL auth (503).
-      # Set the real Railway MySQL password in Render Dashboard > Environment (sync: false).
+        sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
+      - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+        value: "10"
+      - key: RATE_LIMIT_TRUST_PROXY_HEADERS
+        value: "true"
+      - key: RATE_LIMIT_MAX_ATTEMPTS
+        value: "10"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
       - key: SPRING_MAIL_HOST
         value: smtp.gmail.com
       - key: SPRING_MAIL_PORT
-        value: 587
+        value: "587"
       - key: SPRING_MAIL_USERNAME
-        value: dinhminh4424@gmail.com
+        sync: false
       - key: SPRING_MAIL_PASSWORD
         sync: false
-      - key: RATE_LIMIT_MAX_ATTEMPTS
-        value: 100
-      - key: RATE_LIMIT_WINDOW_SECONDS
-        value: 60
-      - key: RATE_LIMIT_ENABLED
-        value: true

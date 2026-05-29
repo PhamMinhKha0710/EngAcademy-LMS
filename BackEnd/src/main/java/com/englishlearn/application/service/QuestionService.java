@@ -14,11 +14,17 @@ import com.englishlearn.infrastructure.persistence.VocabularyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,24 +37,46 @@ public class QuestionService {
     private final LessonRepository lessonRepository;
     private final VocabularyRepository vocabularyRepository;
 
+    /**
+     * Paginated list — 3 DB round-trips per page (ids, questions+joins, options batch).
+     */
     @Transactional(readOnly = true)
-    public List<QuestionResponse> getAllQuestions() {
-        return questionRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<QuestionResponse> getQuestionsPage(Long lessonId, String questionType, Pageable pageable) {
+        Page<Long> idPage = questionRepository.findQuestionIds(lessonId, questionType, pageable);
+        if (idPage.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        List<Long> ids = idPage.getContent();
+        List<Question> questions = questionRepository.findByIdsWithLessonAndVocabulary(ids);
+        Map<Long, Question> byId = questions.stream()
+                .collect(Collectors.toMap(Question::getId, Function.identity(), (a, b) -> a));
+
+        List<Question> ordered = new ArrayList<>(ids.size());
+        for (Long id : ids) {
+            Question q = byId.get(id);
+            if (q != null) {
+                ordered.add(q);
+            }
+        }
+
+        Map<Long, List<QuestionOption>> optionsByQuestionId = loadOptionsByQuestionIds(ids);
+        List<QuestionResponse> content = ordered.stream()
+                .map(q -> mapToResponse(q, optionsByQuestionId.getOrDefault(q.getId(), List.of())))
+                .toList();
+
+        return new PageImpl<>(content, pageable, idPage.getTotalElements());
     }
 
     @Transactional(readOnly = true)
     public Page<QuestionResponse> getQuestionsByType(String type, Pageable pageable) {
-        return questionRepository.findByQuestionType(type, pageable)
-                .map(this::mapToResponse);
+        return getQuestionsPage(null, type, pageable);
     }
 
     @Transactional(readOnly = true)
     public List<QuestionResponse> getQuestionsByLesson(Long lessonId) {
-        return questionRepository.findByLessonId(lessonId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        Page<QuestionResponse> page = getQuestionsPage(lessonId, null, Pageable.unpaged());
+        return page.getContent();
     }
 
     @Transactional(readOnly = true)
@@ -82,7 +110,6 @@ public class QuestionService {
 
         Question savedQuestion = questionRepository.save(question);
 
-        // Create options if provided
         if (request.getOptions() != null && !request.getOptions().isEmpty()) {
             for (QuestionRequest.QuestionOptionRequest optionReq : request.getOptions()) {
                 QuestionOption option = QuestionOption.builder()
@@ -121,7 +148,6 @@ public class QuestionService {
 
         Question updatedQuestion = questionRepository.save(question);
 
-        // Update options if provided
         if (request.getOptions() != null) {
             questionOptionRepository.deleteByQuestionId(id);
             for (QuestionRequest.QuestionOptionRequest optionReq : request.getOptions()) {
@@ -148,16 +174,32 @@ public class QuestionService {
         log.info("Deleted question with ID: {}", id);
     }
 
+    private Map<Long, List<QuestionOption>> loadOptionsByQuestionIds(List<Long> questionIds) {
+        if (questionIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, List<QuestionOption>> grouped = new HashMap<>();
+        for (QuestionOption option : questionOptionRepository.findByQuestionIdIn(questionIds)) {
+            Long questionId = option.getQuestion().getId();
+            grouped.computeIfAbsent(questionId, k -> new ArrayList<>()).add(option);
+        }
+        grouped.values().forEach(list -> list.sort(Comparator.comparing(QuestionOption::getId)));
+        return grouped;
+    }
+
     private QuestionResponse mapToResponse(Question question) {
         List<QuestionOption> options = questionOptionRepository.findByQuestionId(question.getId());
+        return mapToResponse(question, options);
+    }
 
+    private QuestionResponse mapToResponse(Question question, List<QuestionOption> options) {
         List<QuestionResponse.QuestionOptionResponse> optionResponses = options.stream()
                 .map(opt -> QuestionResponse.QuestionOptionResponse.builder()
                         .id(opt.getId())
                         .optionText(opt.getOptionText())
                         .isCorrect(opt.getIsCorrect())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         return QuestionResponse.builder()
                 .id(question.getId())

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Bell, ArrowLeft, Clock, Calendar, CheckCircle } from "lucide-react";
 import api from "../services/api/axios";
+import { unwrapPageData } from "../utils/apiPage";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -23,16 +24,9 @@ const NotificationDetailPage = () => {
   useEffect(() => {
     const fetchNotification = async () => {
       try {
-        // Since there is no single notification fetch endpoint yet, we might need to fetch all and filter
-        // or add a new endpoint. For now, let's assume we fetch by ID if possible, 
-        // or fetch all and find the one.
-        // Better: I'll add a getSingleNotification endpoint in Backend later if needed, 
-        // but often we just mark as read on visit.
-        
-        // Actually, let's just fetch all and filter for now to avoid too many backend changes
         const response = await api.get('/notifications/me');
-        const list = response.data.data;
-        const found = list.find((n: Notification) => n.id === Number(id));
+        const list = unwrapPageData<Notification>(response.data.data);
+        const found = list.find((n) => n.id === Number(id));
         
         if (found) {
           setNotification(found);

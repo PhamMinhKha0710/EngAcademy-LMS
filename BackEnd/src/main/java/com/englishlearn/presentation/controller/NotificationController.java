@@ -9,6 +9,9 @@ import com.englishlearn.application.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,10 +35,11 @@ public class NotificationController {
      */
     @GetMapping("/me")
     @Operation(summary = "Lấy danh sách thông báo của người dùng hiện tại")
-    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getMyNotifications(
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ApiResponse<Page<NotificationResponse>>> getMyNotifications(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PageableDefault(size = 20) Pageable pageable) {
         Long userId = notificationService.getUserIdByUsername(userDetails.getUsername());
-        List<NotificationResponse> notifications = notificationService.getNotificationsByUserId(userId);
+        Page<NotificationResponse> notifications = notificationService.getNotificationsPage(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(notifications));
     }
 

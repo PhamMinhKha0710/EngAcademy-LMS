@@ -38,10 +38,13 @@ public class SrsService {
     public SrsDueResponse getDueToday(Long userId) {
         LocalDate today = LocalDate.now();
 
-        List<FlashcardReview> due = reviewRepository.findDueToday(userId, today);
+        List<FlashcardReview> due = reviewRepository.findDueTodayWithContent(userId, today);
         long totalDue = reviewRepository.countDueToday(userId, today);
 
-        List<SrsDueResponse> items = due.stream()
+        final int maxItems = 100;
+        List<FlashcardReview> capped = due.size() > maxItems ? due.subList(0, maxItems) : due;
+
+        List<SrsDueResponse> items = capped.stream()
                 .map(r -> toResponse(r, today))
                 .toList();
 

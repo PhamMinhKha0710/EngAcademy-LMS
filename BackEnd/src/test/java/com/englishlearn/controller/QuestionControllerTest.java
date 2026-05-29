@@ -172,10 +172,11 @@ class QuestionControllerTest {
         @DisplayName("TC-QUES-010: Get all questions should return 200")
         void getAllQuestions_ShouldReturn200() throws Exception {
                 mockMvc.perform(get("/api/v1/questions")
+                                .param("size", "20")
                                 .header("Authorization", "Bearer " + teacherToken))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
-                                .andExpect(jsonPath("$.data").isArray());
+                                .andExpect(jsonPath("$.data.content").isArray());
         }
 
         @Test
