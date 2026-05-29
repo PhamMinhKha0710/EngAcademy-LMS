@@ -67,6 +67,9 @@ public class ProdDataSeeder {
     @org.springframework.beans.factory.annotation.Value("${application.security.admin.password:#{T(java.util.UUID).randomUUID().toString()}}")
     private String adminPassword;
 
+    @org.springframework.beans.factory.annotation.Value("${application.prod.seed.curriculum.enabled:true}")
+    private boolean curriculumSeedEnabled;
+
     @Bean
     public CommandLineRunner prodSeedData() {
         return args -> {
@@ -74,6 +77,11 @@ public class ProdDataSeeder {
 
             seedCoreRoles();
             seedDefaultAdmin();
+
+            if (!curriculumSeedEnabled) {
+                log.info("ProdDataSeeder: curriculum seeding is disabled (application.prod.seed.curriculum.enabled=false).");
+                return;
+            }
 
             if (lessonRepository.count() > 0) {
                 log.info("Lessons already exist. Skipping curriculum seeding on production.");

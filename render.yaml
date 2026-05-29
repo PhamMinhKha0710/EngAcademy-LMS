@@ -39,6 +39,8 @@ services:
         sync: false
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: none
+      - key: APPLICATION_PROD_SEED_CURRICULUM_ENABLED
+        value: "false"
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
         value: "3"
       - key: RATE_LIMIT_TRUST_PROXY_HEADERS
